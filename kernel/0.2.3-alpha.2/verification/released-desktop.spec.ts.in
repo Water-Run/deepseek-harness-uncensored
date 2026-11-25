@@ -29,7 +29,8 @@ async function rpc(ready: DesktopHostReady, method: string, args: Record<string,
 it('opens the released conversations and creates a writing session despite an obsolete profile controller', async () => {
   const directory = process.env.DSHU_VERIFY_DATA
   if (!directory || !process.versions.electron) throw new Error('Run with the release verifier and the candidate Electron binary')
-  const home = join(directory, 'workspace-profile')
+  const user = join(directory, 'user')
+  const home = join(user, '.dsh-uncensored')
   const profile = join(home, 'profiles', 'desktop')
   const version = async (path: string) => JSON.parse(await readFile(join(repository, path, 'package.json'), 'utf8')).version
   const runtime = prepareDevelopmentProject({
@@ -42,8 +43,8 @@ it('opens the released conversations and creates a writing session despite an ob
   const environment = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
     /^(?:path|pathext|systemroot|windir|comspec|temp|tmp|lang|lc_all)$/i.test(key)))
   const host = new DesktopHostProcess(process.execPath, runtime, profile, undefined, {
-    ...environment, DSH_HOME: home, HOME: home, USERPROFILE: home, APPDATA: home, LOCALAPPDATA: home,
-    XDG_CONFIG_HOME: home, XDG_CACHE_HOME: home, XDG_STATE_HOME: home, DSH_TELEMETRY_MODE: 'DISABLED',
+    ...environment, HOME: user, USERPROFILE: user, APPDATA: user, LOCALAPPDATA: user,
+    XDG_CONFIG_HOME: user, XDG_CACHE_HOME: user, XDG_STATE_HOME: user, DSH_TELEMETRY_MODE: 'DISABLED',
   })
   let timer: ReturnType<typeof setTimeout> | undefined
   let verified = false

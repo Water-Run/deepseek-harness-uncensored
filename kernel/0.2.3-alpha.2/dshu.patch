@@ -713,10 +713,18 @@ index 7664fb11d460ed9cd72274f3105cb782bc0d462e..a2e50daf0e267e4c067b6af167d1bdfa
    reportSkippedBundles('dsh', profile)
    const application = runProfile({
 diff --git a/apps/desktop/README.i18n.yaml b/apps/desktop/README.i18n.yaml
-index 1336a701c617d5f35477c8bc0082d6ae25996fcf..ffdf22b9d5487fe8f4239ee5cc5391063c66d144 100644
+index 1336a701c617d5f35477c8bc0082d6ae25996fcf..6b072505039451a532e7564b216db9d0e98f245d 100644
 --- a/apps/desktop/README.i18n.yaml
 +++ b/apps/desktop/README.i18n.yaml
-@@ -15,8 +15,8 @@
+@@ -9,20 +9,20 @@
+   en: 69a6e0c6712e463b
+   zh: 84e1d0b09c803704
+ /deepseek-harness-desktop/summary:
+-  en: 7bc8bf30de693222
+-  zh: e85993d8852b6cab
++  en: e1e283761d727fa8
++  zh: ccb7a14c658ca612
+ /deepseek-harness-desktop/table-of-contents:
    en: 127ea90553cb6af7
    zh: 7b1c5aec8558c684
  /deepseek-harness-desktop/application-overview:
@@ -727,7 +735,39 @@ index 1336a701c617d5f35477c8bc0082d6ae25996fcf..ffdf22b9d5487fe8f4239ee5cc539106
  /deepseek-harness-desktop/terminal-command:
    en: 988bf8bb84cf7c9a
    zh: 28cefc949c7f52ce
-@@ -60,8 +60,8 @@
+ /deepseek-harness-desktop/closing-the-window-and-quitting:
+-  en: bb35a022c37955c9
+-  zh: ab2ef22d398d83a0
++  en: 7d466d6393711628
++  zh: b2a2e4c94f6aef68
+ /deepseek-harness-desktop/key-technical-decisions:
+   en: 19642526da04f108
+   zh: 506ea427d46bb38f
+@@ -42,11 +42,11 @@
+   en: 98cf848762482d48
+   zh: 74f9100a39ec8c2f
+ /deepseek-harness-desktop/develop:
+-  en: 4e4b26cfaaa098ee
+-  zh: e0a2965606020041
++  en: f98e805b677fba28
++  zh: 08c9fe90a28ab2e0
+ /deepseek-harness-desktop/develop/startup-onboarding:
+-  en: 67dc7ef3e293236a
+-  zh: 1b224db684a2d1d7
++  en: 4fa9b8719c3d42d6
++  zh: b0d1e1cb0074cc3f
+ /deepseek-harness-desktop/develop/welcome-window-appearance:
+   en: 617a89aeb28131b9
+   zh: 4d84bd5d86501c86
+@@ -54,14 +54,14 @@
+   en: 7200a35dbed997c3
+   zh: 511d6961530757f1
+ /deepseek-harness-desktop/windows-installer-interface:
+-  en: 80f8f18b571864b6
+-  zh: 45af1d593b7e1b64
++  en: ccfa977f1d7eaeb0
++  zh: dd5116b4054ad64a
+ /deepseek-harness-desktop/updates:
    en: 8b0b9efeb83727ef
    zh: 5ee95de48ceab392
  /deepseek-harness-desktop/updates/local-desktop-settings:
@@ -738,11 +778,31 @@ index 1336a701c617d5f35477c8bc0082d6ae25996fcf..ffdf22b9d5487fe8f4239ee5cc539106
  /deepseek-harness-desktop/updates/mandatory-update-policy:
    en: 182a9c6705213e13
    zh: 681762f83490f4c6
+@@ -72,8 +72,8 @@
+   en: 8264b135871e8978
+   zh: 0939aafb1b2961fc
+ /deepseek-harness-desktop/known-limitations:
+-  en: b1eeadfefb338056
+-  zh: 28683fbdf1e98685
++  en: 488ccd4c082ea6ee
++  zh: 3f98f726bd49457d
+ /deepseek-harness-desktop/dev-note:
+   en: 8e26b460ba31f21b
+   zh: fbcd0307b3867125
 diff --git a/apps/desktop/README.md b/apps/desktop/README.md
-index af6f44dd177d452eef214f20de3ae784cd5612cd..4d24e70c38929790bfcccb5ef133d1be13a628db 100644
+index af6f44dd177d452eef214f20de3ae784cd5612cd..cf182ef34620005178674d6427d2605f57c13a5e 100644
 --- a/apps/desktop/README.md
 +++ b/apps/desktop/README.md
-@@ -43,7 +43,7 @@ Electron generates a fresh random credential for each owned Host process. After
+@@ -8,6 +8,8 @@ English | [中文](README.zh.md)
+ 
+ ## Summary
+ 
++The installed DSHU shell uses `~/.dsh-uncensored` or `DSH_UNCENSORED_HOME`. The shell checks for overlap with the official home before preparing the Desktop profile. Development uses a separate home under the workspace.
++
+ Desktop runs the Harness workspace in a native application. This reference covers application behavior, development and integration; the packaging, Windows signing and publication guides own build and release operations.
+ 
+ ## Table of Contents
+@@ -43,7 +45,7 @@ Electron generates a fresh random credential for each owned Host process. After
  
  Desktop binds `127.0.0.1`, the address Electron dials for the ready URL and the WebSocket credential filter. WebSocket streams use `ws:` or `wss:` according to the Host listener; credentials require matching authority and scheme.
  
@@ -751,7 +811,43 @@ index af6f44dd177d452eef214f20de3ae784cd5612cd..4d24e70c38929790bfcccb5ef133d1be
  
  Desktop’s local native directory flow opens an Electron folder dialog attached to the application window, restoring, showing, and focusing that window first. Concurrent requests share one dialog; cancellation returns no path and failures remain retryable. Ordinary Web uses the Host chooser. Browse mode lists Host directories. On Linux without zenity or kdialog, automatic selection uses browse instead of the Electron dialog.
  
-@@ -313,13 +313,7 @@ On first launch, including after an upgrade, Desktop creates this document if it
+@@ -73,7 +75,7 @@ Command registration is optional after installing Desktop. Windows manual uninst
+ 
+ ## Closing the window and quitting
+ 
+-Closing the main window (macOS close button and ⌘W; Windows ×, Alt+F4, and the taskbar Close window command) hides it; Windows asks for acknowledgement before the first hide. The page and the Host keep running, tasks continue, and the next show presents the same document with its session, drafts, and scroll position; a fullscreen macOS window leaves fullscreen before hiding. The window returns through the Dock icon, a second launch, or `dsh://open` on macOS, and through the tray on Windows. Minimize is unchanged. Closing the welcome window before the workspace opens quits on Windows and, on macOS, keeps the application in the Dock without a window.
++Closing the main window (macOS close button and ⌘W; Windows ×, Alt+F4, and the taskbar Close window command) hides it; Windows asks for acknowledgement before the first hide. The page and the Host keep running, tasks continue, and the next show presents the same document with its session, drafts, and scroll position; a fullscreen macOS window leaves fullscreen before hiding. The window returns through the Dock icon, a second launch, or `dshu://open` on macOS, and through the tray on Windows. Minimize is unchanged. Closing the welcome window before the workspace opens quits on Windows and, on macOS, keeps the application in the Dock without a window.
+ 
+ Windows keeps a tray icon for the whole run. Its tooltip is the product name, a single click shows and focuses the window, and the context menu offers Open DeepSeek Harness and Quit DeepSeek Harness in the shell locale. Before the first hide, the shared update-dialog overlay explains that running tasks continue and the window can be reopened from the system tray. Confirm hides the window and writes `background-close-confirmed` under Electron userData; Escape, dismissal, or dialog failure keeps the window visible and does not record acknowledgement. Repeated close requests focus the existing shell dialog. In-place updates retain the marker and uninstall removes it. The old `background-notice-shown` marker does not suppress this confirmation. Closing the window sends no system notification. The tray bitmaps are `resources/tray-windows.ico`, rendered from `resources/icon-windows.svg` at 16, 20, 24, 32, 40, 48, and 64 pixels by `pnpm run render:tray-icon`, and packaged as `resources/tray.ico`. macOS ships no menu bar icon.
+ 
+@@ -199,7 +201,7 @@ The development application menu offers Reload Page (Cmd+R on macOS, Ctrl+R else
+ pnpm run dev:desktop
+ ```
+ 
+-Development Harness state defaults to `apps/desktop/.desktop-dev/home` and Electron browser data to `apps/desktop/.desktop-dev/electron-user-data`; `pnpm run clean` removes `.desktop-build` but keeps this directory. The disposable npm project lives at `apps/desktop/.desktop-build/development/project`. Sessions, settings, credentials, package links, and browser data therefore stay out of the user's normal Harness home. A launch moves each missing default directory from `.desktop-build/development`, and stops instead while a running Harness Dev still uses that browser data. An explicit `DSH_HOME` replaces only the development Harness home, and `DSH_DESKTOP_USER_DATA_DIR` replaces only the browser data. Renderer DevTools opens automatically; Main, Renderer, and dsh Host debugging listen on ports 9229, 9222, and 9230. `DSH_DESKTOP_MAIN_INSPECT_PORT`, `DSH_DESKTOP_RENDERER_DEBUG_PORT`, and `DSH_DESKTOP_HOST_INSPECT_PORT` replace those ports, while `DSH_DESKTOP_OPEN_DEVTOOLS=0` keeps the detached Renderer tools closed.
++Development Harness state defaults to `apps/desktop/.desktop-dev/home` and Electron browser data to `apps/desktop/.desktop-dev/electron-user-data`; `pnpm run clean` removes `.desktop-build` but keeps this directory. The disposable npm project lives at `apps/desktop/.desktop-build/development/project`. Sessions, settings, credentials, package links, and browser data therefore stay out of the user's normal Harness home. A launch moves each missing default directory from `.desktop-build/development`, and stops instead while a running Harness Dev still uses that browser data. An explicit `DSH_DESKTOP_DEV_HOME` replaces only the development Harness home, and `DSH_DESKTOP_USER_DATA_DIR` replaces only the browser data. Renderer DevTools opens automatically; Main, Renderer, and dsh Host debugging listen on ports 9229, 9222, and 9230. `DSH_DESKTOP_MAIN_INSPECT_PORT`, `DSH_DESKTOP_RENDERER_DEBUG_PORT`, and `DSH_DESKTOP_HOST_INSPECT_PORT` replace those ports, while `DSH_DESKTOP_OPEN_DEVTOOLS=0` keeps the detached Renderer tools closed.
+ 
+ After an explicit build, `start:desktop` reconstructs the disposable project and launches the existing artifacts without building again:
+ 
+@@ -219,7 +221,7 @@ Dependency installation does not run the locked Electron package's separate bina
+ 
+ The API-key input starts empty and uses `autocomplete="new-password"` to ask Chromium not to autofill saved login passwords.
+ 
+-Repeated launches and `dsh://open` keep the workspace hidden until the startup credential check or a welcome action permits entry. Entering from Welcome places keyboard focus on the document without selecting a sidebar control; Tab navigation remains available.
++Repeated launches and `dshu://open` keep the workspace hidden until the startup credential check or a welcome action permits entry. Entering from Welcome places keyboard focus on the document without selecting a sidebar control; Tab navigation remains available.
+ 
+ Desktop checks configured model API-key references after the Host starts and before opening the workspace. With no configured key, the welcome window offers the API-key page. Save and continue writes through the existing credential service using the official DeepSeek provider's configured reference, then opens the workspace. Set up later opens the workspace without saving the draft or a completion setting; the next process launch checks credentials again. Back to sign in returns to the entry and clears the unsaved key and validation message. Buttons keep their labels and block competing actions while saving or opening the workspace. The Desktop preload marker suppresses the Web credential dialog, while retaining the Models settings page and the welcome notice.
+ 
+@@ -267,7 +269,7 @@ Windows packaging compiles an x86 Win32/GDI+ helper with Visual C++ Build Tools
+ 
+ Run `pnpm --dir apps/desktop run test:installer` from the repository root on an interactive Windows x64 desktop to build and exercise a small native test payload through the production installer configuration. Each run uses a unique product identity and sequentially exercises English-only and Chinese-only installer variants, selecting test labels from the displayed welcome button. Both variants install into private directories and uninstall after testing; screenshots and results remain under `.desktop-build/installer-tests/`. The checks include restart-notice process cleanup, upgrades to registered paths with trailing separators and rejection of drive roots. The renderer receives caption colors from the NSIS theme; pixel checks print into an off-screen bitmap and also run with the progress child hidden. Native rendering checks cover light/dark palettes at 100% and 200% scale, the painted 100% completion state, caption-button hover/pressed colors and release/cancellation, minimize/restore geometry, and GDI resource release; repaint timings are diagnostics in `render-results.log`, not CI performance limits. Run the generated `ui/render-test.exe <brand.bmp> <dpi> <light|dark> <hover-argb> <pressed-argb> [interactive-title]` with a title to inspect the real progress page without installing a payload. The optional `--signed` flag uses the [Windows EV configuration](windows-signing/README.md#signing-configuration) to sign test executables and the helper before embedding them; it does not enable an update feed.
+ 
+-The Windows uninstaller removes the Electron user-data directory (browser storage and caches under `%APPDATA%`, nested under the package scope), the `%APPDATA%` product directory, and the updater download cache under `%LOCALAPPDATA%` together with the application, then removes ordinary empty scope directories below `%APPDATA%`. The Harness home (`~/.dsh` or `DSH_HOME`: sessions, settings, credentials, plugins) is never touched, and a `DSH_HOME` published as a Windows environment variable additionally protects any target overlapping it. Home paths accept `~/`, `~\` and forward slashes, then require an absolute path on a fixed local drive. UNC shares, network mapped drives, removable drives and relative paths are not accepted for deletion-scope validation; validation failure stops before deletion and reports the original `DSH_HOME` value. This restriction also applies to cross-directory replacement. A cancelled or silent refusal for a different registered installation records the reason and both directories in the cleanup report. Silent uninstalls remove the same data; an uninstaller started with `--updated` or `/KEEP_APP_DATA`, as electron-builder does for in-place updates and for replacing an older installation from another directory, retains it. Removal runs through the native helper, which refuses protected Windows folders and paths overlapping the installation or the home, requires a fixed local drive, leaves a linked root or ancestor in place, unlinks reparse points without entering their targets, clears read-only attributes, and keeps deleting siblings after a locked file; auxiliary residue does not stop uninstallation and is included in the cleanup report. Installation records `InstallLocation` on the Windows uninstall entry as standard inventory metadata; on Windows 11, Uninstall in the Start menu context menu opens the installed-apps list for every Win32 application, and only MSIX packages uninstall directly from there. The uninstaller declares DPI awareness and uses Microsoft YaHei UI for Chinese. Manual and silent uninstall also remove the owned command PATH entry and its ownership values, and remove `dsh://` only when its command still names this installation. When command ownership is missing, an additional cleanup removes only PATH entries matching the CLI directory of this installation after confirming the installation directory is absent; existing directories and failed checks retain those entries with a cleanup report. Other command installations are preserved. `--updated` preserves these registrations; `/KEEP_APP_DATA` alone does not. Cross-directory replacement passes only `/KEEP_APP_DATA`, so the old command registration is removed; the command can be enabled again from the new installation. When the installation record points elsewhere, interactive uninstall asks for confirmation and silent uninstall stops. If the location is missing or another installation is registered, cleanup removes commands, protocol handlers, shortcuts and Windows uninstall entries that still point to the directory being removed. Shared user data and shell settings are retained. The main executable is removed first: failure retains the remaining files and uninstall entry, with retry and report-saving actions. Unverifiable directory scope stops before deletion; incomplete removal results stop subsequent cleanup. Registry or auxiliary-file failures allow uninstall to finish with a residual-items notice. Native dialogs measure approximately 40 Chinese characters with the current font and fall back to 240 DLU. Reports list failed or unverified paths, registry key/value names, operations and available error codes, without registry values or the complete PATH. Reports are retained under `%TEMP%/DeepSeek-Harness-uninstall-<pid>.txt` when writable; interactive dialogs also offer Save cleanup report, and a failed save allows another location. This behavior is Windows-only.
++The Windows uninstaller removes the Electron user-data directory (browser storage and caches under `%APPDATA%`, nested under the package scope), the `%APPDATA%` product directory, and the updater download cache under `%LOCALAPPDATA%` together with the application, then removes ordinary empty scope directories below `%APPDATA%`. The Harness home (`~/.dsh` or `DSH_HOME`: sessions, settings, credentials, plugins) is never touched, and a `DSH_HOME` published as a Windows environment variable additionally protects any target overlapping it. Home paths accept `~/`, `~\` and forward slashes, then require an absolute path on a fixed local drive. UNC shares, network mapped drives, removable drives and relative paths are not accepted for deletion-scope validation; validation failure stops before deletion and reports the original `DSH_HOME` value. This restriction also applies to cross-directory replacement. A cancelled or silent refusal for a different registered installation records the reason and both directories in the cleanup report. Silent uninstalls remove the same data; an uninstaller started with `--updated` or `/KEEP_APP_DATA`, as electron-builder does for in-place updates and for replacing an older installation from another directory, retains it. Removal runs through the native helper, which refuses protected Windows folders and paths overlapping the installation or the home, requires a fixed local drive, leaves a linked root or ancestor in place, unlinks reparse points without entering their targets, clears read-only attributes, and keeps deleting siblings after a locked file; auxiliary residue does not stop uninstallation and is included in the cleanup report. Installation records `InstallLocation` on the Windows uninstall entry as standard inventory metadata; on Windows 11, Uninstall in the Start menu context menu opens the installed-apps list for every Win32 application, and only MSIX packages uninstall directly from there. The uninstaller declares DPI awareness and uses Microsoft YaHei UI for Chinese. Manual and silent uninstall also remove the owned command PATH entry and its ownership values, and remove `dshu://` only when its command still names this installation. When command ownership is missing, an additional cleanup removes only PATH entries matching the CLI directory of this installation after confirming the installation directory is absent; existing directories and failed checks retain those entries with a cleanup report. Other command installations are preserved. `--updated` preserves these registrations; `/KEEP_APP_DATA` alone does not. Cross-directory replacement passes only `/KEEP_APP_DATA`, so the old command registration is removed; the command can be enabled again from the new installation. When the installation record points elsewhere, interactive uninstall asks for confirmation and silent uninstall stops. If the location is missing or another installation is registered, cleanup removes commands, protocol handlers, shortcuts and Windows uninstall entries that still point to the directory being removed. Shared user data and shell settings are retained. The main executable is removed first: failure retains the remaining files and uninstall entry, with retry and report-saving actions. Unverifiable directory scope stops before deletion; incomplete removal results stop subsequent cleanup. Registry or auxiliary-file failures allow uninstall to finish with a residual-items notice. Native dialogs measure approximately 40 Chinese characters with the current font and fall back to 240 DLU. Reports list failed or unverified paths, registry key/value names, operations and available error codes, without registry values or the complete PATH. Reports are retained under `%TEMP%/DeepSeek-Harness-uninstall-<pid>.txt` when writable; interactive dialogs also offer Save cleanup report, and a failed save allows another location. This behavior is Windows-only.
+ 
+ Use `node apps/desktop/scripts/test-windows-installer.mjs --uninstall-only --compile-only` to compile isolated fixtures for all eight installer languages with a per-run scoped package name. Omit `--compile-only` to run the native remover regression and the interactive, silent, `--updated`, `/KEEP_APP_DATA`, `DSH_HOME`-inside-Electron-data, busy-executable retry, registration-error continuation and installation-takeover checks against seeded data. Setup timeouts terminate and wait for the fixture process tree before cleanup; a separate regression covers success, nonzero exit and a timed-out parent with a live child. Compilation does not establish installed-uninstall behavior.
+ 
+@@ -313,13 +315,7 @@ On first launch, including after an upgrade, Desktop creates this document if it
  
  Startup loading never overwrites existing documents; an omitted `updates` object or field resolves to `false`. Set the field to `true` to permit test authentication dialogs, then fully quit and restart the application. Set it back to `false` and restart to suppress them again. Creation, read, or validation failures use the default `false` without blocking startup. Desktop attempts to warn through the Electron console with the file path; unavailable logging does not block startup. Correct the file and restart to apply an explicit setting. Unknown fields are preserved. Installation updates retain this user-data file; Windows uninstallation removes it under the [uninstall rules](#windows-uninstall-rules).
  
@@ -766,11 +862,29 @@ index af6f44dd177d452eef214f20de3ae784cd5612cd..4d24e70c38929790bfcccb5ef133d1be
  
  Updater adapter compatibility and platform version records are documented in [Electron updater compatibility](tests/updates/electron-updater/README.md).
  
+@@ -393,7 +389,7 @@ An unpackaged Electron process uses `.desktop-build/development/project` under i
+ 
+ The app-only `dshOnboarding.hasApiKey()` preload method returns the welcome backend’s current API-key presence boolean; native login and onboarding share credential discovery, and only the owned application main frame may invoke it.
+ 
+-Sign in opens the configured platform page in the system browser. The Host owns PKCE and a temporary loopback callback, saves the credential before entering the workspace, and redirects the browser to the platform completion page. Opened and copied authorization links carry the effective Desktop theme as `theme=light` or `theme=dark`; `system` resolves at the time of the action. Cancel withdraws the local attempt even if the platform page later approves it. Settings offers Account sign-out; without a separate API key, sign-out returns to the welcome window. Successful browser sign-in switches Welcome to the workspace without activating the application; the completion page’s dsh://open link brings it to the foreground. Packaged applications register dsh://open to show the window without passing credentials. On macOS, the development launcher prepares an ad-hoc-signed `Harness Dev.app` under `.desktop-build/development`, declares `dsh` in its Info.plist, and registers it with Launch Services. It loads the current workspace and records the selected development home, browser-data path, and debug settings for cold starts. Starting this bundle makes it the default `dsh://` handler; starting the packaged application registers the packaged handler again. The generated bundle does not contain account tokens and requires the workspace and prepared runtime to remain available.
++Sign in opens the configured platform page in the system browser. The Host owns PKCE and a temporary loopback callback, saves the credential before entering the workspace, and redirects the browser to the platform completion page. Opened and copied authorization links carry the effective Desktop theme as `theme=light` or `theme=dark`; `system` resolves at the time of the action. Cancel withdraws the local attempt even if the platform page later approves it. Settings offers Account sign-out; without a separate API key, sign-out returns to the welcome window. Successful browser sign-in switches Welcome to the workspace without activating the application; the completion page’s dshu://open link brings it to the foreground. Packaged applications register dshu://open to show the window without passing credentials. On macOS, the development launcher prepares an ad-hoc-signed `Harness Dev.app` under `.desktop-build/development`, declares `dsh` in its Info.plist, and registers it with Launch Services. It loads the current workspace and records the selected development home, browser-data path, and debug settings for cold starts. Starting this bundle makes it the default `dshu://` handler; starting the packaged application registers the packaged handler again. The generated bundle does not contain account tokens and requires the workspace and prepared runtime to remain available.
+ 
+ When an expired account returns to Welcome, the main process retains a one-time notification until the renderer requests it over window-owned IPC. Reloading Welcome does not repeat the notice; manual sign-out and cold startup do not create it.
+ 
 diff --git a/apps/desktop/README.zh.md b/apps/desktop/README.zh.md
-index 56161096b2f742f2c592b7b87f8693a8ceb8989a..885bca2b1f532e2bcee4c8a597dabcd12ee0899e 100644
+index 56161096b2f742f2c592b7b87f8693a8ceb8989a..33228ed39a6b83e8fa874431d5becf02082a84fe 100644
 --- a/apps/desktop/README.zh.md
 +++ b/apps/desktop/README.zh.md
-@@ -43,7 +43,7 @@ Electron 为每个自行启动的 Host 进程生成新的随机凭据。收到
+@@ -8,6 +8,8 @@ description: "Desktop 在原生应用中运行 Harness 工作区。本参考文
+ 
+ ## 概述
+ 
++已安装的 DSHU 使用 `~/.dsh-uncensored` 或 `DSH_UNCENSORED_HOME` 指定的目录。桌面端在准备 profile 之前检查与官方资料目录是否重叠。开发启动器默认使用工作区内的独立目录。
++
+ Desktop 在原生应用中运行 Harness 工作区。本参考文档说明应用行为、开发与集成；打包、Windows 签名和发布指南分别维护构建与发布操作。
+ 
+ ## 目录
+@@ -43,7 +45,7 @@ Electron 为每个自行启动的 Host 进程生成新的随机凭据。收到
  
  Desktop 绑定 `127.0.0.1`，即 Electron 为就绪 URL 与 WebSocket 凭据过滤器拨号的地址。WebSocket 流按 Host 监听器使用 `ws:` 或 `wss:`；附加凭据要求 authority 与 scheme 均匹配。
  
@@ -779,7 +893,43 @@ index 56161096b2f742f2c592b7b87f8693a8ceb8989a..885bca2b1f532e2bcee4c8a597dabcd1
  
  Desktop 的本地原生目录流程打开绑定应用窗口的 Electron 文件夹对话框，并先恢复、显示和聚焦该窗口。并发请求共用一个对话框；取消不返回路径，失败后可以重试。普通 Web 使用 Host 选择器。浏览模式列出 Host 目录。Linux 缺少 zenity 或 kdialog 时，自动选择使用浏览模式，不使用 Electron 对话框。
  
-@@ -313,13 +313,7 @@ Electron 主进程在启动时读取一次 `app.getPath('userData')/desktop/sett
+@@ -73,7 +75,7 @@ macOS 安装会创建 `/usr/local/bin/dsh`；目录权限需要时，系统会
+ 
+ ## 关闭窗口与退出
+ 
+-关闭主窗口（macOS 的关闭按钮和 ⌘W；Windows 的 ×、Alt+F4 和任务栏"关闭窗口"）会隐藏窗口；Windows 首次隐藏前需要确认。页面和 Host 继续运行，任务不受影响，下次显示时仍是原来的文档，会话、草稿和滚动位置都保留；macOS 全屏窗口先退出全屏再隐藏。macOS 通过 Dock 图标、再次启动或 `dsh://open` 找回窗口，Windows 通过托盘找回。最小化行为不变。进入工作区前关闭欢迎窗口，Windows 上走退出流程，macOS 上应用留在 Dock 中且没有窗口。
++关闭主窗口（macOS 的关闭按钮和 ⌘W；Windows 的 ×、Alt+F4 和任务栏"关闭窗口"）会隐藏窗口；Windows 首次隐藏前需要确认。页面和 Host 继续运行，任务不受影响，下次显示时仍是原来的文档，会话、草稿和滚动位置都保留；macOS 全屏窗口先退出全屏再隐藏。macOS 通过 Dock 图标、再次启动或 `dshu://open` 找回窗口，Windows 通过托盘找回。最小化行为不变。进入工作区前关闭欢迎窗口，Windows 上走退出流程，macOS 上应用留在 Dock 中且没有窗口。
+ 
+ Windows 在整个运行期间常驻托盘图标。悬停提示为产品名，单击显示并聚焦窗口，右键菜单提供壳语言下的"打开 DeepSeek Harness"和"退出 DeepSeek Harness"。首次隐藏前复用更新弹窗，显示“正在运行的任务不会中断，可在系统托盘中重新打开窗口”和“确认”按钮。确认后隐藏窗口，并在 Electron userData 下写入 `background-close-confirmed`；Esc、关闭弹窗或加载失败均保持主窗口可见，不记录确认。重复关闭请求会聚焦已有壳弹窗。覆盖更新保留标记，卸载删除标记。旧的 `background-notice-shown` 标记不会跳过此确认。关闭窗口不发送系统通知。托盘位图是 `resources/tray-windows.ico`，由 `pnpm run render:tray-icon` 从 `resources/icon-windows.svg` 按 16、20、24、32、40、48、64 像素分别渲染，打包为 `resources/tray.ico`。macOS 不提供菜单栏图标。
+ 
+@@ -199,7 +201,7 @@ macOS 和 Linux 从图形界面启动的程序只继承会话管理器提供的
+ pnpm run dev:desktop
+ ```
+ 
+-开发 Harness 状态默认写入 `apps/desktop/.desktop-dev/home`，Electron 浏览器数据默认写入 `apps/desktop/.desktop-dev/electron-user-data`；`pnpm run clean` 会删除 `.desktop-build`，但保留该目录。一次性 npm 项目位于 `apps/desktop/.desktop-build/development/project`。因此，会话、设置、凭据、包链接和浏览器数据都不会进入用户正常使用的 Harness home。启动时会把每个缺失的默认目录从 `.desktop-build/development` 移过来；若正在运行的 Harness Dev 仍在使用那里的浏览器数据，启动会停止而不迁移。显式 `DSH_HOME` 只会替换开发 Harness home，`DSH_DESKTOP_USER_DATA_DIR` 只会替换浏览器数据。Renderer DevTools 默认自动打开，Main、Renderer 和 dsh Host 调试端口依次为 9229、9222 和 9230。`DSH_DESKTOP_MAIN_INSPECT_PORT`、`DSH_DESKTOP_RENDERER_DEBUG_PORT` 与 `DSH_DESKTOP_HOST_INSPECT_PORT` 可以替换这些端口，`DSH_DESKTOP_OPEN_DEVTOOLS=0` 则保持 Renderer 调试窗口关闭。
++开发 Harness 状态默认写入 `apps/desktop/.desktop-dev/home`，Electron 浏览器数据默认写入 `apps/desktop/.desktop-dev/electron-user-data`；`pnpm run clean` 会删除 `.desktop-build`，但保留该目录。一次性 npm 项目位于 `apps/desktop/.desktop-build/development/project`。因此，会话、设置、凭据、包链接和浏览器数据都不会进入用户正常使用的 Harness home。启动时会把每个缺失的默认目录从 `.desktop-build/development` 移过来；若正在运行的 Harness Dev 仍在使用那里的浏览器数据，启动会停止而不迁移。显式 `DSH_DESKTOP_DEV_HOME` 只会替换开发 Harness home，`DSH_DESKTOP_USER_DATA_DIR` 只会替换浏览器数据。Renderer DevTools 默认自动打开，Main、Renderer 和 dsh Host 调试端口依次为 9229、9222 和 9230。`DSH_DESKTOP_MAIN_INSPECT_PORT`、`DSH_DESKTOP_RENDERER_DEBUG_PORT` 与 `DSH_DESKTOP_HOST_INSPECT_PORT` 可以替换这些端口，`DSH_DESKTOP_OPEN_DEVTOOLS=0` 则保持 Renderer 调试窗口关闭。
+ 
+ 显式构建完成后，`start:desktop` 会重新生成一次性项目，并跳过构建直接启动已有产物：
+ 
+@@ -219,7 +221,7 @@ Web 侧的对应命令是 `pnpm run dev:web` 与 `pnpm run start:web`，见[开
+ 
+ API Key 输入框初始为空，并通过 `autocomplete="new-password"` 请求 Chromium 不要自动填入已保存的登录密码。
+ 
+-重复启动和 `dsh://open` 会保持工作区隐藏，直到启动凭据检查或欢迎页操作允许进入。从 Welcome 进入时，键盘焦点落在文档上，不选中侧边栏控件；Tab 导航仍可使用。
++重复启动和 `dshu://open` 会保持工作区隐藏，直到启动凭据检查或欢迎页操作允许进入。从 Welcome 进入时，键盘焦点落在文档上，不选中侧边栏控件；Tab 导航仍可使用。
+ 
+ Desktop 在 Host 启动后、打开工作区前检查模型 API Key 引用是否已配置。没有已配置的密钥时，欢迎窗口提供 API Key 页面。“保存并继续”通过现有凭证服务写入 DeepSeek 官方提供方配置的引用，然后打开工作区。“稍后配置”打开工作区，但不保存草稿或完成标记；下次进程启动时会重新检查凭证。“返回登录”回到入口并清空未保存的密钥和校验提示。保存或打开工作区期间，按钮保持原文案并禁用竞争操作。Desktop preload 标记使 Web 凭证弹窗不再显示，同时保留模型设置页和欢迎须知。
+ 
+@@ -267,7 +269,7 @@ Windows 打包使用 Visual C++ Build Tools 和 Windows SDK 编译 x86 Win32/GDI
+ 
+ 在有交互式桌面的 Windows x64 上，从仓库根目录运行 `pnpm --dir apps/desktop run test:installer`，可将小型原生测试载荷接入正式安装配置并执行验证。每次运行使用独立产品身份，依次验证仅英文和仅中文的安装器变体，并根据实际显示的欢迎页按钮选择测试文案。两个变体均安装到私有目录并在测试后卸载；截图和结果保留在 `.desktop-build/installer-tests/` 下。检查包含重启提示窗的进程回收、末尾带分隔符的已登记路径升级，以及磁盘根目录拒绝。绘制器接收 NSIS 主题传入的标题栏颜色；像素检查绘制到离屏位图，并在隐藏进度子窗口时验证。原生绘制检查覆盖 100% 和 200% 缩放下的浅色/深色配色、绘制到 100% 的完成状态、标题栏按钮的悬停／按下颜色和松开触发与取消、最小化恢复后的窗口位置和尺寸，以及 GDI 资源释放；`render-results.log` 中的重绘耗时仅供诊断，不作为 CI 性能阈值。运行生成的 `ui/render-test.exe <brand.bmp> <dpi> <light|dark> <hover-argb> <pressed-argb> [interactive-title]` 并指定标题，可在不安装载荷的情况下查看真实进度页。可选的 `--signed` 标志使用[Windows EV 配置](windows-signing/README.zh.md#signing-configuration)，在嵌入前对测试程序和辅助库签名；它不会启用更新源。
+ 
+-Windows 卸载程序会随应用一起删除 Electron 用户数据目录（`%APPDATA%` 下按包作用域嵌套的浏览器存储与缓存）、`%APPDATA%` 下的产品目录，以及 `%LOCALAPPDATA%` 下的更新下载缓存，随后移除 `%APPDATA%` 之下普通且已空的作用域目录。Harness 主目录（`~/.dsh` 或 `DSH_HOME`：会话、设置、凭据、插件）不会被触碰；以 Windows 环境变量发布的 `DSH_HOME` 还会保护所有与其重叠的目标。主目录路径支持 `~/`、`~\` 和正斜杠，转换后仍要求固定本地驱动器上的绝对路径。删除范围校验不接受 UNC 共享、网络映射盘、移动盘和相对路径；校验失败时在删除前停止，并在报告中标明原始 `DSH_HOME` 值。此限制也适用于跨目录替换。因登记指向其他安装而取消或静默拒绝卸载时，清理报告会记录原因和两个目录。静默卸载删除相同的数据；以 `--updated` 或 `/KEEP_APP_DATA` 启动的卸载程序保留数据，electron-builder 在原地更新和从其他目录替换旧安装时正是这样启动它。删除通过原生辅助程序执行：它拒绝受保护的 Windows 目录以及与安装目录或主目录重叠的路径，要求固定的本地驱动器，链接的根目录或祖先目录原样保留，遇到重解析点只解除链接而不进入目标，清除只读属性，并在遇到被占用文件后继续删除其余兄弟项；辅助内容的残余不会中止卸载，并会记录到清理报告中。安装时在 Windows 卸载注册项上记录 `InstallLocation` 作为标准的清单元数据；在 Windows 11 上，开始菜单右键菜单中的“卸载”对所有 Win32 应用都会打开已安装应用列表，只有 MSIX 包能从那里直接卸载。卸载程序声明 DPI 感知，中文使用微软雅黑 UI。手动和静默卸载还会移除属于该安装的命令 PATH 条目和所有权值，仅当 `dsh://` 的命令仍指向该安装时才移除协议注册。命令所有权缺失时，额外清理只移除匹配本安装 CLI 目录的 PATH 条目，并先确认安装目录已不存在；目录仍存在或检查失败时保留条目并生成清理报告。其他命令安装保持不变。`--updated` 保留这些注册；单独使用 `/KEEP_APP_DATA` 不会保留。跨目录替换只传入 `/KEEP_APP_DATA`，因此移除旧命令注册；用户可从新安装中重新启用命令。安装登记指向其他目录时，交互式卸载请求确认，静默卸载停止。安装地址缺失或指向其他位置时，卸载会清理仍指向本目录的命令、协议、快捷方式和 Windows 卸载入口，保留共享用户数据和系统外壳设置。卸载先删除主程序：失败时保留其余文件和卸载入口，提供重试和保存报告。无法确认目录范围时，在删除前停止；删除结果不完整时，停止后续清理。注册表或辅助文件清理失败不阻止卸载完成，但会提示有内容未能清理。原生弹窗按当前字体测量约 40 个汉字的宽度，失败回退到 240 DLU。报告包含失败或结果未确认的路径、注册表键及值名称、操作和可用错误码，不包含注册表值内容或完整 PATH。可写时报告保留在 `%TEMP%/DeepSeek-Harness-uninstall-<pid>.txt`；交互弹窗另提供“保存清理报告”，保存失败时可以重新选择位置。此行为仅适用于 Windows。
++Windows 卸载程序会随应用一起删除 Electron 用户数据目录（`%APPDATA%` 下按包作用域嵌套的浏览器存储与缓存）、`%APPDATA%` 下的产品目录，以及 `%LOCALAPPDATA%` 下的更新下载缓存，随后移除 `%APPDATA%` 之下普通且已空的作用域目录。Harness 主目录（`~/.dsh` 或 `DSH_HOME`：会话、设置、凭据、插件）不会被触碰；以 Windows 环境变量发布的 `DSH_HOME` 还会保护所有与其重叠的目标。主目录路径支持 `~/`、`~\` 和正斜杠，转换后仍要求固定本地驱动器上的绝对路径。删除范围校验不接受 UNC 共享、网络映射盘、移动盘和相对路径；校验失败时在删除前停止，并在报告中标明原始 `DSH_HOME` 值。此限制也适用于跨目录替换。因登记指向其他安装而取消或静默拒绝卸载时，清理报告会记录原因和两个目录。静默卸载删除相同的数据；以 `--updated` 或 `/KEEP_APP_DATA` 启动的卸载程序保留数据，electron-builder 在原地更新和从其他目录替换旧安装时正是这样启动它。删除通过原生辅助程序执行：它拒绝受保护的 Windows 目录以及与安装目录或主目录重叠的路径，要求固定的本地驱动器，链接的根目录或祖先目录原样保留，遇到重解析点只解除链接而不进入目标，清除只读属性，并在遇到被占用文件后继续删除其余兄弟项；辅助内容的残余不会中止卸载，并会记录到清理报告中。安装时在 Windows 卸载注册项上记录 `InstallLocation` 作为标准的清单元数据；在 Windows 11 上，开始菜单右键菜单中的“卸载”对所有 Win32 应用都会打开已安装应用列表，只有 MSIX 包能从那里直接卸载。卸载程序声明 DPI 感知，中文使用微软雅黑 UI。手动和静默卸载还会移除属于该安装的命令 PATH 条目和所有权值，仅当 `dshu://` 的命令仍指向该安装时才移除协议注册。命令所有权缺失时，额外清理只移除匹配本安装 CLI 目录的 PATH 条目，并先确认安装目录已不存在；目录仍存在或检查失败时保留条目并生成清理报告。其他命令安装保持不变。`--updated` 保留这些注册；单独使用 `/KEEP_APP_DATA` 不会保留。跨目录替换只传入 `/KEEP_APP_DATA`，因此移除旧命令注册；用户可从新安装中重新启用命令。安装登记指向其他目录时，交互式卸载请求确认，静默卸载停止。安装地址缺失或指向其他位置时，卸载会清理仍指向本目录的命令、协议、快捷方式和 Windows 卸载入口，保留共享用户数据和系统外壳设置。卸载先删除主程序：失败时保留其余文件和卸载入口，提供重试和保存报告。无法确认目录范围时，在删除前停止；删除结果不完整时，停止后续清理。注册表或辅助文件清理失败不阻止卸载完成，但会提示有内容未能清理。原生弹窗按当前字体测量约 40 个汉字的宽度，失败回退到 240 DLU。报告包含失败或结果未确认的路径、注册表键及值名称、操作和可用错误码，不包含注册表值内容或完整 PATH。可写时报告保留在 `%TEMP%/DeepSeek-Harness-uninstall-<pid>.txt`；交互弹窗另提供“保存清理报告”，保存失败时可以重新选择位置。此行为仅适用于 Windows。
+ 
+ 使用 `node apps/desktop/scripts/test-windows-installer.mjs --uninstall-only --compile-only` 以每次运行唯一的带作用域包名编译八种安装语言的独立夹具。省略 `--compile-only` 可对预置数据运行原生删除器回归，以及交互、静默、`--updated`、`/KEEP_APP_DATA` 、`DSH_HOME` 位于 Electron 数据内、主程序占用后重试、注册表失败后继续卸载及另一安装接管的检查。安装超时会先终止并等待夹具进程树退出，再清理测试资源；独立回归覆盖成功、非零退出及带存活子进程的父进程超时。编译本身不能证明已安装卸载行为。
+ 
+@@ -313,13 +315,7 @@ Electron 主进程在启动时读取一次 `app.getPath('userData')/desktop/sett
  
  启动读取不会覆盖已有文件；缺少 `updates` 对象或该字段时均按 `false` 处理。将字段设为 `true` 后完全退出并重启应用，即可允许测试鉴权弹窗。改回 `false` 并重启即可再次禁止。创建、读取或校验失败时使用默认值 `false`，不阻止启动。Desktop 尝试在 Electron 控制台记录包含文件路径的警告；日志不可用也不阻止启动。修正文件并重启后才会应用显式设置。未知字段会保留。安装更新保留此用户数据文件；Windows 卸载按[卸载规则](#windows-uninstall-rules)删除它。
  
@@ -793,6 +943,15 @@ index 56161096b2f742f2c592b7b87f8693a8ceb8989a..885bca2b1f532e2bcee4c8a597dabcd1
 +桌面版按安装包中声明的发行源检查更新。旧设置文件中的 `updates.channel` 不影响检查更新或安装。
  
  更新适配层兼容性和平台版本记录见 [Electron updater 兼容性](tests/updates/electron-updater/README.zh.md)。
+ 
+@@ -393,7 +389,7 @@ node apps/desktop/node_modules/pnpm/bin/pnpm.mjs --dir apps/desktop run test:upd
+ 
+ 仅向应用提供的 `dshOnboarding.hasApiKey()` preload 方法返回欢迎后端当前的 API Key 存在状态布尔值；原生登录与引导共用凭证发现逻辑，且只有受管理的应用主 frame 可以调用。
+ 
+-登录会在系统浏览器中打开配置的平台页面。Host 负责 PKCE 和临时本机回调，在进入工作区前保存凭证，再将浏览器跳转到平台完成页。打开和复制的授权链接通过 `theme=light` 或 `theme=dark` 携带当前生效的 Desktop 主题；`system` 在执行操作时解析。即使平台页面随后批准，取消仍会撤销本地尝试。设置中的账号页面提供退出；没有独立 API Key 时，退出后返回欢迎窗。浏览器登录成功后，Welcome 切换到工作区但不激活应用；完成页的 dsh://open 链接负责将客户端置前。打包应用注册 dsh://open，只显示窗口而不传递凭证。macOS 开发启动器在 `.desktop-build/development` 下准备经临时签名的 `Harness Dev.app`，在 Info.plist 中声明 `dsh` 并注册到 Launch Services。它加载当前工作区，并记录选定的开发 home、浏览器数据路径和调试设置，以供冷启动使用。启动此应用会将其设为 `dsh://` 默认处理程序；启动打包应用会重新注册打包版处理程序。生成的应用包不包含账号 token，依赖工作区和已准备的运行环境继续存在。
++登录会在系统浏览器中打开配置的平台页面。Host 负责 PKCE 和临时本机回调，在进入工作区前保存凭证，再将浏览器跳转到平台完成页。打开和复制的授权链接通过 `theme=light` 或 `theme=dark` 携带当前生效的 Desktop 主题；`system` 在执行操作时解析。即使平台页面随后批准，取消仍会撤销本地尝试。设置中的账号页面提供退出；没有独立 API Key 时，退出后返回欢迎窗。浏览器登录成功后，Welcome 切换到工作区但不激活应用；完成页的 dshu://open 链接负责将客户端置前。打包应用注册 dshu://open，只显示窗口而不传递凭证。macOS 开发启动器在 `.desktop-build/development` 下准备经临时签名的 `Harness Dev.app`，在 Info.plist 中声明 `dshu` 并注册到 Launch Services。它加载当前工作区，并记录选定的开发 home、浏览器数据路径和调试设置，以供冷启动使用。启动此应用会将其设为 `dshu://` 默认处理程序；启动打包应用会重新注册打包版处理程序。生成的应用包不包含账号 token，依赖工作区和已准备的运行环境继续存在。
+ 
+ 账号失效并返回 Welcome 时，主进程保留一次性通知，直到渲染器通过所属窗口的 IPC 领取。重新加载 Welcome 不会重复提示；主动退登和冷启动不会生成该通知。
  
 diff --git a/apps/desktop/packaging/README.i18n.yaml b/apps/desktop/packaging/README.i18n.yaml
 index 228f07da880b886dd478781fc5cd56399d4f1488..42560b8d14badaadf32c2d1153e1a3777ce451ba 100644
@@ -924,7 +1083,7 @@ index 83ebe7415a9931f5d1ed769cf68f5f70eb534246..be734bf67c9f219b2724a11051ffdfb4
      open(): Promise<void>
      subscribe(listener: (state: DesktopUpdatePresentation) => void): () => void
 diff --git a/apps/desktop/src/locale.ts b/apps/desktop/src/locale.ts
-index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..70e15ac36aa25971cda1f1ac726e5211da02070e 100644
+index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..cfa00c2111979ed8065002b8c7d7d117b8d10af7 100644
 --- a/apps/desktop/src/locale.ts
 +++ b/apps/desktop/src/locale.ts
 @@ -31,9 +31,9 @@ export const en = {
@@ -939,7 +1098,15 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..70e15ac36aa25971cda1f1ac726e5211
    aboutVersion: 'Version V{version}',
    hideApplication: 'Hide DeepSeek Harness',
    hideOtherApplications: 'Hide Others',
-@@ -109,7 +109,7 @@ export const en = {
+@@ -60,6 +60,7 @@ export const en = {
+   paste: 'Paste',
+   selectAll: 'Select All',
+   startupFailed: 'DeepSeek Harness is unavailable',
++  harnessHomeInvalid: 'DSHU could not verify its data directory. Set DSH_UNCENSORED_HOME to a directory separate from the official DeepSeek Harness home, then reopen DSHU.',
+   fatalSummary: 'The application could not start or stopped unexpectedly.',
+   startupAddressInUse: 'Another DSH instance (such as dsh web or the desktop app) is running. They cannot start at the same time. Quit the other running DSH instance, then restart.',
+   diagnosticTruncated: '… Error details shortened.',
+@@ -109,7 +110,7 @@ export const en = {
    reloadPageMenu: 'Reload Page',
    toggleDevToolsMenu: 'Developer tools',
    restartAppHostMenu: 'Restart App and Host',
@@ -948,7 +1115,7 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..70e15ac36aa25971cda1f1ac726e5211
    updateConfigurationRead: 'Settings file error; updates are paused',
    updateConfigurationFormat: 'Settings file error; updates are paused',
    updateConfigurationChannel: 'Settings file error; updates are paused',
-@@ -227,9 +227,9 @@ export const zh = {
+@@ -227,9 +228,9 @@ export const zh = {
    application: '应用',
    fileMenu: '文件',
    closePage: '关闭页面或窗口',
@@ -960,7 +1127,15 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..70e15ac36aa25971cda1f1ac726e5211
    aboutVersion: '版本 V{version}',
    hideApplication: '隐藏 DeepSeek Harness',
    hideOtherApplications: '隐藏其他',
-@@ -305,7 +305,7 @@ export const zh = {
+@@ -256,6 +257,7 @@ export const zh = {
+   paste: '粘贴',
+   selectAll: '全选',
+   startupFailed: 'DeepSeek Harness 无法使用',
++  harnessHomeInvalid: '无法确认 DSHU 的资料目录独立。请将 DSH_UNCENSORED_HOME 设为与官方 DeepSeek Harness 分开的目录，然后重新打开 DSHU。',
+   fatalSummary: '应用无法启动或已意外停止。',
+   startupAddressInUse: '有其他正在运行的 DSH（如其他 dsh web、桌面端），无法同时启动，请退出其他正在运行的 DSH 后重启。',
+   diagnosticTruncated: '… 错误详情已截短。',
+@@ -305,7 +307,7 @@ export const zh = {
    reloadPageMenu: '刷新页面',
    toggleDevToolsMenu: '开发者工具',
    restartAppHostMenu: '重启应用与 Host',
@@ -969,7 +1144,7 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..70e15ac36aa25971cda1f1ac726e5211
    updateConfigurationRead: '配置文件异常，更新已暂停',
    updateConfigurationFormat: '配置文件异常，更新已暂停',
    updateConfigurationChannel: '配置文件异常，更新已暂停',
-@@ -421,9 +421,9 @@ export const ja = {
+@@ -421,9 +423,9 @@ export const ja = {
    application: 'アプリケーション',
    fileMenu: 'ファイル',
    closePage: 'ページまたはウィンドウを閉じる',
@@ -981,7 +1156,15 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..70e15ac36aa25971cda1f1ac726e5211
    aboutVersion: 'バージョン V{version}',
    hideApplication: 'DeepSeek Harness を隠す',
    hideOtherApplications: 'ほかを隠す',
-@@ -499,7 +499,7 @@ export const ja = {
+@@ -450,6 +452,7 @@ export const ja = {
+   paste: '貼り付け',
+   selectAll: 'すべて選択',
+   startupFailed: 'DeepSeek Harness を利用できません',
++  harnessHomeInvalid: 'DSHU のデータディレクトリを確認できませんでした。DSH_UNCENSORED_HOME に公式版 DeepSeek Harness とは別のディレクトリを指定してから、DSHU を開き直してください。',
+   fatalSummary: 'アプリケーションを起動できなかったか、予期せず停止しました。',
+   startupAddressInUse: '別の DSH インスタンス (dsh web やデスクトップアプリなど) が実行中です。同時に起動することはできません。実行中の他の DSH インスタンスを終了してから再起動してください。',
+   diagnosticTruncated: '… エラー詳細は省略されています。',
+@@ -499,7 +502,7 @@ export const ja = {
    reloadPageMenu: 'ページを再読み込み',
    toggleDevToolsMenu: '開発者ツール',
    restartAppHostMenu: 'アプリとホストを再起動',
@@ -990,7 +1173,7 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..70e15ac36aa25971cda1f1ac726e5211
    updateConfigurationRead: '設定ファイルに問題があるため、更新を停止しています',
    updateConfigurationFormat: '設定ファイルに問題があるため、更新を停止しています',
    updateConfigurationChannel: '設定ファイルに問題があるため、更新を停止しています',
-@@ -615,9 +615,9 @@ export const es = {
+@@ -615,9 +618,9 @@ export const es = {
    application: 'Solicitud',
    fileMenu: 'Archivo',
    closePage: 'Cerrar página o ventana',
@@ -1002,7 +1185,15 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..70e15ac36aa25971cda1f1ac726e5211
    aboutVersion: 'Versión V{version}',
    hideApplication: 'Ocultar DeepSeek Harness',
    hideOtherApplications: 'Ocultar otros',
-@@ -693,7 +693,7 @@ export const es = {
+@@ -644,6 +647,7 @@ export const es = {
+   paste: 'Pegar',
+   selectAll: 'Seleccionar todo',
+   startupFailed: 'DeepSeek Harness no está disponible',
++  harnessHomeInvalid: 'DSHU no pudo verificar su directorio de datos. Asigne a DSH_UNCENSORED_HOME un directorio separado del de DeepSeek Harness oficial y vuelva a abrir DSHU.',
+   fatalSummary: 'La aplicación no pudo iniciarse o se detuvo inesperadamente.',
+   startupAddressInUse: 'Se está ejecutando otra instancia de DSH (como la web de dsh o la aplicación de escritorio). No pueden empezar al mismo tiempo. Salga de la otra instancia DSH en ejecución y luego reinicie.',
+   diagnosticTruncated: '… Detalles del error acortados.',
+@@ -693,7 +697,7 @@ export const es = {
    reloadPageMenu: 'Recargar página',
    toggleDevToolsMenu: 'Herramientas de desarrollo',
    restartAppHostMenu: 'Reiniciar la aplicación y el host',
@@ -1011,7 +1202,7 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..70e15ac36aa25971cda1f1ac726e5211
    updateConfigurationRead: 'Error en el archivo de ajustes; actualizaciones pausadas',
    updateConfigurationFormat: 'Error en el archivo de ajustes; actualizaciones pausadas',
    updateConfigurationChannel: 'Error en el archivo de ajustes; actualizaciones pausadas',
-@@ -809,9 +809,9 @@ export const fr = {
+@@ -809,9 +813,9 @@ export const fr = {
    application: 'Application',
    fileMenu: 'Fichier',
    closePage: 'Fermer la page ou la fenêtre',
@@ -1023,7 +1214,15 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..70e15ac36aa25971cda1f1ac726e5211
    aboutVersion: 'VersionV{version}',
    hideApplication: 'Masquer DeepSeek Harness',
    hideOtherApplications: 'Masquer les autres',
-@@ -887,7 +887,7 @@ export const fr = {
+@@ -838,6 +842,7 @@ export const fr = {
+   paste: 'Coller',
+   selectAll: 'Sélectionner tout',
+   startupFailed: "DeepSeek Harness n'est pas disponible",
++  harnessHomeInvalid: 'DSHU n’a pas pu vérifier son dossier de données. Définissez DSH_UNCENSORED_HOME sur un dossier distinct de celui de DeepSeek Harness officiel, puis rouvrez DSHU.',
+   fatalSummary: "L'application n'a pas pu démarrer ou s'est arrêtée de manière inattendue.",
+   startupAddressInUse: "Une autre instance DSH (telle que le Web dsh ou l'application de bureau) est en cours d'exécution. Ils ne peuvent pas démarrer en même temps. Quittez l'autre instance DSH en cours d'exécution, puis redémarrez.",
+   diagnosticTruncated: '… Détails de l’erreur raccourcis.',
+@@ -887,7 +892,7 @@ export const fr = {
    reloadPageMenu: 'Recharger la page',
    toggleDevToolsMenu: 'Outils de développement',
    restartAppHostMenu: "Redémarrez l'application et l'hôte",
@@ -1032,7 +1231,7 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..70e15ac36aa25971cda1f1ac726e5211
    updateConfigurationRead: 'Erreur du fichier de paramètres ; mises à jour suspendues',
    updateConfigurationFormat: 'Erreur du fichier de paramètres ; mises à jour suspendues',
    updateConfigurationChannel: 'Erreur du fichier de paramètres ; mises à jour suspendues',
-@@ -1003,9 +1003,9 @@ export const de = {
+@@ -1003,9 +1008,9 @@ export const de = {
    application: 'Anwendung',
    fileMenu: 'Datei',
    closePage: 'Seite oder Fenster schließen',
@@ -1044,7 +1243,15 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..70e15ac36aa25971cda1f1ac726e5211
    aboutVersion: 'Version V{version}',
    hideApplication: 'DeepSeek Harness ausblenden',
    hideOtherApplications: 'Andere ausblenden',
-@@ -1081,7 +1081,7 @@ export const de = {
+@@ -1032,6 +1037,7 @@ export const de = {
+   paste: 'Einfügen',
+   selectAll: 'Alles auswählen',
+   startupFailed: 'DeepSeek Harness ist nicht verfügbar',
++  harnessHomeInvalid: 'DSHU konnte sein Datenverzeichnis nicht überprüfen. Setzen Sie DSH_UNCENSORED_HOME auf ein separates Verzeichnis und öffnen Sie DSHU erneut.',
+   fatalSummary: 'Die Anwendung konnte nicht gestartet werden oder wurde unerwartet gestoppt.',
+   startupAddressInUse: 'Eine andere DSH-Instanz (z. B. dsh Web oder die Desktop-App) wird ausgeführt. Sie können nicht gleichzeitig starten. Beenden Sie die andere laufende DSH-Instanz und starten Sie sie neu.',
+   diagnosticTruncated: '… Fehlerdetails gekürzt.',
+@@ -1081,7 +1087,7 @@ export const de = {
    reloadPageMenu: 'Seite neu laden',
    toggleDevToolsMenu: 'Entwicklertools',
    restartAppHostMenu: 'Anwendung und Host neu starten',
@@ -1053,7 +1260,7 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..70e15ac36aa25971cda1f1ac726e5211
    updateConfigurationRead: 'Fehler in der Einstellungsdatei; Updates pausiert',
    updateConfigurationFormat: 'Fehler in der Einstellungsdatei; Updates pausiert',
    updateConfigurationChannel: 'Fehler in der Einstellungsdatei; Updates pausiert',
-@@ -1197,9 +1197,9 @@ export const ru = {
+@@ -1197,9 +1203,9 @@ export const ru = {
    application: 'Приложение',
    fileMenu: 'Файл',
    closePage: 'Закрыть страницу или окно',
@@ -1065,7 +1272,15 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..70e15ac36aa25971cda1f1ac726e5211
    aboutVersion: 'Версия V{version}',
    hideApplication: 'Скрыть DeepSeek Harness',
    hideOtherApplications: 'Скрыть других',
-@@ -1275,7 +1275,7 @@ export const ru = {
+@@ -1226,6 +1232,7 @@ export const ru = {
+   paste: 'Вставить',
+   selectAll: 'Выбрать все',
+   startupFailed: 'DeepSeek Harness недоступен.',
++  harnessHomeInvalid: 'DSHU не удалось проверить каталог данных. Укажите в DSH_UNCENSORED_HOME каталог отдельно от данных официального DeepSeek Harness и снова откройте DSHU.',
+   fatalSummary: 'Приложение не могло запуститься или неожиданно остановилось.',
+   startupAddressInUse: 'Другой экземпляр DSH (например, веб-приложение dsh или настольное приложение) запущен. Они не могут начаться одновременно. Закройте другой работающий экземпляр DSH, а затем перезапустите.',
+   diagnosticTruncated: '… Подробности об ошибках сокращены.',
+@@ -1275,7 +1282,7 @@ export const ru = {
    reloadPageMenu: 'Обновить страницу',
    toggleDevToolsMenu: 'Инструменты разработчика',
    restartAppHostMenu: 'Перезапустите приложение и хост.',
@@ -1074,7 +1289,7 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..70e15ac36aa25971cda1f1ac726e5211
    updateConfigurationRead: 'Ошибка файла настроек; обновления приостановлены',
    updateConfigurationFormat: 'Ошибка файла настроек; обновления приостановлены',
    updateConfigurationChannel: 'Ошибка файла настроек; обновления приостановлены',
-@@ -1391,9 +1391,9 @@ export const pt = {
+@@ -1391,9 +1398,9 @@ export const pt = {
    application: 'Aplicativo',
    fileMenu: 'Arquivo',
    closePage: 'Fechar página ou janela',
@@ -1086,7 +1301,15 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..70e15ac36aa25971cda1f1ac726e5211
    aboutVersion: 'Versão V{version}',
    hideApplication: 'Ocultar DeepSeek Harness',
    hideOtherApplications: 'Ocultar outros',
-@@ -1469,7 +1469,7 @@ export const pt = {
+@@ -1420,6 +1427,7 @@ export const pt = {
+   paste: 'Colar',
+   selectAll: 'Selecionar tudo',
+   startupFailed: 'DeepSeek Harness não está disponível',
++  harnessHomeInvalid: 'O DSHU não conseguiu verificar seu diretório de dados. Defina DSH_UNCENSORED_HOME como um diretório separado do DeepSeek Harness oficial e abra o DSHU novamente.',
+   fatalSummary: 'O aplicativo não pôde ser iniciado ou parou inesperadamente.',
+   startupAddressInUse: 'Outra instância DSH (como dsh web ou aplicativo de desktop) está em execução. Eles não podem começar ao mesmo tempo. Saia da outra instância DSH em execução e reinicie.',
+   diagnosticTruncated: '… Detalhes do erro reduzidos.',
+@@ -1469,7 +1477,7 @@ export const pt = {
    reloadPageMenu: 'Recarregar página',
    toggleDevToolsMenu: 'Ferramentas do desenvolvedor',
    restartAppHostMenu: 'Reinicie o aplicativo e o host',
@@ -1096,12 +1319,13 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..70e15ac36aa25971cda1f1ac726e5211
    updateConfigurationFormat: 'Erro no arquivo de configurações; atualizações pausadas',
    updateConfigurationChannel: 'Erro no arquivo de configurações; atualizações pausadas',
 diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
-index 291ed084761945a494c5ee76c1bfc11637c26469..a96034dad5e4bac8d4bcc28c02415c4dc428c6bf 100644
+index 291ed084761945a494c5ee76c1bfc11637c26469..73c2ef363bc12f4e5752331181faf506aa1d2027 100644
 --- a/apps/desktop/src/main.ts
 +++ b/apps/desktop/src/main.ts
-@@ -1,10 +1,6 @@
+@@ -1,10 +1,7 @@
  /** Electron shell: desktop project ownership, custom protocol, windows, and lifecycle. */
  
++import { assertSeparateDshHome, resolveDshHome } from '@deepseek-ai/dsh-home-paths'
  import { installFileActions } from './file-actions.ts'
 -import { configurationFailure, channelSaveFailure, configurationMessage } from './update-configuration.ts'
 -import type { DesktopChannelState, DesktopChannelChangeResult } from '@deepseek-ai/dsh-client-ui-settings-general/types'
@@ -1110,7 +1334,7 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..a96034dad5e4bac8d4bcc28c02415c4d
  import type { ProductEventMap, ProductEvent } from '@deepseek-ai/dsh-client-product-analytics/types'
  import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
  import { access, readFile, writeFile } from 'node:fs/promises'
-@@ -34,6 +30,7 @@ import { installDesktopFileDrag } from './file-drag.ts'
+@@ -34,6 +31,7 @@ import { installDesktopFileDrag } from './file-drag.ts'
  import { installDesktopDirectoryPicker } from './directory-picker.ts'
  import { installMicrophonePermissions } from './microphone-permissions.ts'
  import { DesktopBackendController } from './backend-controller.ts'
@@ -1118,7 +1342,52 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..a96034dad5e4bac8d4bcc28c02415c4d
  import { DESKTOP_IPC, SCHEME, assertDesktopSender, type DesktopUpdateState } from './ipc.ts'
  import { readDeviceInfo } from './device-info.ts'
  import { desktopUpdateReadyConfirmation, formatDesktopMessage, resolveDesktopLocale, resolveDesktopStartupLocale } from './locale.ts'
-@@ -435,9 +432,6 @@ async function main(): Promise<void> {
+@@ -75,6 +73,12 @@ import { DesktopBackgroundNotice } from './background-notice.ts'
+ let focusPrimaryWindow = (): void => {}
+ let stopForRecovery = async (): Promise<void> => { await stopOperationReports() }
+ let shuttingDown = false
++app.setName('DeepSeek Harness Uncensored')
++if (process.platform === 'linux') app.setDesktopName('deepseek-harness-uncensored.desktop')
++// The Host starts from the Desktop profile directory and needs the shell's absolute home.
++const harnessHome = resolveDshHome(undefined, { DSH_UNCENSORED_HOME: process.env.DSH_UNCENSORED_HOME })
++process.env.DSH_UNCENSORED_HOME = harnessHome
++process.env.DSH_HOME = harnessHome
+ /**
+  * Set by quit entries that must not ask: crash recovery exit and restart, and the
+  * development restart command. The installer handoff has its own before-quit branch.
+@@ -107,7 +111,7 @@ const recovery = new DesktopFatalRecovery({
+   show: options => dialog.showMessageBox(options),
+   stop: () => { shuttingDown = true; return stopForRecovery() },
+   disablePlugins: async () => {
+-    const manager = new DesktopProjectManager(resolveDesktopPaths(), runtimeResources())
++    const manager = new DesktopProjectManager(resolveDesktopPaths(harnessHome), runtimeResources())
+     const backupPath = await manager.disableAllPlugins()
+     console.info('Desktop profile recovery completed:', { profilePatchBackup: backupPath ?? null, homePatch: 'unchanged' })
+   },
+@@ -379,12 +383,21 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
+ }
+ 
+ async function main(): Promise<void> {
++  try {
++    await assertSeparateDshHome(harnessHome)
++  } catch (error) {
++    const messages = currentDesktopLocale().messages
++    console.error('dsh desktop: could not verify the data directory', error)
++    dialog.showErrorBox(messages.startupFailed, messages.harnessHomeInvalid)
++    app.exit(1)
++    return
++  }
+   const desktopSettings = await readDesktopSettings(app.getPath('userData'))
+   void pruneCrashReports(app.getPath('logs'))
+   const journalDirectory = process.env.DSH_DESKTOP_UPDATE_JOURNAL_DIR
+   const updateJournal = journalDirectory === undefined ? undefined : new DesktopUpdateJournal(journalDirectory, app.getVersion())
+   const resources = runtimeResources()
+-  const paths = resolveDesktopPaths()
++  const paths = resolveDesktopPaths(harnessHome)
+   const development = !app.isPackaged
+   const primaryRuntime = development
+     ? developmentPrimaryRuntime()
+@@ -435,9 +448,6 @@ async function main(): Promise<void> {
    let updateStoppedHost = false
    let updateStopFailure: DesktopHostUncleanExitError | undefined
    let updateState: DesktopUpdateState = { phase: 'idle' }
@@ -1128,7 +1397,7 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..a96034dad5e4bac8d4bcc28c02415c4d
    const systemLanguages = app.getPreferredSystemLanguages()
    let locale = windowsLanguage === undefined
      ? resolveDesktopStartupLocale(null, systemLanguages) : resolveDesktopLocale(windowsLanguage)
-@@ -472,6 +466,7 @@ async function main(): Promise<void> {
+@@ -472,6 +482,7 @@ async function main(): Promise<void> {
    // Copy comes from the same locale as the update prompts so the dialog
    // chrome and its content never mix languages.
    const showAbout = async (): Promise<void> => {
@@ -1136,7 +1405,7 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..a96034dad5e4bac8d4bcc28c02415c4d
      await ordinaryMessageBox({ type: 'info', title: locale.messages.aboutMenu, message: locale.messages.aboutProduct,
        detail: formatDesktopMessage(locale.messages.aboutVersion, { version: app.getVersion() }),
        buttons: [locale.messages.updateAcknowledge], cancelId: 0 })
-@@ -531,6 +526,24 @@ async function main(): Promise<void> {
+@@ -531,6 +542,24 @@ async function main(): Promise<void> {
    const platformView = new DesktopPlatformView(join(app.getAppPath(), 'lib', 'preload-platform-account.cjs'),
      () => locale.id === 'zh-CN' ? 'zh_CN' : 'en_US', process.platform === 'win32' ? 'win32' : 'darwin',
      owner => isMandatory() || updateOverlays.input(owner).blocked)
@@ -1161,7 +1430,7 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..a96034dad5e4bac8d4bcc28c02415c4d
    const backend = new DesktopBackendController((onFailure) => {
      const hostInspectPort = developmentHostInspectPort(development)
      const host = new DesktopHostProcess(resources.node, resources.dsh, activeProject,
-@@ -637,7 +650,7 @@ async function main(): Promise<void> {
+@@ -637,7 +666,7 @@ async function main(): Promise<void> {
      updateState = state
      mandatoryUI?.sync()
      for (const window of BrowserWindow.getAllWindows()) {
@@ -1170,7 +1439,7 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..a96034dad5e4bac8d4bcc28c02415c4d
      }
      if (state.phase === 'error' && state.failedOperation !== 'check' && state.failedOperation !== 'configuration') {
        if (state.failedOperation === 'install' && fileDragStopped && !quitting) {
-@@ -701,13 +714,7 @@ async function main(): Promise<void> {
+@@ -701,13 +730,7 @@ async function main(): Promise<void> {
    }
  
    const manifest: unknown = JSON.parse(await readFile(join(app.getAppPath(), 'package.json'), 'utf8'))
@@ -1185,7 +1454,7 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..a96034dad5e4bac8d4bcc28c02415c4d
    const updates = new DesktopUpdateCoordinator(
      publishUpdate,
      async () => {
-@@ -768,16 +775,6 @@ async function main(): Promise<void> {
+@@ -768,16 +791,6 @@ async function main(): Promise<void> {
      updateChannel,
    )
  
@@ -1202,7 +1471,7 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..a96034dad5e4bac8d4bcc28c02415c4d
    const updateSchedule = new DesktopUpdateSchedule(updates, resolveDesktopUpdateScheduleConfig(process.env))
  
    const downloadUpdate = async (version: string, revision = updates.revision): Promise<DesktopUpdateState> => {
-@@ -911,39 +908,9 @@ async function main(): Promise<void> {
+@@ -911,39 +924,9 @@ async function main(): Promise<void> {
      windowsLanguage = locale.id
      refreshApplicationMenu()
    })
@@ -1243,7 +1512,7 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..a96034dad5e4bac8d4bcc28c02415c4d
    })
    ipcMain.handle(DESKTOP_IPC.deviceInfo, (event) => {
      assertProductSender(event)
-@@ -969,52 +936,10 @@ async function main(): Promise<void> {
+@@ -969,52 +952,10 @@ async function main(): Promise<void> {
      await openUpdatePrompt()
    })
  
@@ -1296,7 +1565,7 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..a96034dad5e4bac8d4bcc28c02415c4d
      if (authenticationOperation !== undefined) {
        policyAuth?.focus(); updateDialog.focus()
      }
-@@ -1164,8 +1089,8 @@ async function main(): Promise<void> {
+@@ -1164,8 +1105,8 @@ async function main(): Promise<void> {
    const applicationIconPath = development ? join(app.getAppPath(), 'resources', 'icon-windows.png')
      : join(process.resourcesPath, 'icon.png')
    app.setAboutPanelOptions({
@@ -1307,7 +1576,7 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..a96034dad5e4bac8d4bcc28c02415c4d
      // The release has no separate build number; omit Electron's bundle version.
      version: '',
      copyright: '',
-@@ -1207,12 +1132,8 @@ async function main(): Promise<void> {
+@@ -1207,12 +1148,8 @@ async function main(): Promise<void> {
        { role: 'unhide', label: currentDesktopLocale().messages.showAllApplications }, { type: 'separator' }]
      : []
    const applicationItems = (): MenuItemConstructorOptions[] => [
@@ -1322,7 +1591,7 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..a96034dad5e4bac8d4bcc28c02415c4d
      { type: 'separator' },
      shortcuts.settingsMenuItem(currentDesktopLocale().messages.settingsMenu,
        enteredWorkspace && !isMandatory(), () => { focusPrimaryWindow() }),
-@@ -1360,6 +1281,10 @@ async function main(): Promise<void> {
+@@ -1360,6 +1297,10 @@ async function main(): Promise<void> {
        if (details.level !== 'error') return
        rendererConsole.push(`${details.sourceId}:${String(details.lineNumber)} ${details.message}`)
      })
@@ -1333,7 +1602,7 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..a96034dad5e4bac8d4bcc28c02415c4d
      window.webContents.on('did-fail-load', (_event, code, description, url, isMainFrame) => {
        if (isMainFrame && code !== -3 && !quitting && !window.isDestroyed()) {
          reportFatal(new Error(`Desktop page failed to load: ${url} (${String(code)}: ${description})`), 'renderer')
-@@ -1369,6 +1294,7 @@ async function main(): Promise<void> {
+@@ -1369,6 +1310,7 @@ async function main(): Promise<void> {
        if (!quitting && !window.isDestroyed()) reportFatal(error, 'renderer')
      })
      window.webContents.on('render-process-gone', (_event, details) => {
@@ -1341,7 +1610,20 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..a96034dad5e4bac8d4bcc28c02415c4d
        navigation = undefined
        if (!quitting && !window.isDestroyed() && details.reason !== 'clean-exit') {
          reportFatal(new Error(`Desktop renderer exited: ${details.reason}`), 'renderer')
-@@ -1595,8 +1521,7 @@ async function main(): Promise<void> {
+@@ -1496,10 +1438,10 @@ async function main(): Promise<void> {
+     window.focus()
+   }
+ 
+-  if (app.isPackaged || process.env.DSH_DESKTOP_DEV_APP === '1') app.setAsDefaultProtocolClient('dsh')
++  if (app.isPackaged || process.env.DSH_DESKTOP_DEV_APP === '1') app.setAsDefaultProtocolClient('dshu')
+   app.on('open-url', (event, url) => {
+     event.preventDefault()
+-    if (url === 'dsh://open' || url === 'dsh://open/') focusPrimaryWindow()
++    if (url === 'dshu://open' || url === 'dshu://open/') focusPrimaryWindow()
+   })
+ 
+   app.on('activate', (_event, hasVisibleWindows) => {
+@@ -1595,8 +1537,7 @@ async function main(): Promise<void> {
        allowedPageOrigins: policyConfig.allowedPageOrigins, parent: () => mainWindow,
        policy: () => policy.state, update: () => updates.state,
        refresh: async () => {
@@ -1421,10 +1703,19 @@ index 85f5e10da15bd5cd3cc7b7d3eef1c206245f41c0..cfd5747ccfcf8a32eb147fc4440fccb6
    if (channel !== 'nightly' && channel !== 'stable') throw new Error('desktop update: invalid packaged channel')
    return channel
 diff --git a/apps/desktop/tests/main-startup.spec.ts b/apps/desktop/tests/main-startup.spec.ts
-index e689f3e67299fbc63ef0cb13bf680efc13115c7b..47d01599c9c3f0cce44420b0e31ef772eb501090 100644
+index e689f3e67299fbc63ef0cb13bf680efc13115c7b..f0370a25054d517c35cd2b161cfaa98363316ecd 100644
 --- a/apps/desktop/tests/main-startup.spec.ts
 +++ b/apps/desktop/tests/main-startup.spec.ts
-@@ -231,6 +231,7 @@ const harness = await vi.hoisted(async () => {
+@@ -189,6 +189,8 @@ const harness = await vi.hoisted(async () => {
+     getVersion: () => '1.0.0',
+     getAppPath: (): string => 'desktop-test-app',
+     setAppLogsPath: vi.fn(),
++    setName: vi.fn(),
++    setDesktopName: vi.fn(),
+     getPath: vi.fn<(name: string) => string>(),
+     setAboutPanelOptions: vi.fn<(options: Electron.AboutPanelOptionsOptions) => void>(),
+     requestSingleInstanceLock: () => true,
+@@ -231,6 +233,7 @@ const harness = await vi.hoisted(async () => {
      menu, popup, socketHeaders: vi.fn(), connectWelcome: vi.fn(), removeLegacyHostCookies: vi.fn(async () => {}), hostCookies: {},
      loginShell, readLoginShell, updateCheck, updateDownload, updateInstall,
      platformDispose,
@@ -1432,7 +1723,7 @@ index e689f3e67299fbc63ef0cb13bf680efc13115c7b..47d01599c9c3f0cce44420b0e31ef772
      platformCloseAndWait,
  
      get analyticsEnabled() { return analyticsEnabled },
-@@ -247,6 +248,7 @@ const harness = await vi.hoisted(async () => {
+@@ -247,6 +250,7 @@ const harness = await vi.hoisted(async () => {
      ipcOn: vi.fn<(channel: string, listener: (event: { sender: unknown; senderFrame: unknown }, ...args: unknown[]) => void) => void>(),
      get updateState() { return updateState },
      set updateState(value: DesktopUpdateState) { updateState = value },
@@ -1440,7 +1731,7 @@ index e689f3e67299fbc63ef0cb13bf680efc13115c7b..47d01599c9c3f0cce44420b0e31ef772
      get prepareUpdate() { return prepareUpdate! },
      set prepareUpdate(value: () => Promise<boolean>) { prepareUpdate = value },
      get publishUpdate() { return publishUpdate! },
-@@ -388,6 +390,7 @@ vi.mock('../src/update-coordinator.ts', () => ({ DesktopUpdateCoordinator: class
+@@ -388,6 +392,7 @@ vi.mock('../src/update-coordinator.ts', () => ({ DesktopUpdateCoordinator: class
    constructor(publish: (state: DesktopUpdateState) => DesktopUpdateState, beforeRestart: () => Promise<boolean>,
      _updater: unknown, _enabled: unknown, _version: unknown, _downloadResult: unknown, channel: 'nightly' | 'stable') {
      this.selectedChannel = channel
@@ -1448,7 +1739,7 @@ index e689f3e67299fbc63ef0cb13bf680efc13115c7b..47d01599c9c3f0cce44420b0e31ef772
      harness.prepareUpdate = beforeRestart
      harness.publishUpdate = publish
    }
-@@ -414,6 +417,7 @@ vi.mock('../src/platform-view.ts', async importOriginal => ({
+@@ -414,6 +419,7 @@ vi.mock('../src/platform-view.ts', async importOriginal => ({
    ...await importOriginal<typeof import('../src/platform-view.ts')>(),
    DesktopPlatformView: class {
      notifyLocaleChanged() {}
@@ -1456,7 +1747,44 @@ index e689f3e67299fbc63ef0cb13bf680efc13115c7b..47d01599c9c3f0cce44420b0e31ef772
      setSession() {}
      setBounds() {}
      close() {}
-@@ -524,219 +528,19 @@ describe('desktop main startup', () => {
+@@ -470,6 +476,8 @@ beforeEach(() => {
+   vi.useFakeTimers()
+   harness.reset()
+   const userData = mkdtempSync(join(tmpdir(), 'dsh-main-user-data-'))
++  vi.stubEnv('DSH_UNCENSORED_HOME', join(userData, 'harness-home'))
++  vi.stubEnv('DSH_HOME', undefined)
+   onTestFinished(() => { rmSync(userData, { recursive: true, force: true }) })
+   harness.app.getPath.mockImplementation(name => name === 'userData' ? userData : join(userData, `desktop-test-${name}`))
+   vi.mocked(writeCrashReport).mockResolvedValue(join(harness.app.getPath('logs'), 'crash-test.log'))
+@@ -509,6 +517,27 @@ afterEach(async () => {
+ })
+ 
+ describe('desktop main startup', () => {
++  it('passes the dedicated absolute home to the Host and registers the DSHU protocol', async () => {
++    const selected = join(harness.app.getPath('userData'), 'selected')
++    vi.stubEnv('DSH_HOME', join(harness.app.getPath('userData'), 'upstream'))
++    vi.stubEnv('DSH_UNCENSORED_HOME', selected)
++    harness.app.isPackaged = true
++    const host = await readyForUpdate()
++    expect(host.environment).toMatchObject({ DSH_HOME: selected, DSH_UNCENSORED_HOME: selected })
++    expect(harness.app.setName).toHaveBeenCalledWith('DeepSeek Harness Uncensored')
++    expect(harness.app.setAsDefaultProtocolClient).toHaveBeenCalledExactlyOnceWith('dshu')
++  })
++
++  it('rejects the official home before Desktop prepares a profile', async () => {
++    vi.stubEnv('DSH_UNCENSORED_HOME', '~/.dsh')
++    await import('../src/main.ts')
++    await vi.waitFor(() => { expect(harness.app.exit).toHaveBeenCalledWith(1) })
++    expect(harness.dialog.showErrorBox).toHaveBeenCalledWith(en.startupFailed, en.harnessHomeInvalid)
++    expect(harness.applyRelease).not.toHaveBeenCalled()
++    expect(harness.hosts).toHaveLength(0)
++    expect(harness.windows).toHaveLength(0)
++  })
++
+   it.each([true, false])('selects the package manager before Host startup (packaged=%s)', async (packaged) => {
+     harness.app.isPackaged = packaged
+     await readyForUpdate()
+@@ -524,219 +553,19 @@ describe('desktop main startup', () => {
      })
    })
  
@@ -1684,7 +2012,7 @@ index e689f3e67299fbc63ef0cb13bf680efc13115c7b..47d01599c9c3f0cce44420b0e31ef772
    it('starts the Host without resolving Kit or writing a diagnostic file', async () => {
      const root = mkdtempSync(join(tmpdir(), 'dsh-main-office-'))
      onTestFinished(() => { rmSync(root, { recursive: true, force: true }) })
-@@ -861,6 +665,27 @@ describe('desktop main startup', () => {
+@@ -861,6 +690,27 @@ describe('desktop main startup', () => {
      expect(harness.windows[0]!.options).toMatchObject({ webPreferences: { devTools: true } })
    })
  
@@ -1712,7 +2040,7 @@ index e689f3e67299fbc63ef0cb13bf680efc13115c7b..47d01599c9c3f0cce44420b0e31ef772
    it.each([
      ['darwin', true, 'en-US'],
      ['darwin', false, 'zh-CN'],
-@@ -881,14 +706,12 @@ describe('desktop main startup', () => {
+@@ -881,14 +731,12 @@ describe('desktop main startup', () => {
        .toEqual(expected[`${platform}:${locale}`])
      expect(options.iconPath).toBe(packaged ? join('desktop-test-resources', 'icon.png')
        : join('desktop-test-app', 'resources', 'icon-windows.png'))
@@ -1728,7 +2056,7 @@ index e689f3e67299fbc63ef0cb13bf680efc13115c7b..47d01599c9c3f0cce44420b0e31ef772
        detail: zh ? '版本 V1.0.0' : 'Version V1.0.0', buttons: [zh ? '确定' : 'OK'], cancelId: 0,
      }))
      // A dialog that cannot open is logged, not surfaced as an unhandled rejection.
-@@ -1139,7 +962,7 @@ describe('desktop main startup', () => {
+@@ -1139,7 +987,7 @@ describe('desktop main startup', () => {
    it('accepts product IPC only from the current application top frame in the owned main window', async () => {
      await readyForUpdate()
      const sender = harness.windows[0]!.webContents
@@ -1737,7 +2065,7 @@ index e689f3e67299fbc63ef0cb13bf680efc13115c7b..47d01599c9c3f0cce44420b0e31ef772
        const handler = harness.handlers.get(channel)!
        expect(() => handler({ sender, senderFrame: sender.mainFrame })).not.toThrow()
        for (const event of [
-@@ -1397,7 +1220,7 @@ describe('desktop main startup', () => {
+@@ -1397,7 +1245,7 @@ describe('desktop main startup', () => {
      expect(() => handler(event, 'application', NaN, 34)).toThrow('invalid popup request')
      const application = handler(event, 'application', 48, 34)
      expect(harness.menu.buildFromTemplate.mock.lastCall![0].map(item => item.label ?? item.type)).toEqual([
@@ -1746,7 +2074,7 @@ index e689f3e67299fbc63ef0cb13bf680efc13115c7b..47d01599c9c3f0cce44420b0e31ef772
      ])
      expect(harness.popup.mock.lastCall![0]).toMatchObject({ window, x: 48, y: 34 })
      expect(harness.popup.mock.lastCall![0].callback).toBeTypeOf('function')
-@@ -1445,8 +1268,8 @@ describe('desktop main startup', () => {
+@@ -1445,8 +1293,8 @@ describe('desktop main startup', () => {
        : undefined)
      const application = template[0]!.submenu as MenuItemConstructorOptions[]
      expect(application.filter(item => item.visible !== false).map(describeItem)).toEqual(platform === 'darwin'
@@ -1757,7 +2085,7 @@ index e689f3e67299fbc63ef0cb13bf680efc13115c7b..47d01599c9c3f0cce44420b0e31ef772
      expect(harness.menu.setApplicationMenu).toHaveBeenCalledOnce()
    })
  
-@@ -2141,7 +1964,7 @@ describe('desktop main startup', () => {
+@@ -2141,7 +1989,7 @@ describe('desktop main startup', () => {
      expect(host.stop).not.toHaveBeenCalled()
      expect(request.mock.calls[0]![1]!.headers).toMatchObject({
        'x-client-bundle-id': '', 'x-client-platform': 'desktop-win', 'x-client-version': '1.2.3',
@@ -1766,7 +2094,7 @@ index e689f3e67299fbc63ef0cb13bf680efc13115c7b..47d01599c9c3f0cce44420b0e31ef772
        'x-client-locale': 'en_US', 'x-client-timezone-offset': String(-new Date().getTimezoneOffset() * 60),
      })
    })
-@@ -2178,28 +2001,6 @@ describe('desktop main startup', () => {
+@@ -2178,28 +2026,6 @@ describe('desktop main startup', () => {
      }))
    })
  
@@ -28636,3 +28964,695 @@ index 6eed371b08d156b0a307d45c9dd6644ba871bb30..6ae9d4f297be86476fea2bda4a7e8b05
        DSH_CLIENT_COMMIT_HASH: commitHash,
        DSH_CLIENT_VERSION: version,
        ...(profile === 'official' ? OFFICIAL_CLIENT_BUILD_ENVIRONMENT : {
+diff --git a/apps/cli/src/bin.ts b/apps/cli/src/bin.ts
+index 1ae0c4a59182c3ebe7dd38fcc17292e185332cdc..bf804a48e487109dfc91a9279599827a2796b554 100644
+--- a/apps/cli/src/bin.ts
++++ b/apps/cli/src/bin.ts
+@@ -7,7 +7,7 @@
+ /* v8 ignore file -- built-bin acceptance exercises this self-executing dispatch. */
+ 
+ import { getDshRuntimeVersion, loadLayeredEnv, StartupError } from '@deepseek-ai/dsh-app-boot'
+-import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
++import { assertSeparateDshHome, resolveDshHome } from '@deepseek-ai/dsh-home-paths'
+ import { parseDshArgs } from './args.ts'
+ import { reportStartupFailure } from './startup-diagnostics.ts'
+ import type { RunProfileOptions } from './profile-boot.ts'
+@@ -28,6 +28,17 @@ export async function runCli(options: RunCliOptions = {}): Promise<void> {
+   const { manageDesktopProfile, ...profileOptions } = options
+   const invocation = parseDshArgs(process.argv.slice(2), version, manageDesktopProfile)
+ 
++  const harnessHome = resolveDshHome()
++  try {
++    await assertSeparateDshHome(harnessHome)
++  } catch (error) {
++    process.stderr.write(`dsh-uncensored: Could not use the selected data directory. Set DSH_UNCENSORED_HOME to a separate directory.\n${error instanceof Error ? error.message : String(error)}\n`)
++    process.exitCode = 1
++    return
++  }
++  process.env.DSH_UNCENSORED_HOME = harnessHome
++  process.env.DSH_HOME = harnessHome
++
+   switch (invocation.mode) {
+     case 'profile': {
+       const { runProfile } = await import('./profile-boot.ts')
+diff --git a/apps/cli/tests/built-bin.e2e.ts b/apps/cli/tests/built-bin.e2e.ts
+index abf66a630e83f01201411a9b0403ceb4e21a5f03..14619775340de8a1fcd2f9e894ccd4155c1c030d 100644
+--- a/apps/cli/tests/built-bin.e2e.ts
++++ b/apps/cli/tests/built-bin.e2e.ts
+@@ -355,6 +355,30 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)',
+     }
+   }, SPAWN_TIMEOUT_MS + 5_000)
+ 
++  it('rejects an official-home alias before dispatching a command', async () => {
++    const root = mkdtempSync(join(tmpdir(), 'dshu-cli-home-isolation-'))
++    try {
++      const official = join(root, '.dsh')
++      const alias = join(root, '.dsh-uncensored')
++      mkdirSync(official)
++      symlinkSync(official, alias, process.platform === 'win32' ? 'junction' : 'dir')
++      const env = { ...(process.platform === 'win32' ? { USERPROFILE: root } : { HOME: root }),
++        DSH_UNCENSORED_HOME: alias, DSH_HOME: official }
++      const rejected = await runBuiltBin(['--profile', 'web', '--dump-config'], env, root)
++      expect(rejected.code).toBe(1)
++      expect(rejected.stdout).toBe('')
++      expect(rejected.stderr).toContain('overlaps the official DeepSeek Harness home')
++      const version = await runBuiltBin(['--version'], env, root)
++      expect(version.code).toBe(0)
++      expect(version.stdout).not.toBe('')
++      const separate = await runBuiltBin(['--profile', 'web', '--dump-config'], { ...env, DSH_UNCENSORED_HOME: 'separate-dshu' }, root)
++      expect(separate.code).toBe(0)
++      expect(separate.stdout).toContain('id: webserver')
++    } finally {
++      rmSync(root, { recursive: true, force: true })
++    }
++  }, SPAWN_TIMEOUT_MS * 3 + 5_000)
++
+   it('requires a profile and rejects removed flags', async () => {
+     const bare = await runBuiltBin()
+     expect(bare.code).toBe(1)
+diff --git a/apps/desktop/installer/uninstall.nsh b/apps/desktop/installer/uninstall.nsh
+index 151d9c7b04033fc0090c6b487c7d85981ca1e9e1..b2f1002180ee931f8b6093ace2fb714521543ce5 100644
+--- a/apps/desktop/installer/uninstall.nsh
++++ b/apps/desktop/installer/uninstall.nsh
+@@ -144,7 +144,7 @@ FunctionEnd
+ ; Upgrade replacement retains integrations; KEEP_APP_DATA controls only user data.
+ !define /ifndef DSH_COMMAND_ENVIRONMENT_KEY "Environment"
+ !define /ifndef DSH_COMMAND_OWNER_KEY "Software\DeepSeekHarness\Command"
+-!define /ifndef DSH_PROTOCOL_KEY "Software\Classes\dsh"
++!define /ifndef DSH_PROTOCOL_KEY "Software\Classes\dshu"
+ !define /ifndef DSH_COMMAND_MUTEX "default"
+ Function un.CleanRegistration
+   ${If} ${isUpdated}
+diff --git a/apps/desktop/scripts/dev.ts b/apps/desktop/scripts/dev.ts
+index 0753678c0a2ae0ebcda36638f0c18c60ce72a141..fdc221bdb25aee26d431865054364cbc446237d3 100644
+--- a/apps/desktop/scripts/dev.ts
++++ b/apps/desktop/scripts/dev.ts
+@@ -68,6 +68,7 @@ async function launchElectron(): Promise<void> {
+   const environment: NodeJS.ProcessEnv = {
+     ...process.env,
+     DSH_HOME: home,
++    DSH_UNCENSORED_HOME: home,
+     DSH_DESKTOP_PRIMARY_RUNTIME_DIR: process.env.DSH_DESKTOP_PRIMARY_RUNTIME_DIR ?? developmentRuntimeDirectory(),
+     DSH_DESKTOP_HOST_INSPECT_PORT: String(hostPort),
+     DSH_DESKTOP_OPEN_DEVTOOLS: process.env.DSH_DESKTOP_OPEN_DEVTOOLS ?? '1',
+diff --git a/apps/desktop/scripts/development-app.ts b/apps/desktop/scripts/development-app.ts
+index ff09b8b783952179ceb1e9bed7e4aee989176005..d0c0f2d95c8842738703a71770b3e8185b14da03 100644
+--- a/apps/desktop/scripts/development-app.ts
++++ b/apps/desktop/scripts/development-app.ts
+@@ -36,11 +36,11 @@ export function prepareDevelopmentApp(options: DevelopmentAppOptions): string {
+     execFileSync('/usr/bin/ditto', [source, bundle])
+     const plist = join(bundle, 'Contents', 'Info.plist')
+     const values = {
+-      CFBundleIdentifier: `com.deepseek.harness.dev.${createHash('sha256').update(options.appRoot).digest('hex').slice(0, 12)}`,
++      CFBundleIdentifier: `com.deepseek.harness.uncensored.dev.${createHash('sha256').update(options.appRoot).digest('hex').slice(0, 12)}`,
+       CFBundleName: 'Harness Dev',
+       CFBundleDisplayName: 'Harness Dev',
+       CFBundleExecutable: 'HarnessDev',
+-      CFBundleURLTypes: [{ CFBundleURLName: 'DeepSeek Harness', CFBundleURLSchemes: ['dsh'], CFBundleTypeRole: 'Viewer' }],
++      CFBundleURLTypes: [{ CFBundleURLName: 'DeepSeek Harness Uncensored', CFBundleURLSchemes: ['dshu'], CFBundleTypeRole: 'Viewer' }],
+     }
+     for (const [key, value] of Object.entries(values)) {
+       execFileSync('/usr/bin/plutil', ['-replace', key, '-json', JSON.stringify(value), plist])
+@@ -62,6 +62,7 @@ export function prepareDevelopmentApp(options: DevelopmentAppOptions): string {
+ export function developmentLauncher(options: DevelopmentAppOptions, bundle: string): string {
+   const environment = {
+     DSH_HOME: options.home,
++    DSH_UNCENSORED_HOME: options.home,
+     DSH_DESKTOP_DEV_APP: '1',
+     DSH_DESKTOP_HOST_INSPECT_PORT: String(options.hostPort),
+     DSH_DESKTOP_OPEN_DEVTOOLS: options.openDevtools,
+diff --git a/apps/desktop/scripts/development-state.ts b/apps/desktop/scripts/development-state.ts
+index 6f5233d8fc76621d9d528b257a8e11cfd4284f79..5ca2c7e5ad0577472de6e35b08ea0954f2c198ba 100644
+--- a/apps/desktop/scripts/development-state.ts
++++ b/apps/desktop/scripts/development-state.ts
+@@ -35,7 +35,7 @@ function profileInUse(userData: string): boolean {
+  * Resolve development state outside `.desktop-build`, which `pnpm run clean` removes.
+  * A default location that does not exist yet receives the state an earlier launcher left under
+  * `.desktop-build/development` unless a running Harness Dev still owns that browser profile;
+- * explicit `DSH_HOME` and `DSH_DESKTOP_USER_DATA_DIR` are used as given.
++ * explicit `DSH_DESKTOP_DEV_HOME` and `DSH_DESKTOP_USER_DATA_DIR` are used as given.
+  * @param appRoot - Desktop application directory.
+  * @param environment - Launch environment with optional location overrides.
+  * @returns Harness home and Electron user-data directories.
+@@ -63,7 +63,7 @@ export function prepareDevelopmentState(appRoot: string, environment: NodeJS.Pro
+     return path
+   }
+   return {
+-    home: select(environment.DSH_HOME, 'home'),
++    home: select(environment.DSH_DESKTOP_DEV_HOME?.trim() ? environment.DSH_DESKTOP_DEV_HOME : undefined, 'home'),
+     userData: select(environment.DSH_DESKTOP_USER_DATA_DIR, 'electron-user-data'),
+   }
+ }
+diff --git a/apps/desktop/scripts/electron-builder-config.mjs b/apps/desktop/scripts/electron-builder-config.mjs
+index a777a0582e8b22e6bee9212188c320b148ea5df5..b5d403f095ba0ba68f57498ffe2a743aad076e6d 100644
+--- a/apps/desktop/scripts/electron-builder-config.mjs
++++ b/apps/desktop/scripts/electron-builder-config.mjs
+@@ -108,7 +108,7 @@ export function createElectronBuilderConfig(
+   const packaged = resolveDesktopBuildCommit(env)
+   return {
+     appId,
+-    protocols: [{ name: 'DeepSeek Harness', schemes: ['dsh'] }],
++    protocols: [{ name: 'DeepSeek Harness Uncensored', schemes: ['dshu'] }],
+     extraMetadata: {
+       dshDesktopAppId: appId,
+       dshDesktopUpdateChannel: update?.channel ?? 'nightly',
+@@ -116,7 +116,7 @@ export function createElectronBuilderConfig(
+       ...buildVersion === productVersion ? {} : { version: buildVersion },
+       ...packaged === undefined ? {} : { dshBuildCommit: packaged.commit, dshBuildDirty: packaged.dirty },
+     },
+-    productName: 'DeepSeek Harness',
++    productName: 'DeepSeek Harness Uncensored',
+     // The default copyright uses author.name; this line names the product instead.
+     copyright: `Copyright © ${new Date().getFullYear()} \${productName}`,
+     // Unsigned builds carry their own suffix so a shared file can never pass for a release artifact.
+diff --git a/apps/desktop/tests/development-app.spec.ts b/apps/desktop/tests/development-app.spec.ts
+index 2f718b7bc5feaebd4e655eb9a878aae6342babbb..206535cf0754ec08e02cd2d63574fce03bfd49fb 100644
+--- a/apps/desktop/tests/development-app.spec.ts
++++ b/apps/desktop/tests/development-app.spec.ts
+@@ -12,12 +12,12 @@ it.skipIf(process.platform === 'win32')('passes literal workspace paths and cold
+   const bundle = join(root, "Harness ' $(false).app")
+   const binary = join(bundle, 'Contents', 'MacOS', 'Electron')
+   mkdirSync(join(bundle, 'Contents', 'MacOS'), { recursive: true })
+-  writeFileSync(binary, '#!/bin/sh\nprintf "%s\\n" "$DSH_HOME" "$DSH_DESKTOP_DEV_APP" "$DSH_DESKTOP_OPEN_DEVTOOLS" "$@"\n', { mode: 0o755 })
++  writeFileSync(binary, '#!/bin/sh\nprintf "%s\\n" "$DSH_HOME" "$DSH_UNCENSORED_HOME" "$DSH_DESKTOP_DEV_APP" "$DSH_DESKTOP_OPEN_DEVTOOLS" "$@"\n', { mode: 0o755 })
+   const launcher = join(root, 'launcher')
+   const home = join(root, "home ' $(false)")
+   writeFileSync(launcher, developmentLauncher({ electron: binary, appRoot: root, directory: root,
+     home, userData: join(root, 'browser data'), mainPort: 9229, rendererPort: 9222, hostPort: 9230, openDevtools: '0' }, bundle))
+   const result = execFileSync('/bin/sh', [launcher, '--test-launch-argument'], { encoding: 'utf8' })
+-  expect(result.trimEnd().split('\n')).toEqual([home, '1', '0', '--inspect=127.0.0.1:9229',
++  expect(result.trimEnd().split('\n')).toEqual([home, home, '1', '0', '--inspect=127.0.0.1:9229',
+     '--remote-debugging-port=9222', `--user-data-dir=${join(root, 'browser data')}`, root, '--test-launch-argument'])
+ })
+diff --git a/apps/desktop/tests/development-state.spec.ts b/apps/desktop/tests/development-state.spec.ts
+index b7e42bd0d285eee2bace1edd02cf7d312acfbcdd..8ad7fcedf48d0495f94ff441c07abc8f13ffc110 100644
+--- a/apps/desktop/tests/development-state.spec.ts
++++ b/apps/desktop/tests/development-state.spec.ts
+@@ -20,7 +20,7 @@ it('moves state from .desktop-build into the default development state directory
+   mkdirSync(join(legacy, 'electron-user-data'))
+   writeFileSync(join(legacy, 'home', 'session.jsonl'), 'session')
+ 
+-  const state = prepareDevelopmentState(root, {})
++  const state = prepareDevelopmentState(root, { DSH_HOME: join(root, '.dsh'), DSH_UNCENSORED_HOME: join(root, 'installed') })
+ 
+   expect(state).toEqual({ home: join(root, '.desktop-dev', 'home'), userData: join(root, '.desktop-dev', 'electron-user-data') })
+   expect(readFileSync(join(state.home, 'session.jsonl'), 'utf8')).toBe('session')
+@@ -45,7 +45,7 @@ it('moves only the default directory that is missing', () => {
+   mkdirSync(join(legacy, 'home'), { recursive: true })
+   mkdirSync(join(legacy, 'electron-user-data'))
+ 
+-  const state = prepareDevelopmentState(root, { DSH_HOME: join(root, 'h') })
++  const state = prepareDevelopmentState(root, { DSH_DESKTOP_DEV_HOME: join(root, 'h') })
+ 
+   expect(state).toEqual({ home: join(root, 'h'), userData: join(root, '.desktop-dev', 'electron-user-data') })
+   expect(existsSync(state.userData)).toBe(true)
+@@ -56,7 +56,7 @@ it('uses explicit locations without moving legacy state', () => {
+   const root = fixture()
+   mkdirSync(join(root, '.desktop-build', 'development', 'home'), { recursive: true })
+ 
+-  expect(prepareDevelopmentState(root, { DSH_HOME: join(root, 'h'), DSH_DESKTOP_USER_DATA_DIR: join(root, 'u') }))
++  expect(prepareDevelopmentState(root, { DSH_DESKTOP_DEV_HOME: join(root, 'h'), DSH_DESKTOP_USER_DATA_DIR: join(root, 'u') }))
+     .toEqual({ home: join(root, 'h'), userData: join(root, 'u') })
+   expect(existsSync(join(root, '.desktop-build', 'development', 'home'))).toBe(true)
+   expect(existsSync(join(root, '.desktop-dev'))).toBe(false)
+diff --git a/apps/desktop/tests/welcome-startup.spec.ts b/apps/desktop/tests/welcome-startup.spec.ts
+index 9e365f932b7af59fb3942592197dec2131145cdf..013c2871cdfb192f3d97f55b298f2d5d7d8e9ca4 100644
+--- a/apps/desktop/tests/welcome-startup.spec.ts
++++ b/apps/desktop/tests/welcome-startup.spec.ts
+@@ -3,7 +3,10 @@ vi.mock('../src/web-document.ts', () => ({
+ }))
+ /** Welcome startup uses the Host before transitioning to the workspace. */
+ 
+-import { afterEach, expect, it, vi } from 'vitest'
++import { mkdtempSync, rmSync } from 'node:fs'
++import { tmpdir } from 'node:os'
++import { join } from 'node:path'
++import { afterEach, beforeEach, onTestFinished, expect, it, vi } from 'vitest'
+ import type { BrowserWindowConstructorOptions } from 'electron'
+ import type { DesktopLocale } from '../src/locale.ts'
+ import type { AccountView } from '@deepseek-ai/dsh-deepseek-account/types'
+@@ -52,6 +55,8 @@ vi.mock('../src/crash-report.ts', async importOriginal => ({
+ vi.mock('electron', () => ({
+   clipboard: { writeText: state.copy },
+   app: {
++    setName: vi.fn(),
++    setDesktopName: vi.fn(),
+     isPackaged: false,
+     name: 'Harness',
+     requestSingleInstanceLock: () => true,
+@@ -170,6 +175,13 @@ vi.mock('../src/welcome-window.ts', () => ({
+   },
+ }))
+ 
++beforeEach(() => {
++  const home = mkdtempSync(join(tmpdir(), 'dshu-welcome-home-'))
++  vi.stubEnv('DSH_UNCENSORED_HOME', home)
++  vi.stubEnv('DSH_HOME', home)
++  onTestFinished(() => { rmSync(home, { recursive: true, force: true }) })
++})
++
+ afterEach(() => {
+   vi.clearAllTimers()
+   vi.useRealTimers()
+@@ -207,7 +219,7 @@ it.each([false, true])('starts welcome onboarding without carrying update focus
+   })
+   const activate = () => {
+     state.appListeners.get('second-instance')!()
+-    state.appListeners.get('open-url')!({ preventDefault: vi.fn() }, 'dsh://open')
++    state.appListeners.get('open-url')!({ preventDefault: vi.fn() }, 'dshu://open')
+   }
+   await import('../src/main.ts')
+   await vi.waitFor(() => { expect(state.beforeRead).toHaveBeenCalledOnce() })
+@@ -305,7 +317,7 @@ it.each([false, true])('starts welcome onboarding without carrying update focus
+   expect(state.focusWorkspace).not.toHaveBeenCalled()
+   expect(state.moveTopWorkspace).not.toHaveBeenCalled()
+   expect(state.openDevTools).not.toHaveBeenCalled()
+-  state.appListeners.get('open-url')!({ preventDefault: vi.fn() }, 'dsh://open')
++  state.appListeners.get('open-url')!({ preventDefault: vi.fn() }, 'dshu://open')
+   expect(state.showWorkspace).toHaveBeenCalledOnce()
+   expect(state.focusWorkspace).toHaveBeenCalledOnce()
+ 
+diff --git a/package.json b/package.json
+index 25fc7a6a554ee39851bdf02af02b502c0eaf8d65..cf3ae691a5789c97cea7562fece203e58ff16c85 100644
+--- a/package.json
++++ b/package.json
+@@ -219,11 +219,11 @@
+     "release:pack": "tsx scripts/release/pack.ts",
+     "release:verify-packed-install": "tsx scripts/release/verify-packed-install.ts",
+     "release:publish": "tsx scripts/release/publish.ts",
+-    "dsh": "node --import tsx/esm apps/cli/src/bin.ts",
++    "dsh": "node --import ./scripts/uncensored-home.mjs --import tsx/esm apps/cli/src/bin.ts",
+     "demo:ptc": "node scripts/demo-ptc.mjs",
+-    "demo:inspector": "node --import tsx/esm apps/cli/src/bin.ts web --patch ./packages/experimental/inspector/cordis.source.patch.yml",
++    "demo:inspector": "node --import ./scripts/uncensored-home.mjs --import tsx/esm apps/cli/src/bin.ts web --patch ./packages/experimental/inspector/cordis.source.patch.yml",
+     "mock:llm": "node --import tsx packages/test-support/llm-mock-server/src/bin.ts",
+-    "start:web": "node --import tsx/esm apps/cli/src/bin.ts web",
++    "start:web": "node --import ./scripts/uncensored-home.mjs --import tsx/esm apps/cli/src/bin.ts web",
+     "dev:web": "tsx scripts/dev-web.ts --poll",
+     "dev:bundle-registry": "tsx scripts/dev-bundle-registry.ts",
+     "postinstall": "node scripts/install-lefthook.mjs",
+diff --git a/packages/util/home-paths/README.i18n.yaml b/packages/util/home-paths/README.i18n.yaml
+index 487b42ee7cd2730fa10791ddee0e8c731215806c..f8ac55250948f82df74d3792373ec318a3bdadf8 100644
+--- a/packages/util/home-paths/README.i18n.yaml
++++ b/packages/util/home-paths/README.i18n.yaml
+@@ -18,8 +18,8 @@
+   en: 5322022224da2f27
+   zh: d5cba67f4ea3e429
+ /deepseek-ai-dsh-home-paths/use-this-package/resolving-the-home:
+-  en: da3b53cf08826d46
+-  zh: a0d25c8932307bbd
++  en: 34a710281d67bb46
++  zh: 7dd9c8291744b18a
+ /deepseek-ai-dsh-home-paths/use-this-package/choosing-a-category-for-a-new-path:
+   en: b067146c36447eee
+   zh: a3c1c4955842ddf4
+@@ -27,8 +27,8 @@
+   en: 899c53a36b4a77cd
+   zh: 216532c8876d201d
+ /deepseek-ai-dsh-home-paths/use-this-package/displaying-a-home:
+-  en: 5296a54cce9be374
+-  zh: e408ce14b8be4698
++  en: 8a38946ec8ab7f72
++  zh: 2620d77d56cd925a
+ /deepseek-ai-dsh-home-paths/use-this-package/expanding-user-paths:
+   en: 80bf5dead177c1d8
+   zh: 6faf257afbb9c246
+@@ -42,8 +42,8 @@
+   en: 584610e67c4aa386
+   zh: 766f77e35c65193d
+ /deepseek-ai-dsh-home-paths/understand-the-implementation/resolution-rules:
+-  en: f8935bcc43a7749e
+-  zh: 863e3f58eb88b342
++  en: dded015a434454ba
++  zh: 48aaa726476f5c82
+ /deepseek-ai-dsh-home-paths/understand-the-implementation/canonicalization-mechanics:
+   en: a79aecd162317dc2
+   zh: 342f9bae0231c3de
+diff --git a/packages/util/home-paths/README.md b/packages/util/home-paths/README.md
+index fe11c18354410947b5ed33dd1673cb23ff25df5c..48033e4f73d8a8a37cb915dd936b9b6982ae5752 100644
+--- a/packages/util/home-paths/README.md
++++ b/packages/util/home-paths/README.md
+@@ -31,12 +31,14 @@ Use these helpers wherever a package must agree with the rest of the harness abo
+ ```ts
+ import { resolveDshHome, dshHomePath, dshCachePath } from '@deepseek-ai/dsh-home-paths'
+ 
+-const home = resolveDshHome()                // configured path, else $DSH_HOME, else ~/.dsh
++const home = resolveDshHome()                // configured path, else $DSH_UNCENSORED_HOME, else $DSH_HOME, else ~/.dsh-uncensored
+ const settings = dshHomePath('settings')     // join one child onto the resolved home
+-const cache = dshCachePath('models')         // $DSH_HOME/cache/models, default ~/.dsh/cache/models
++const cache = dshCachePath('models')         // $DSH_HOME/cache/models, default ~/.dsh-uncensored/cache/models
+ ```
+ 
+-An explicit configured path has the highest precedence, then `$DSH_HOME`, then the default `~/.dsh`. An empty or whitespace-only `$DSH_HOME` is treated as unset, so a blank override never resolves the home to the current working directory.
++An explicit configured path has the highest precedence, then `$DSH_UNCENSORED_HOME`, then `$DSH_HOME`, then the default `~/.dsh-uncensored`. A `$DSH_HOME` that names the official default `~/.dsh` is ignored. An empty or whitespace-only variable is treated as unset, so a blank override never resolves the home to the current working directory. User-facing launchers (the source `dsh` scripts, the Desktop shell, and the installed command launchers) export `$DSH_HOME` from `$DSH_UNCENSORED_HOME` or the default before resolving anything, so an inherited `$DSH_HOME` from another installation never reaches this resolver; a programmatic caller that sets `$DSH_HOME` for its child still selects that home.
++
++The Desktop and CLI launchers call `assertSeparateDshHome` before preparing a profile or reading its configuration. The check rejects directory overlap with the official `~/.dsh` both by path and by resolved link target, including a missing subdirectory below an existing linked directory.
+ 
+ `dshCachePath(...segments)` derives paths from the resolved home's `cache` directory. With no segments it returns the cache directory itself. Pass an initial options object, `dshCachePath({ dshHome: home }, ...segments)`, to use an explicit configured home with the same precedence and tilde expansion. It returns an absolute path without creating directories.
+ 
+@@ -67,7 +69,7 @@ agentsHomeDisplay(agents)            // ~/.agents, or $DSH_AGENTS_HOME for any c
+ 
+ ### Displaying a home
+ 
+-For user-facing paths, render a root symbolically rather than as a machine path: the default harness home displays as `~/.dsh`, any configured harness home as `$DSH_HOME`, the default shared agents root as `~/.agents`, and any configured shared agents root as `$DSH_AGENTS_HOME`. Neither display form leaks an absolute machine path.
++For user-facing paths, render a root symbolically rather than as a machine path: the default harness home displays as `~/.dsh-uncensored`, any configured harness home as `$DSH_HOME`, the default shared agents root as `~/.agents`, and any configured shared agents root as `$DSH_AGENTS_HOME`. Neither display form leaks an absolute machine path.
+ 
+ ### Expanding user paths
+ 
+@@ -95,7 +97,7 @@ The package is built on one principle: harness user data lives under one root, a
+ 
+ ### Resolution rules
+ 
+-`resolveDshHome` reads the explicit override, then `$DSH_HOME`, then falls back to the operating-system home joined with `.dsh`. `resolveAgentsHome` reads the same three levels for `$DSH_AGENTS_HOME` and `~/.agents`. The chosen value is tilde-expanded and normalized to an absolute path; `dshHomePath` and `dshPath` join child segments with Node's platform path rules. `dshHomeDisplay` and `agentsHomeDisplay` compare the resolved path against the default root and return the symbolic label, so a configured root never leaks its absolute path.
++`resolveDshHome` reads the explicit override, then `$DSH_UNCENSORED_HOME` or `$DSH_HOME`, then falls back to the operating-system home joined with `.dsh-uncensored`. `resolveAgentsHome` reads the same three levels for `$DSH_AGENTS_HOME` and `~/.agents`. The chosen value is tilde-expanded and normalized to an absolute path; `dshHomePath` and `dshPath` join child segments with Node's platform path rules. `dshHomeDisplay` and `agentsHomeDisplay` compare the resolved path against the default root and return the symbolic label, so a configured root never leaks its absolute path.
+ 
+ ### Canonicalization mechanics
+ 
+diff --git a/packages/util/home-paths/README.zh.md b/packages/util/home-paths/README.zh.md
+index 27e7b369333e200f3945affec183b519c158d9a5..55c5bb6773063a456f036a62a0592046e726c6c0 100644
+--- a/packages/util/home-paths/README.zh.md
++++ b/packages/util/home-paths/README.zh.md
+@@ -31,12 +31,14 @@ kind: "package-library"
+ ```ts
+ import { resolveDshHome, dshHomePath, dshCachePath } from '@deepseek-ai/dsh-home-paths'
+ 
+-const home = resolveDshHome()                // configured path, else $DSH_HOME, else ~/.dsh
++const home = resolveDshHome()                // configured path, else $DSH_UNCENSORED_HOME, else $DSH_HOME, else ~/.dsh-uncensored
+ const settings = dshHomePath('settings')     // join one child onto the resolved home
+-const cache = dshCachePath('models')         // $DSH_HOME/cache/models, default ~/.dsh/cache/models
++const cache = dshCachePath('models')         // $DSH_HOME/cache/models, default ~/.dsh-uncensored/cache/models
+ ```
+ 
+-显式配置的路径优先级最高，然后是 `$DSH_HOME`，最后是默认的 `~/.dsh`。空或仅含空白的 `$DSH_HOME` 视为未设置，因此空白的覆盖值绝不会把主目录解析到当前工作目录。
++显式配置的路径优先级最高，然后是 `$DSH_UNCENSORED_HOME`，再是 `$DSH_HOME`，最后是默认的 `~/.dsh-uncensored`。指向官方默认目录 `~/.dsh` 的 `$DSH_HOME` 会被忽略。空或仅含空白的变量视为未设置，因此空白的覆盖值绝不会把主目录解析到当前工作目录。面向用户的启动入口（源码 `dsh` 脚本、桌面外壳和安装的命令启动器）在解析任何路径前，用 `$DSH_UNCENSORED_HOME` 或默认目录导出 `$DSH_HOME`，因此从其他安装继承的 `$DSH_HOME` 不会到达此解析器；以编程方式为子进程设置 `$DSH_HOME` 的调用者仍会选中该目录。
++
++桌面与命令行启动入口会在准备 profile 或读取其配置前调用 `assertSeparateDshHome`。它同时检查路径和链接解析结果，拒绝与官方 `~/.dsh` 重叠的目录，包括现有链接下尚未创建的子目录。
+ 
+ `dshCachePath(...segments)` 从解析出的主目录下的 `cache` 目录派生路径。不传路径段时返回缓存目录本身。传入首个选项对象 `dshCachePath({ dshHome: home }, ...segments)` 可使用显式配置的主目录，遵循相同的优先级与波浪号展开规则。它返回绝对路径，不会创建目录。
+ 
+@@ -67,7 +69,7 @@ agentsHomeDisplay(agents)            // ~/.agents, or $DSH_AGENTS_HOME for any c
+ 
+ ### 展示主目录
+ 
+-面向用户的路径请以符号形式渲染根目录，而不是机器路径：默认主目录显示为 `~/.dsh`，任何已配置的主目录显示为 `$DSH_HOME`，默认共享 agents 根目录显示为 `~/.agents`，任何已配置的共享 agents 根目录显示为 `$DSH_AGENTS_HOME`。两种展示形式都不会泄露机器的绝对路径。
++面向用户的路径请以符号形式渲染根目录，而不是机器路径：默认主目录显示为 `~/.dsh-uncensored`，任何已配置的主目录显示为 `$DSH_HOME`，默认共享 agents 根目录显示为 `~/.agents`，任何已配置的共享 agents 根目录显示为 `$DSH_AGENTS_HOME`。两种展示形式都不会泄露机器的绝对路径。
+ 
+ ### 展开用户路径
+ 
+@@ -95,7 +97,7 @@ agentsHomeDisplay(agents)            // ~/.agents, or $DSH_AGENTS_HOME for any c
+ 
+ ### 解析规则
+ 
+-`resolveDshHome` 先读显式覆盖值，然后读 `$DSH_HOME`，最后回退到操作系统主目录拼接 `.dsh`。`resolveAgentsHome` 对 `$DSH_AGENTS_HOME` 与 `~/.agents` 读取同样的三层值。选中的值经过波浪号展开并规范化为绝对路径；`dshHomePath` 与 `dshPath` 用 Node 的平台路径规则拼接子路径段。`dshHomeDisplay` 与 `agentsHomeDisplay` 把解析出的路径与默认根目录比较并返回符号标签，因此已配置的根目录绝不泄露其绝对路径。
++`resolveDshHome` 先读显式覆盖值，然后读 `$DSH_UNCENSORED_HOME` 或 `$DSH_HOME`，最后回退到操作系统主目录拼接 `.dsh-uncensored`。`resolveAgentsHome` 对 `$DSH_AGENTS_HOME` 与 `~/.agents` 读取同样的三层值。选中的值经过波浪号展开并规范化为绝对路径；`dshHomePath` 与 `dshPath` 用 Node 的平台路径规则拼接子路径段。`dshHomeDisplay` 与 `agentsHomeDisplay` 把解析出的路径与默认根目录比较并返回符号标签，因此已配置的根目录绝不泄露其绝对路径。
+ 
+ ### 规范化机制
+ 
+diff --git a/packages/util/home-paths/src/index.ts b/packages/util/home-paths/src/index.ts
+index 9f9351d03e838b291e540cb35778589ce74c9771..656dd450c6ae555308623ec4d8e64a2ffda16de0 100644
+--- a/packages/util/home-paths/src/index.ts
++++ b/packages/util/home-paths/src/index.ts
+@@ -4,12 +4,12 @@
+  * @module @deepseek-ai/dsh-home-paths
+  */
+ 
+-import { opendir, realpath } from 'node:fs/promises'
++import { lstat, opendir, realpath } from 'node:fs/promises'
+ import { homedir } from 'node:os'
+-import { basename, dirname, join, resolve } from 'node:path'
++import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+ 
+ /** Directory name for the default DeepSeek Harness home under the OS home. */
+-export const DSH_HOME_DIR_NAME = '.dsh'
++export const DSH_HOME_DIR_NAME = '.dsh-uncensored'
+ 
+ /** Stable user-facing display form for the default DeepSeek Harness home. */
+ export const DEFAULT_DSH_HOME_DISPLAY = `~/${DSH_HOME_DIR_NAME}`
+@@ -40,6 +40,10 @@ export const AGENTS_HOME_ENV = 'DSH_AGENTS_HOME'
+  * the existing ancestor of a missing suffix is not an enumerable directory.
+  */
+ export async function canonicalizeWatchPath(path: string): Promise<string> {
++  return canonicalizePath(path, false)
++}
++
++async function canonicalizePath(path: string, requireResolvableLinks: boolean): Promise<string> {
+   let current = resolve(path)
+   const missing: string[] = []
+   while (true) {
+@@ -54,6 +58,13 @@ export async function canonicalizeWatchPath(path: string): Promise<string> {
+       return join(canonical, ...missing.reverse())
+     } catch (error) {
+       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
++      if (requireResolvableLinks) {
++        const existing = await lstat(current).catch((statError: unknown) => {
++          if (!(statError instanceof Error) || !('code' in statError) || statError.code !== 'ENOENT') throw statError
++          return undefined
++        })
++        if (existing !== undefined) throw error
++      }
+       const parent = dirname(current)
+       /* v8 ignore next -- a filesystem root exists, so traversal resolves before this guard */
+       if (parent === current) throw error
+@@ -63,6 +74,26 @@ export async function canonicalizeWatchPath(path: string): Promise<string> {
+   }
+ }
+ 
++/**
++ * Reject overlap with the official DeepSeek Harness home before a launcher writes data.
++ * @param home - resolved DSHU home selected for this launch.
++ * @param officialHome - official home to protect, defaulting to the OS home followed by `.dsh`.
++ * @throws if either directory contains the other, including through existing links, or an existing link cannot be resolved.
++ */
++export async function assertSeparateDshHome(home: string, officialHome = join(homedir(), '.dsh')): Promise<void> {
++  const overlaps = (first: string, second: string): boolean => containsPath(first, second) || containsPath(second, first)
++  if (!overlaps(resolve(home), resolve(officialHome))) {
++    const [selected, official] = await Promise.all([canonicalizePath(home, true), canonicalizePath(officialHome, true)])
++    if (!overlaps(selected, official)) return
++  }
++  throw new Error('DSHU data directory overlaps the official DeepSeek Harness home.')
++}
++
++function containsPath(directory: string, path: string): boolean {
++  const offset = relative(directory, path)
++  return !isAbsolute(offset) && offset !== '..' && !offset.startsWith(`..${sep}`)
++}
++
+ /**
+  * Resolve the default DeepSeek Harness home using Node's platform path rules.
+  * @returns the absolute default harness home path.
+@@ -124,8 +155,10 @@ function rootDisplay(resolvedRoot: string, defaultRoot: string, defaultLabel: st
+ /**
+  * Resolve the single-root DeepSeek Harness home.
+  *
+- * Precedence, highest first: an explicit configured path, `$DSH_HOME`, then
+- * `~/.dsh`. The harness keeps all user data under one root. An empty or
++ * Precedence, highest first: an explicit configured path, `$DSH_UNCENSORED_HOME`,
++ * a custom `$DSH_HOME`, then `~/.dsh-uncensored`. The official default `~/.dsh`
++ * is ignored when inherited through the environment. An explicit configured
++ * path may still select it. The harness keeps all user data under one root. An empty or
+  * whitespace-only `$DSH_HOME` is treated as unset, so a blank override never
+  * resolves the home to the current working directory.
+  * @param configured - explicit harness-home override, which has highest precedence.
+@@ -133,7 +166,14 @@ function rootDisplay(resolvedRoot: string, defaultRoot: string, defaultLabel: st
+  * @returns the normalized absolute harness home path.
+  */
+ export function resolveDshHome(configured?: string, env: Record<string, string | undefined> = process.env): string {
+-  return resolveRoot(configured, env, DSH_HOME_ENV, defaultDshHome)
++  if (configured !== undefined) return resolve(expandHomePath(configured))
++  const dedicated = env.DSH_UNCENSORED_HOME
++  if (dedicated !== undefined && dedicated.trim() !== '') return resolve(expandHomePath(dedicated))
++  const inherited = env[DSH_HOME_ENV]
++  if (inherited !== undefined && resolve(expandHomePath(inherited)) === resolve(homedir(), '.dsh')) {
++    return defaultDshHome()
++  }
++  return resolveRoot(undefined, env, DSH_HOME_ENV, defaultDshHome)
+ }
+ 
+ /**
+@@ -196,7 +236,7 @@ export type DshHomeCategory = 'config' | 'data' | 'state' | 'cache' | 'backup'
+ export interface DshPathLocation {
+   /** Category directory to join under. */
+   category: DshHomeCategory
+-  /** Explicit harness-home override, resolved by {@link resolveDshHome}; omission uses `$DSH_HOME`, then `~/.dsh`. */
++  /** Explicit harness-home override, resolved by {@link resolveDshHome}; omission uses `$DSH_HOME`, then `~/.dsh-uncensored`. */
+   dshHome?: string | undefined
+ }
+ 
+@@ -217,9 +257,9 @@ export function dshPath(location: DshHomeCategory | DshPathLocation, ...segments
+  * Describe a resolved harness home symbolically for user-facing display.
+  *
+  * It never returns an absolute machine path: the default home is labelled
+- * `~/.dsh`, and any configured home is labelled `$DSH_HOME`.
++ * `~/.dsh-uncensored`, and any configured home is labelled `$DSH_HOME`.
+  * @param resolvedHome - the absolute path returned by {@link resolveDshHome}.
+- * @returns `~/.dsh` for the default home, otherwise `$DSH_HOME`.
++ * @returns `~/.dsh-uncensored` for the default home, otherwise `$DSH_HOME`.
+  */
+ export function dshHomeDisplay(resolvedHome: string): string {
+   return rootDisplay(resolvedHome, defaultDshHome(), DEFAULT_DSH_HOME_DISPLAY, DSH_HOME_ENV)
+diff --git a/packages/util/home-paths/tests/home-paths.spec.ts b/packages/util/home-paths/tests/home-paths.spec.ts
+index 5c838a6fb3cd86b380e246b8914aca265e8dd722..06c88fb34ad91eacd507c1861961f8fb4a53125f 100644
+--- a/packages/util/home-paths/tests/home-paths.spec.ts
++++ b/packages/util/home-paths/tests/home-paths.spec.ts
+@@ -8,6 +8,7 @@ import {
+   DEFAULT_DSH_HOME_DISPLAY,
+   DSH_HOME_DIR_NAME,
+   agentsHomeDisplay,
++  assertSeparateDshHome,
+   canonicalizeWatchPath,
+   defaultAgentsHome,
+   defaultDshHome,
+@@ -25,10 +26,39 @@ afterEach(() => {
+ })
+ 
+ describe('dsh path helpers', () => {
++  it('isolates an inherited official home and honors an explicit Uncensored home', () => {
++    expect(resolveDshHome(undefined, { DSH_HOME: '~/.dsh' })).toBe(defaultDshHome())
++    expect(resolveDshHome(undefined, { DSH_HOME: '~/.dsh', DSH_UNCENSORED_HOME: '~/private-dshu' }))
++      .toBe(join(homedir(), 'private-dshu'))
++    expect(resolveDshHome(undefined, { DSH_HOME: '~/.dsh', DSH_UNCENSORED_HOME: '  ' })).toBe(defaultDshHome())
++    expect(resolveDshHome('~/.dsh', { DSH_UNCENSORED_HOME: '~/private-dshu' })).toBe(join(homedir(), '.dsh'))
++  })
++
++  it('refuses enclosing homes, nested homes, and linked spellings of the official directory', async () => {
++    const root = await mkdtemp(join(tmpdir(), 'dshu-home-isolation-'))
++    const official = join(root, '.dsh')
++    const alias = join(root, 'alias')
++    const dangling = join(root, 'dangling')
++    const linkType = process.platform === 'win32' ? 'junction' : 'dir'
++    try {
++      await mkdir(official)
++      await symlink(official, alias, linkType)
++      await symlink(join(root, 'missing-target'), dangling, linkType)
++      for (const selected of [root, official, alias, join(official, 'child'), join(alias, 'missing', 'child')]) {
++        await expect(assertSeparateDshHome(selected, official)).rejects.toThrow('overlaps the official DeepSeek Harness home')
++      }
++      await expect(assertSeparateDshHome(official, alias)).rejects.toThrow('overlaps the official DeepSeek Harness home')
++      await expect(assertSeparateDshHome(join(dangling, 'child'), official)).rejects.toMatchObject({ code: 'ENOENT' })
++      await expect(assertSeparateDshHome(join(root, '.dsh-uncensored', 'new'), official)).resolves.toBeUndefined()
++      await expect(assertSeparateDshHome(join(root, 'new'), join(root, 'uninitialized-official'))).resolves.toBeUndefined()
++    } finally {
++      await rm(root, { recursive: true, force: true })
++    }
++  })
+   it('owns the shared default DSH home directory name', () => {
+-    expect(DSH_HOME_DIR_NAME).toBe('.dsh')
+-    expect(DEFAULT_DSH_HOME_DISPLAY).toBe('~/.dsh')
+-    expect(defaultDshHome()).toBe(join(homedir(), '.dsh'))
++    expect(DSH_HOME_DIR_NAME).toBe('.dsh-uncensored')
++    expect(DEFAULT_DSH_HOME_DISPLAY).toBe('~/.dsh-uncensored')
++    expect(defaultDshHome()).toBe(join(homedir(), '.dsh-uncensored'))
+   })
+ 
+   it('expands tilde paths without changing non-tilde paths', () => {
+@@ -59,7 +89,7 @@ describe('dsh path helpers', () => {
+   })
+ 
+   it('labels a resolved home by whether it is the default root', () => {
+-    expect(dshHomeDisplay(resolve(defaultDshHome()))).toBe('~/.dsh')
++    expect(dshHomeDisplay(resolve(defaultDshHome()))).toBe('~/.dsh-uncensored')
+     expect(dshHomeDisplay('/some/other/root')).toBe('$DSH_HOME')
+   })
+ 
+@@ -88,9 +118,9 @@ describe('dsh path helpers', () => {
+   })
+ 
+   it.each([
+-    [undefined, join(homedir(), '.dsh')],
+-    ['', join(homedir(), '.dsh')],
+-    ['   ', join(homedir(), '.dsh')],
++    [undefined, join(homedir(), '.dsh-uncensored')],
++    ['', join(homedir(), '.dsh-uncensored')],
++    ['   ', join(homedir(), '.dsh-uncensored')],
+     ['~/env-dsh', join(homedir(), 'env-dsh')],
+     ['./relative-dsh', resolve('./relative-dsh')],
+   ] as const)('resolves cache paths with DSH_HOME=%j', (home, expectedHome) => {
+@@ -116,8 +146,8 @@ describe('dsh path helpers', () => {
+   })
+ 
+   it.each([
+-    [undefined, join(homedir(), '.dsh')],
+-    ['', join(homedir(), '.dsh')],
++    [undefined, join(homedir(), '.dsh-uncensored')],
++    ['', join(homedir(), '.dsh-uncensored')],
+     ['~/env-dsh', join(homedir(), 'env-dsh')],
+     ['./relative-dsh', resolve('./relative-dsh')],
+   ] as const)('resolves category paths with DSH_HOME=%j', (home, expectedHome) => {
+diff --git a/scripts/dev-web.ts b/scripts/dev-web.ts
+index 9aa3bc069061b5a0dac13600d8830002abcc88a6..4dfc7ce68dbc6b07d24620d1a936b93513a6bd83 100644
+--- a/scripts/dev-web.ts
++++ b/scripts/dev-web.ts
+@@ -419,7 +419,7 @@ if (isMain) {
+     // from source exactly as `pnpm dsh web` would.
+     if (options.serve) {
+       spawnStage(supervisor, 'dsh web', process.execPath, [
+-        '--import', 'tsx/esm', 'apps/cli/src/bin.ts', 'web', ...options.appArgs,
++        '--import', './scripts/uncensored-home.mjs', '--import', 'tsx/esm', 'apps/cli/src/bin.ts', 'web', ...options.appArgs,
+       ], false)
+     }
+     console.log(
+diff --git a/scripts/uncensored-home.mjs b/scripts/uncensored-home.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..239e31fe23373ebe34f544bf857ac3189cb40800
+--- /dev/null
++++ b/scripts/uncensored-home.mjs
+@@ -0,0 +1,24 @@
++/**
++ * Bind this build's harness home before a source launch resolves any path.
++ *
++ * `DSH_HOME` belongs to whichever installation exported it, usually the
++ * official one. A source launch uses `DSH_UNCENSORED_HOME`, or
++ * `~/.dsh-uncensored` when that is unset or blank, and exports the result as
++ * `DSH_HOME` so the process and every child it starts resolve one home. The
++ * packaged Desktop shell and installed launchers apply the same rule.
++ */
++
++import { homedir } from 'node:os'
++import { join, resolve } from 'node:path'
++
++function expandHome(path) {
++  if (path === '~') return homedir()
++  return path.startsWith('~/') || path.startsWith('~\\') ? join(homedir(), path.slice(2)) : path
++}
++
++const configured = process.env.DSH_UNCENSORED_HOME
++const home = configured === undefined || configured.trim() === ''
++  ? join(homedir(), '.dsh-uncensored')
++  : resolve(expandHome(configured))
++process.env.DSH_UNCENSORED_HOME = home
++process.env.DSH_HOME = home
+diff --git a/scripts/uncensored-home.spec.ts b/scripts/uncensored-home.spec.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..a56e82fc87f099b34852ca88e6d8ff953252c7ec
+--- /dev/null
++++ b/scripts/uncensored-home.spec.ts
+@@ -0,0 +1,29 @@
++import { execFileSync } from 'node:child_process'
++import { homedir } from 'node:os'
++import { join, resolve } from 'node:path'
++import { pathToFileURL } from 'node:url'
++import { expect, it } from 'vitest'
++
++const preload = pathToFileURL(join(import.meta.dirname, 'uncensored-home.mjs')).href
++
++function launchHomes(env: Record<string, string | undefined>): { dsh: string; uncensored: string } {
++  const output = execFileSync(process.execPath, [
++    '--import', preload, '-e', 'process.stdout.write(JSON.stringify({ dsh: process.env.DSH_HOME, uncensored: process.env.DSH_UNCENSORED_HOME }))',
++  ], { encoding: 'utf8', env: Object.fromEntries(Object.entries({ ...process.env, ...env }).filter(([, value]) => value !== undefined)) })
++  return JSON.parse(output) as { dsh: string; uncensored: string }
++}
++
++it('ignores an inherited DSH_HOME, including a custom official home', () => {
++  const fallback = join(homedir(), '.dsh-uncensored')
++  for (const inherited of ['~/.dsh', resolve('custom-official-home')]) {
++    expect(launchHomes({ DSH_HOME: inherited, DSH_UNCENSORED_HOME: undefined })).toEqual({ dsh: fallback, uncensored: fallback })
++  }
++  expect(launchHomes({ DSH_HOME: '~/.dsh', DSH_UNCENSORED_HOME: '  ' })).toEqual({ dsh: fallback, uncensored: fallback })
++})
++
++it('exports DSH_UNCENSORED_HOME as the home every child resolves', () => {
++  const own = resolve('own-uncensored-home')
++  expect(launchHomes({ DSH_HOME: resolve('custom-official-home'), DSH_UNCENSORED_HOME: own })).toEqual({ dsh: own, uncensored: own })
++  expect(launchHomes({ DSH_HOME: undefined, DSH_UNCENSORED_HOME: '~/private-dshu' }))
++    .toEqual({ dsh: join(homedir(), 'private-dshu'), uncensored: join(homedir(), 'private-dshu') })
++})

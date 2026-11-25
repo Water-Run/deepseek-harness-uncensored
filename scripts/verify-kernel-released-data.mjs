@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { constants } from 'node:fs'
-import { copyFile, cp, mkdir, mkdtemp, readFile, readdir, rename, rm, unlink } from 'node:fs/promises'
+import { copyFile, cp, mkdir, mkdtemp, readFile, readdir, rename, rm, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -40,7 +40,10 @@ async function probe(root, phase, active) {
   await copyFile(join(kernel, 'verification', fixture), destination, constants.COPYFILE_EXCL)
   try {
     const electron = phase !== 'write' && electronPath ? resolve(electronPath) : undefined
-    const env = { ...process.env, DSHU_VERIFY_DATA: active, DSHU_VERIFY_PHASE: phase }
+    const user = join(active, 'user')
+    const env = { ...process.env, HOME: user, USERPROFILE: user, DSHU_VERIFY_DATA: active, DSHU_VERIFY_PHASE: phase }
+    delete env.DSH_HOME
+    delete env.DSH_UNCENSORED_HOME
     if (electron) {
       env.ELECTRON_RUN_AS_NODE = '1'
       env.DSHU_VERIFY_ELECTRON = '1'
@@ -74,9 +77,17 @@ async function fileHashes(directory, prefix = '') {
 const root = await mkdtemp(join(tmpdir(), 'dshu-released-data-'))
 const active = join(root, 'active')
 const original = join(root, 'original')
-await mkdir(active)
+const official = join('user', '.dsh')
+await mkdir(join(active, official), { recursive: true })
+await writeFile(join(active, official, 'official-profile.txt'), 'Official installation fixture\n')
+async function verifyOfficialHome() {
+  const directory = join(active, official)
+  assert.deepEqual(await readdir(directory), ['official-profile.txt'])
+  assert.equal(await readFile(join(directory, 'official-profile.txt'), 'utf8'), 'Official installation fixture\n')
+}
 try {
   await probe(writer, 'write', active)
+  await verifyOfficialHome()
   await rename(active, original)
   const before = await fileHashes(original)
   assert(Object.keys(before).some(path => path.startsWith('sessions/') && path.endsWith('/session.v4.jsonl.zstd')))
@@ -87,9 +98,10 @@ try {
   await probe(reader, 'reopen', active)
   if (electronPath && ['win32', 'darwin'].includes(process.platform)) {
     await probe(reader, 'desktop', active)
-    const plugins = join('workspace-profile', 'profiles', 'desktop', 'node_modules')
+    const plugins = join('user', '.dsh-uncensored', 'profiles', 'desktop', 'node_modules')
     assert.deepEqual(await fileHashes(join(active, plugins)), await fileHashes(join(original, plugins)))
   }
+  await verifyOfficialHome()
   assert.deepEqual(await fileHashes(original), before)
   process.stdout.write(release + ' and candidate ' + manifest.tree + ' passed. Original files with matching SHA-256: ' + Object.keys(before).length + '\n')
   await rm(root, { recursive: true })

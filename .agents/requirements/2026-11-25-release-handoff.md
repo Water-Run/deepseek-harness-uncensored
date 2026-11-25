@@ -104,7 +104,7 @@ pnpm run test:web:built apps/web/tests/balance-cleanup.e2e.ts apps/web/tests/bal
 
 ### 关于页与模式设置的候选验收
 
-候选树为 `9a040762398793a9e8e29c8c2c243f167e9fda04`。从账号菜单打开关于页，登录前后都能使用。桌面左侧的渐变贴齐弹窗上、下、左三边，窄屏改为顶部横幅。弹窗通过辅助技术名称标识，右上角关闭按钮固定可达。桌面用 Escape 关闭后，焦点回到账号菜单，可以直接按 Enter 再次打开。[候选桌面实拍](../../docs/assets/dshu/about-candidate.webp) · [候选窄屏实拍](../../docs/assets/dshu/about-candidate-mobile.webp)
+关于页截图对应的候选树为 `9a040762398793a9e8e29c8c2c243f167e9fda04`。从账号菜单打开关于页，登录前后都能使用。桌面左侧的渐变贴齐弹窗上、下、左三边，窄屏改为顶部横幅。弹窗通过辅助技术名称标识，右上角关闭按钮固定可达。桌面用 Escape 关闭后，焦点回到账号菜单，可以直接按 Enter 再次打开。[候选桌面实拍](../../docs/assets/dshu/about-candidate.webp) · [候选窄屏实拍](../../docs/assets/dshu/about-candidate-mobile.webp)
 
 | 关于页字段 | 当前候选数据与核对方法 |
 | --- | --- |
@@ -171,7 +171,7 @@ node scripts/verify-kernel-released-data.mjs .artifacts/review-old .artifacts/re
 
 复验 `v2026.11.23.0` 时，将 fetch 的标签换成该版本，并用 `95325688c9134480b7289341ed4eda26e40a55d0` 创建另一个旧端工作树。候选复用[已还原和构建的目录](#固定内核候选)。若提示树不匹配，先核对旧端提交、候选上游提交和候选暂存树。
 
-在命令末尾追加已核实版本和摘要的 Electron 可执行文件路径，可用 Electron 内置 Node 完成两次候选资料读取。Windows 和 macOS 还会执行一次桌面启动。Windows x64 已用 Electron `44.11.5` 验证候选树 `9a040762398793a9e8e29c8c2c243f167e9fda04`。各阶段操作及失败判据如下。[资料用例](../../kernel/0.2.3-alpha.2/verification/released-data.spec.ts.in) · [桌面 Host 用例](../../kernel/0.2.3-alpha.2/verification/released-desktop.spec.ts.in)
+在命令末尾追加已核实版本和摘要的 Electron 可执行文件路径，可用 Electron 内置 Node 完成两次候选资料读取。Windows 和 macOS 还会执行一次桌面启动。Windows x64 已用 Electron `44.11.5` 验证候选树 `01f2be7ff2096aaa1606250f882aedc08c171258`。测试提供模拟的操作系统用户目录，启动 Host 时清除 `DSH_HOME` 和 `DSH_UNCENSORED_HOME`。各阶段操作及失败判据如下。[资料用例](../../kernel/0.2.3-alpha.2/verification/released-data.spec.ts.in) · [桌面 Host 用例](../../kernel/0.2.3-alpha.2/verification/released-desktop.spec.ts.in)
 
 | 阶段 | 可以直接核对的结果 |
 | --- | --- |
@@ -179,7 +179,9 @@ node scripts/verify-kernel-released-data.mjs .artifacts/review-old .artifacts/re
 | 独立读取与重开 | 候选从副本读出工作区顺序、会话归属、置顶、归档、记忆和额度。修改副本后另启进程，复核记忆修订号和取消归档结果。 |
 | 桌面启动 | 桌面项目管理器准备旧 profile，Electron 子进程启动已构建的 Host。用主进程分配的凭据读取首页。第三方插件须通过自己的 HTTP 路由确认它和 Host 看到了同一个工作区服务。 |
 | 用户操作 | 通过客户端使用的 API 打开旧工作区，核对工作区 ID 和会话顺序，分别读回两条会话的原文，再创建一条具有独立标识的写作会话。Host 须确认正常退出。 |
-| 资料保留 | 逐文件比较升级前备份的 SHA-256，并核对本次启动保留了 profile 中的两个插件及其文件。异常时保留复验目录和原副本。 |
+| 资料保留 | 逐文件比较升级前备份的 SHA-256，并核对本次启动保留了 profile 中的两个插件及其文件。旧端写入和候选启动后分别核对官方目录 `~/.dsh` 的条目列表和标记文件内容。异常时保留复验目录和原副本。 |
+
+候选桌面沿用已安装 DSHU 的资料目录。默认位置为 `~/.dsh-uncensored`，覆盖路径使用 `DSH_UNCENSORED_HOME`。已安装的 CLI 也接受指向独立目录的 `DSH_HOME`。继承的值恰为官方默认路径时会选用 DSHU 默认目录。对选定的目录，CLI 与桌面在准备 profile 前检查真实路径，拒绝官方目录本身、其子目录、包含它的父目录及指向它的目录链接。命令行查询版本仍可在资料目录不可用时执行。源码启动 `pnpm dsh` 和 `pnpm run dev:web` 同样采用专用目录。桌面开发启动默认使用工作区下的 `apps/desktop/.desktop-dev/home`，单独覆盖用 `DSH_DESKTOP_DEV_HOME`。桌面外部协议为 `dshu://open`。
 
 本项覆盖 Windows 上的桌面 Host 和合成 profile。macOS arm64 的 DMG 覆盖安装、Gatekeeper 和系统更新器仍需在对应平台完成。
 

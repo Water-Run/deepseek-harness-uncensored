@@ -2,6 +2,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { expect, it } from 'vitest'
+import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { Context } from '@deepseek-ai/cordis'
 import { brandString, type Branded } from '@deepseek-ai/dsh-brand'
 import { LocalFileSystem } from '@deepseek-ai/dsh-fs-local'
@@ -138,7 +139,8 @@ it('preserves a released writing workspace, rolling ledger and compressed v4 Ses
 
 it('reopens the released workspace index with the same order, membership, pins and archive', async () => {
   const ctx = new Context()
-  const home = join(directory, 'workspace-profile')
+  const home = resolveDshHome()
+  expect(home).toBe(join(directory, 'user', '.dsh-uncensored'))
   const first = join(home, 'writing')
   const second = join(home, 'notes')
   const pinned = brandString<SessionId>('pinned-story')
@@ -310,7 +312,7 @@ const controller = '@deepseek-ai/dsh-api-workspace-controller'
 const observer = 'dshu-profile-observer'
 
 it.runIf(phase === 'write')('retains a desktop profile with an obsolete controller and an external plugin', async () => {
-  const profile = join(directory, 'workspace-profile', 'profiles', 'desktop')
+  const profile = join(resolveDshHome(), 'profiles', 'desktop')
   createPluginProfile(profile)
   const stale = join(profile, 'node_modules', controller)
   const external = join(profile, 'node_modules', observer)
