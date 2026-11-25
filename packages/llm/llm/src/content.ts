@@ -463,6 +463,12 @@ export function projectToolUpdates(
 
   const projectedHistory = toolUpdate === 'addition-only' ? rebaseAdditionOnlyHistory(history, updates) : history
   const declarations = toolDeclarations(projectedHistory)
+  if (toolUpdate === 'in-history' && history.disabledAfterRejection?.length) {
+    const active = new Set(tools?.map(tool => tool.name))
+    for (const name of history.disabledAfterRejection) {
+      if (!active.has(name)) declarations.delete(name)
+    }
+  }
   const updateIds = new Set(history.updates.map(update => update.messageId))
   const retainedUpdateIds = new Set(projectedHistory.updates.map(update => update.messageId))
   // Deferred baseline tools still need their first addition to become available.
@@ -486,7 +492,7 @@ export function projectToolUpdates(
           return true
         case 'tool-removal':
           // Addition-only routes cannot deactivate a tool through history.
-          if (toolUpdate !== 'in-history') return false
+          if (toolUpdate !== 'in-history' || !declarations.has(block.toolName)) return false
           return offered.delete(block.toolName)
         default:
           // Other core and plugin-defined blocks retain their content and order.

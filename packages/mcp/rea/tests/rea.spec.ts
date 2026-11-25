@@ -105,6 +105,20 @@ it('omits header identification from the model request when REA is disabled', as
   } finally { tools.dispose() }
 })
 
+it('withdraws previously selected declarations from the next step when REA is switched off', async () => {
+  const { ctx, agent, call } = await harness()
+  await call('rea_tools', { names: ['read_target'] })
+  const name = 'mcp__rea__read_target'
+  expect(ctx.tools.get(name, agent)).toBeDefined()
+  const options = ctx.rea.options
+  vi.spyOn(ctx.rea, 'options', 'get').mockReturnValue({ ...options, enabled: false })
+  const step = await ctx.tools.resolve({ agent, signal: new AbortController().signal, modelSelection: { provider: 'mock', model: 'mock' } })
+  try {
+    expect(ctx.tools.schemas(agent, step).map(tool => tool.name)).not.toContain(name)
+    expect(ctx.tools.executable(name, agent, step)).toBeUndefined()
+  } finally { step.dispose() }
+})
+
 it('discovers lazily, validates selected tool arguments and keeps analysis state separate', async () => {
   const { ctx, agent, cwd, call } = await harness()
   expect(ctx.tools.schemas(agent).some(tool => tool.name.startsWith('mcp__rea__'))).toBe(false)

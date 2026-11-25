@@ -4,6 +4,7 @@ import type { DeepSeekAccount } from '@deepseek-ai/dsh-deepseek-account'
 import { installAccountTaskCancellation } from '@deepseek-ai/dsh-deepseek-account/src/account-tasks.ts'
 import type { AnonymousUserId } from '@deepseek-ai/dsh-anonymous-user-id'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { isDeepStrictEqual } from 'node:util'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -15,6 +16,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
+import { defineContentToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import { AttachmentId } from '@deepseek-ai/dsh-attachment'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
@@ -369,6 +371,62 @@ describe('Cordis provider composition', () => {
     await profileComposition(ctx, home, join(home, 'cordis.yml'))
     return { ctx, http }
   }
+
+  it.each(['deepseek-official', 'deepseek-account'])('resumes the %s conversation after disabling a rejected tool', async (provider) => {
+    const model = 'deepseek-flash'
+    const name = 'mcp__notes__lookup'
+    const invalidPattern = '^[^\\uD800-\\uDFFF]*$'
+    const invalidSchema = { type: 'object', properties: { label: { type: 'string', pattern: invalidPattern } } }
+    const { ctx, http } = await boot((response, count) => {
+      const tools = http.requests[count - 1]?.body.tools
+      const rejected = Array.isArray(tools) && tools.some((tool: unknown) =>
+        object(tool).name === name && isDeepStrictEqual(object(tool).input_schema, invalidSchema))
+      if (rejected) {
+        response.writeHead(400, { 'content-type': 'application/json' })
+        response.end(JSON.stringify({ error: { type: 'invalid_request_error', message: 'Invalid schema for function ' + name } }))
+      } else {
+        response.end(sse(textEvents))
+      }
+    }, { data: [{ id: model, api_capabilities: { anthropic_messages: { tool_update: 'in-history' } } }] })
+    const rejectToken = vi.fn(async (_token: string) => {})
+    if (provider === 'deepseek-account') {
+      ctx.provide('deepseekAccount', {
+        resolveToken: async (_url: string): Promise<string | undefined> => 'fixture-token',
+        rejectToken: (token: string): Promise<void> => rejectToken(token),
+      } as DeepSeekAccount)
+    } else {
+      await ctx.settings.update(Messages.name, { models: [{ id: model, toolUpdate: 'in-history' }] })
+    }
+    const fixture = (name: string) => defineContentToolFixture({
+      name, description: 'Test lookup.', parameters: {}, execute: async () => [],
+    })
+    ctx.tools.register(fixture('clock'))
+    const agent = await ctx.agentLoop.create(SessionId('schema-recovery'), { provider, model })
+    await send(agent, 'Remember the date.')
+    const disable = ctx.tools.register({
+      ...fixture(name), parameters: invalidSchema,
+    })
+    for (const text of ['Read my note.', 'Continue.']) {
+      agent.followup(user(text))
+      await agent.whenIdle()
+      expect(agent.session.snapshotEvents().at(-1)).toMatchObject({ type: 'turn/end', data: {
+        reason: { kind: 'error', error: { code: 'INVALID_REQUEST', status: 400 } },
+      } })
+    }
+    disable()
+    await send(agent, 'What did we discuss?')
+    await send(agent, 'Continue without the notebook.')
+    expect(http.requests).toHaveLength(5)
+    expect(rejectToken).not.toHaveBeenCalled()
+    for (const { headers } of http.requests) {
+      expect(headers['x-dsh-auth-token']).toBe(provider === 'deepseek-account' ? 'fixture-token' : undefined)
+    }
+    for (const { body } of http.requests.slice(3)) {
+      expect(body.tools).toMatchObject([{ name: 'clock' }])
+      expect(JSON.stringify(body.messages)).not.toContain(name)
+      expect(JSON.stringify(body.messages)).toContain('Remember the date.')
+    }
+  })
 
   it.each(['deepseek-account', 'deepseek-official'].flatMap(provider => [
     { provider, body: JSON.stringify({ error: { type: 'authentication_error', message: 'API key is invalid' } }) },

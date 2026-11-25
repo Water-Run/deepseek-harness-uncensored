@@ -1066,6 +1066,8 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   SessionPredictionRequest: 'SessionPredictionRequest fields and operation guarantees are owned by packages/api/session-controller/README.md',
   SessionPredictionValue: 'SessionPredictionValue fields and operation guarantees are owned by packages/api/session-controller/README.md',
   BalanceSnapshot: 'BalanceSnapshot fields and operation guarantees are owned by packages/credentials/balance/README.md',
+  BalanceCleanupRequest: 'Balance history cleanup options are documented in packages/credentials/balance/README.md',
+  BalanceSidebarRange: 'Balance sidebar time ranges are documented in packages/credentials/balance/README.md',
   MemoryExtractionOptions: 'MemoryExtractionOptions fields and operation guarantees are owned by packages/memory/memory/README.md',
   MemoryExtractionStatus: 'MemoryExtractionStatus fields and operation guarantees are owned by packages/memory/memory/README.md',
   MemoryLimits: 'MemoryLimits fields and operation guarantees are owned by packages/memory/memory/README.md',

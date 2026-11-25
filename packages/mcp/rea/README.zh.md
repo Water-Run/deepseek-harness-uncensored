@@ -17,7 +17,7 @@ kind: "package-reference"
 
 打开设置 → 模式 → 逆向配置，内置 REA 无需填写路径。桌面版提供 Node 24.22.1；源码启动使用当前 Node 或 `DSH_REA_NODE_PATH`。自定义 Node 和 CLI 路径为可选覆盖项，保存后可检测连接。可选字段指定 Ghidra、Java、IDA MCP 配置和原生分析引擎。检测会启动临时 MCP 进程，报告版本与工具，检查已配置的路径，然后关闭进程。握手成功不代表可选引擎已通过分析验证；打开样本时才会检查引擎版本和依赖。
 
-全部偏好由 Loader 设置系统管理。`startupTimeoutMs` 默认 60000，`toolTimeoutMs` 默认 180000，`catalogPageSize` 默认 20。保存配置变更会关闭现有进程；对话需要重置连接并重新打开样本。
+全部偏好由 Loader 设置系统管理。`startupTimeoutMs` 默认 60000，`toolTimeoutMs` 默认 180000，`catalogPageSize` 默认 20。保存配置变更会关闭现有进程。关闭 REA 后，后续步骤也会移除已选外部工具的声明和调用资格。对话需要重置连接并重新打开样本。
 
 已验证 REA 6.9.0、Node 24.22.1、Ghidra 12.1.4、Java 27 和内置 Frida 17.23.2 绑定。其他引擎版本仍须通过上游版本校验。REA 6.9.0 固定到 [d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0)，可选分析引擎按各自许可另行配置。
 

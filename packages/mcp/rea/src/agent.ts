@@ -119,7 +119,7 @@ export function apply(ctx: Context): void {
             if (authorize(call.agent) !== agent) throw new Error('This REA tool belongs to another conversation')
             return connection.call(tool, arguments_, call.signal)
           },
-        })), `rea.tool.${tool.name}`)
+        }), { when: () => ctx.rea.options.enabled }), `rea.tool.${tool.name}`)
         owner.selected.add(tool.name)
       }
       const query = (args.query ?? '').trim().toLocaleLowerCase('en-US')

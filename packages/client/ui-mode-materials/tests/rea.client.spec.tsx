@@ -12,6 +12,21 @@ const defaults: ReaOptions = { enabled: false, nodePath: '', cliPath: '',
   ghidraPath: '', javaHome: '', idaConfig: '', provider: 'auto',
   startupTimeoutMs: 60000, toolTimeoutMs: 180000, catalogPageSize: 20 }
 
+it('saves a disabled integration without contacting the MCP server', async () => {
+  let options = { ...defaults, enabled: true }
+  const operations = {
+    load: async () => ({ options, revision: 3 }),
+    save: vi.fn(async (next: ReaOptions) => { options = next }),
+    probe: vi.fn(),
+  }
+  render(<ReaPanel operations={operations} t={t} />)
+  await waitFor(() => { expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('true') })
+  fireEvent.click(screen.getByRole('switch'))
+  fireEvent.click(screen.getByText(en.save))
+  await waitFor(() => { expect(operations.save).toHaveBeenCalledWith(defaults, 3, expect.any(AbortSignal)) })
+  expect(operations.probe).not.toHaveBeenCalled()
+})
+
 it('keeps configuration explicit and searches the checked catalog', async () => {
   let options = defaults
   const operations = {

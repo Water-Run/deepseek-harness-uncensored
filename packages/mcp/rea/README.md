@@ -17,7 +17,7 @@ With REA enabled, the first model request includes a file-header reader. Paste t
 
 Open Settings → Mode → Reverse configuration. The bundled REA works without executable paths. Desktop supplies Node 24.22.1; source launches use their Node process or `DSH_REA_NODE_PATH`. Custom Node and CLI paths are optional overrides. Save and check the connection. Optional fields select Ghidra, Java, an IDA MCP configuration, and a native provider. The check starts a temporary MCP process, reports its version and tools, checks configured paths, then closes it. A successful handshake does not certify an optional engine; engine versions and dependencies are checked when a sample is opened.
 
-All preferences are Loader-managed settings. `startupTimeoutMs` defaults to 60000, `toolTimeoutMs` to 180000, and `catalogPageSize` to 20. Saving changed preferences closes existing processes. A conversation must reset its connection and reopen its sample after that change.
+All preferences are Loader-managed settings. `startupTimeoutMs` defaults to 60000, `toolTimeoutMs` to 180000, and `catalogPageSize` to 20. Saving changed preferences closes existing processes. Switching REA off also removes selected external tools from subsequent model requests and tool dispatch. A conversation must reset its connection and reopen its sample after that change.
 
 REA 6.9.0 was tested with Node 24.22.1, Ghidra 12.1.4, Java 27 and the bundled Frida 17.23.2 binding. Other engine versions remain subject to upstream version checks. REA 6.9.0 is pinned to [d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0). Optional analysis engines remain separately configured under their own licenses.
 

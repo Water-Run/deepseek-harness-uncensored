@@ -26,10 +26,10 @@ function header(session: Session, tools: ToolSchema[], extra: { reason?: 'change
   }).seq
 }
 
-function update(session: Session, content: ContentBlock[], headerSeq?: SessionSeq) {
+function update(session: Session, content: ContentBlock[], headerSeq?: SessionSeq, turn = 1) {
   const message = createDeveloperMessage({ source: { kind: 'test' }, content })
   session.append('developer/message', {
-    turn: 1, step: 1, message, ...headerSeq === undefined ? {} : { headerSeq },
+    turn, step: 1, message, ...headerSeq === undefined ? {} : { headerSeq },
   }, { surfaceOp: 'append' })
   return message
 }
@@ -130,6 +130,60 @@ describe('Session.toolHistory', () => {
     expect(session.toolHistory()).toEqual({ tools: [search], updates: [{ messageId: added.id, additions: [fetch] }] })
     header(session, [search])
     expect(session.toolHistory()).toEqual({ tools: [search], updates: [] })
+  })
+
+  it.each([true, false])('retires a disabled declaration across restore when registration changes before rejection=%s', (disabledFirst) => {
+    const notes = { name: 'mcp__notes__lookup', description: 'Notes', parameters: { type: 'object' } }
+    const session = opened([search])
+    const added = update(session, [add(notes.name), add(fetch.name)], header(session, [search, notes, fetch]))
+    const disable = (turn: number) => {
+      header(session, [search, fetch])
+      update(session, [remove(notes.name), { type: 'text', text: 'Notebook disconnected.' }], undefined, turn)
+    }
+    if (disabledFirst) disable(1)
+    session.append('step/end', { turn: 1, step: 1 })
+    session.append('turn/end', { turn: 1, reason: { kind: 'error', error: { code: 'INVALID_REQUEST', message: 'Invalid tool schema' } } })
+    session.append('turn/start', { turn: 2 })
+    session.append('step/start', { turn: 2, step: 1 })
+    if (!disabledFirst) disable(2)
+
+    const restored = Session.fromRestore(session.id, session.snapshotEvents(), session.header, SessionLogOffset(0), 'shared-frozen')
+    for (const current of [session, restored]) {
+      const messages = current.deriveMessages()
+      const projected = projectToolUpdates(messages, [search, fetch], 'in-history', current.toolHistory())
+      expect(projected.tools?.map(tool => tool.name)).toEqual([search.name, fetch.name])
+      expect(projected.messages.map(message => message.content)).toEqual([
+        [add(fetch.name)], [{ type: 'text', text: 'Notebook disconnected.' }],
+      ])
+      expect(messages.find(message => message.id === added.id)?.content).toContainEqual(add(notes.name))
+    }
+  })
+
+  it('keeps disabled baseline tools out of recovery and offers an explicitly restored tool', () => {
+    const session = opened([search, fetch])
+    session.append('step/end', { turn: 1, step: 1 })
+    session.append('turn/end', { turn: 1, reason: { kind: 'error', error: { code: 'INVALID_REQUEST', message: 'Rejected' } } })
+    session.append('turn/start', { turn: 2 })
+    session.append('step/start', { turn: 2, step: 1 })
+    header(session, [search])
+    update(session, [remove(fetch.name)], undefined, 2)
+    expect(projectToolUpdates(session.deriveMessages(), [search], 'in-history', session.toolHistory()))
+      .toEqual({ tools: [search], messages: [] })
+    update(session, [add(fetch.name)], header(session, [search, fetch]), 2)
+    expect(projectToolUpdates(session.deriveMessages(), [search, fetch], 'in-history', session.toolHistory()).tools)
+      .toEqual([search, fetch])
+  })
+
+  it('retains the provider prefix after a rate limit and a subsequent registration change', () => {
+    const session = opened([search, fetch])
+    session.append('step/end', { turn: 1, step: 1 })
+    session.append('turn/end', { turn: 1, reason: { kind: 'error', error: { code: 'RATE_LIMIT', message: 'Busy' } } })
+    session.append('turn/start', { turn: 2 })
+    session.append('step/start', { turn: 2, step: 1 })
+    header(session, [search])
+    const removed = update(session, [remove(fetch.name)], undefined, 2)
+    expect(projectToolUpdates(session.deriveMessages(), [search], 'in-history', session.toolHistory()))
+      .toEqual({ tools: [search, fetch], messages: [removed] })
   })
 
   it('reconstructs inherited history on restore and continues from live events', () => {

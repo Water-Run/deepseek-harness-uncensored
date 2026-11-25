@@ -1,12 +1,18 @@
 /** Compare tool declarations after removal, and optionally probe DeepSeek with synthetic note labels. */
-import { resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const args = process.argv.slice(2)
-if (args.length > 1 || (args.length === 1 && args[0] !== '--provider')) {
-  throw new Error('Run from a prepared DSH source tree with node --import tsx/esm, optionally with --provider.')
+if (args.length > 1 || (args.length === 1 && !['--provider', '--installed'].includes(args[0]))) {
+  throw new Error('Use --provider from a prepared source tree or --installed with the installed Electron executable.')
 }
-const { projectToolUpdates } = await import(pathToFileURL(resolve('packages/llm/llm/src/content.ts')).href)
+const source = file => import(pathToFileURL(resolve(file)).href)
+const installed = args.includes('--installed')
+if (installed && !process.versions.electron) throw new Error('--installed requires the desktop executable with ELECTRON_RUN_AS_NODE=1.')
+const bundled = name => source(join(dirname(process.execPath), 'resources', 'app.asar', 'dsh', 'node_modules', '@deepseek-ai', name, 'lib', 'index.js'))
+const { projectToolUpdates, createUserMessage, createDeveloperMessage } = installed
+  ? await bundled('dsh-llm') : await source('packages/llm/llm/src/index.ts')
+const { Session } = installed ? await bundled('dsh-session') : await source('packages/core/session/src/index.ts')
 const surrogate = '^[^\\uD800-\\uDFFF]*$'
 const nul = '^[^\\x00]*$'
 const labelSchemas = {
@@ -38,28 +44,85 @@ for (const mode of [undefined, 'addition-only', 'in-history']) {
     }
     messages.push({ ...user, id: 'next' })
     const projected = projectToolUpdates(messages, disabled ? [clock] : [clock, lookup], mode, { tools: [clock], updates })
-    console.log(JSON.stringify({ mode: mode ?? 'leading-only', disabled, declaresLookup: projected.tools.some(tool => tool.name === name) }))
+    console.log(JSON.stringify({ scenario: 'healthy-control', mode: mode ?? 'leading-only', disabled, declaresLookup: projected.tools.some(tool => tool.name === name) }))
   }
 }
 
-if (args.includes('--provider')) {
+async function request(sample, body) {
   const key = process.env.DEEPSEEK_API_KEY
   if (!key) throw new Error('--provider requires DEEPSEEK_API_KEY for the official DeepSeek endpoint.')
+  const response = await fetch('https://api.deepseek.com/anthropic/v1/messages', {
+    method: 'POST', redirect: 'error', signal: AbortSignal.timeout(30_000),
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const data = await response.json()
+  const namedSchemaError = response.status === 400 && data.error?.message?.includes("Invalid schema for function '" + name + "'") === true
+  const text = data.content?.filter(block => block.type === 'text').map(block => block.text).join('')
+  console.log(JSON.stringify({ sample, status: response.status, namedSchemaError }))
+  if (!response.ok && !namedSchemaError) throw new Error(sample + ' failed. HTTP ' + response.status)
+  return { status: response.status, text }
+}
+
+const live = args.includes('--provider')
+if (live) {
   for (const [sample, label] of Object.entries(labelSchemas)) {
-    const response = await fetch('https://api.deepseek.com/anthropic/v1/messages', {
-      method: 'POST', redirect: 'error', signal: AbortSignal.timeout(30_000),
-      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: 'deepseek-flash', max_tokens: 8, thinking: { type: 'disabled' },
-        messages: [{ role: 'user', content: 'Reply OK.' }],
-        ...(label && { tools: [{ name, description, input_schema: parameters(label) }] }),
-      }),
+    const { status } = await request(sample, {
+      model: 'deepseek-flash', max_tokens: 8, thinking: { type: 'disabled' },
+      messages: [{ role: 'user', content: 'Reply OK.' }],
+      ...(label && { tools: [{ name, description, input_schema: parameters(label) }] }),
     })
-    const data = await response.json()
-    const namedSchemaError = response.status === 400 && data.error?.message?.includes("Invalid schema for function '" + name + "'") === true
-    console.log(JSON.stringify({ sample, status: response.status, namedSchemaError }))
-    if (!response.ok && (!namedSchemaError || sample === 'control' || sample === 'withoutTool')) {
-      throw new Error('The ' + sample + ' request failed without a usable comparison. HTTP ' + response.status)
-    }
+    if (status !== 200 && (sample === 'control' || sample === 'withoutTool')) throw new Error(sample + ' control failed.')
+  }
+}
+
+const config = { provider: 'deepseek-official', model: 'deepseek-flash' }
+async function sourceSerializer() {
+  const { resolveAdapterOptions } = await source('packages/llm/llm-deepseek/src/config.ts')
+  const { serialize } = await source('packages/llm/llm-deepseek/src/serialize.ts')
+  const connection = resolveAdapterOptions({})
+  return projected => {
+    const input = { ...config, ...projected, maxTokens: 32, reasoningEffort: 'off' }
+    return { ...serialize(input, connection, projected.messages, new Map(), () => undefined), stream: false }
+  }
+}
+const serializeRequest = installed ? undefined : await sourceSerializer()
+function wire(session, tools, mode) {
+  const projected = projectToolUpdates(session.deriveMessages(), tools, mode, session.toolHistory())
+  return serializeRequest ? serializeRequest(projected) : projected
+}
+function input(session, text) {
+  session.append('user/message', createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text }] }), { surfaceOp: 'append' })
+}
+const session = Session.create('mcp-schema-probe')
+session.append('turn/start', { turn: 1 })
+session.append('step/start', { turn: 1, step: 1 })
+session.append('request/header', { reason: 'initial', header: { config, tools: [clock, lookup] } })
+input(session, 'The notebook label is ORCHID. Remember it.')
+const original = wire(session, [clock, lookup], 'in-history')
+if (!original.tools.some(tool => tool.name === name)) throw new Error('The original request is missing the diagnostic tool.')
+if (live && (await request('original-session', original)).status !== 400) {
+  throw new Error('The endpoint accepted the diagnostic schema. Reassess the recovery fixture.')
+}
+session.append('step/end', { turn: 1, step: 1 })
+session.append('turn/end', { turn: 1, reason: { kind: 'error', error: { code: 'INVALID_REQUEST', status: 400, message: 'Invalid tool schema' } } })
+const restored = Session.fromRestore(session.id, session.snapshotEvents(), session.header, 0, 'shared-frozen')
+restored.append('turn/start', { turn: 2 })
+restored.append('step/start', { turn: 2, step: 1 })
+restored.append('request/header', { reason: 'resume', header: { config, tools: [clock] } })
+restored.append('developer/message', { turn: 2, step: 1, message: createDeveloperMessage({
+  source: { kind: 'tool-registry' }, content: [{ type: 'tool-removal', toolName: name }],
+}) }, { surfaceOp: 'append' })
+input(restored, 'Reply only with the notebook label from my earlier message.')
+for (const mode of [undefined, 'addition-only', 'in-history']) {
+  const body = wire(restored, [clock], mode)
+  if (JSON.stringify(body).includes(name) || !body.tools?.some(tool => tool.name === 'clock')) {
+    throw new Error('Recovery advertised the disabled tool or lost the clock on ' + (mode ?? 'leading-only'))
+  }
+  if (!JSON.stringify(body.messages).includes('ORCHID')) throw new Error('Recovery lost the original notebook label.')
+  console.log(JSON.stringify({ session: restored.id, installed, recoveryMode: mode ?? 'leading-only', tools: body.tools.map(tool => tool.name) }))
+  if (live && mode === 'in-history') {
+    const answer = await request('restored-session', body)
+    if (answer.status !== 200 || !answer.text?.includes('ORCHID')) throw new Error('Recovered reply did not recall the label.')
   }
 }

@@ -15307,7 +15307,7 @@ index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..17fcf4f8644d966329dd606d5e3757ab
      example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar.panellist.actions\', () => ctx.slots.register(\n      { name: \'sidebar.panellist.actions\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
      source: 'packages/client/ui-sidebar/src/client/contract/slots.ts:63',
 diff --git a/packages/extensions/tool-cordis/src/api-catalog.ts b/packages/extensions/tool-cordis/src/api-catalog.ts
-index 84bf84164a56fd17f6575eeec815ef47f3a55bfb..6f631b5450af644ad47b26e90ecaf05f87910d3f 100644
+index 84bf84164a56fd17f6575eeec815ef47f3a55bfb..3f34f04b8759a2f673e6fed0e4ec69f0e9b89cfd 100644
 --- a/packages/extensions/tool-cordis/src/api-catalog.ts
 +++ b/packages/extensions/tool-cordis/src/api-catalog.ts
 @@ -2704,6 +2704,179 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
@@ -15986,6 +15986,15 @@ index 84bf84164a56fd17f6575eeec815ef47f3a55bfb..6f631b5450af644ad47b26e90ecaf05f
    {
      name: 'StreamableHttpConfig',
      declaration: 'export interface StreamableHttpConfig {\n    oauth?: McpOAuthConfig;\n    transport: \'streamable-http\';\n    serverName: string;\n    url: string;\n    headers: Record<string, string>;\n    toolCallTimeoutMs: number;\n    startupTimeoutMs?: number;\n    closeTimeoutMs: number;\n    expandTemplates: boolean;\n    failOnStartupError: boolean;\n    maxInstructionBytes?: number;\n    reconnect?: ReconnectConfig;\n    toolLoading: \'eager\' | \'on-demand\';\n    catalogDescriptionMaxLength: number;\n}',
+@@ -11256,7 +11827,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
+   },
+   {
+     name: 'ToolHistory',
+-    declaration: 'export interface ToolHistory {\n    readonly tools: readonly ToolSchema[];\n    readonly updates: readonly {\n        readonly messageId: MessageId;\n        readonly additions: readonly ToolSchema[];\n    }[];\n}',
++    declaration: 'export interface ToolHistory {\n    readonly tools: readonly ToolSchema[];\n    readonly disabledAfterRejection?: readonly string[];\n    readonly updates: readonly {\n        readonly messageId: MessageId;\n        readonly additions: readonly ToolSchema[];\n    }[];\n}',
+   },
+   {
+     name: 'ToolInfo',
 diff --git a/packages/guard/spend-limit/README.i18n.yaml b/packages/guard/spend-limit/README.i18n.yaml
 new file mode 100644
 index 0000000000000000000000000000000000000000..9f19934eb83af473ebefc3a039c047cb010331c4
@@ -35907,3 +35916,328 @@ index 4e338532721aae17610b3234468c6e7069fb665f..8e2b539334b36572925e902368d396a9
    rmSync(BUILD_PATHS.electron, { recursive: true, force: true })
    await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'extract:electron', () => extractZip(archive, { dir: BUILD_PATHS.electron }))
    const executable = join(BUILD_PATHS.electron, platform === 'win32' ? 'electron.exe' : 'Electron.app/Contents/MacOS/Electron')
+diff --git a/packages/core/session/README.i18n.yaml b/packages/core/session/README.i18n.yaml
+index ffdb0a7a4925a51bad46c5378d11e81d6bfad49d..a4ae6f640894883542b1789a4134ceba6fd88fbd 100644
+--- a/packages/core/session/README.i18n.yaml
++++ b/packages/core/session/README.i18n.yaml
+@@ -96,8 +96,8 @@
+   en: 5397f067293a55cd
+   zh: 1dcc30d0c214f175
+ /deepseek-ai-dsh-session/model-experience/logged-request-header/what-the-model-sees:
+-  en: cfb4fd90e1982948
+-  zh: fefc01118b2a5c07
++  en: 027df3b853791a7e
++  zh: f0309eb8f90a03ef
+ /deepseek-ai-dsh-session/model-experience/logged-request-header/token-effect:
+   en: 310b8f36a86443e5
+   zh: 906c4da8d03c5966
+diff --git a/packages/core/session/README.md b/packages/core/session/README.md
+index a1db5e2d0c0459de9db97b85305404a6445626e0..076ce3a81a649ee31afea903423cc4dea9b1057f 100644
+--- a/packages/core/session/README.md
++++ b/packages/core/session/README.md
+@@ -199,7 +199,7 @@ Append-only; newly visible content follows the reusable request prefix and does
+ 
+ #### What the model sees
+ 
+-The session reconstructs active tool schemas and call config from request headers; provider-specific deferred and retained declarations are derived at dispatch. `toolHistory()` caches a stateful fold over committed headers and developer messages, consuming only unseen events on subsequent reads. It resolves additions through their historical `headerSeq`, returns immutable snapshots, and restarts declarations on an explicit request series or a changed retained definition. Restoring a retained name with an unchanged definition continues the series; the recorded addition re-offers it. Both loop requests and compaction calls use this state. Headers lacking matching update records use complete active declarations. Same-name schema changes are allowed and invalidate prefix reuse even on `in-history` routes; registration-time rejection against historical tools is deferred ([rationale](../../../.agents/notes/implemented/architecture/2026-09-20-dynamic-tool-updates.md)). The system prompt remains part of `deriveMessages()`; header events add no message or prompt copy.
++The session reconstructs active tool schemas and call config from request headers; provider-specific deferred and retained declarations are derived at dispatch. `toolHistory()` caches a stateful fold over committed headers and developer messages, consuming only unseen events on subsequent reads. It resolves additions through their historical `headerSeq`, returns immutable snapshots, and restarts declarations on an explicit request series or a changed retained definition. Restoring a retained name with an unchanged definition continues the series; the recorded addition re-offers it. Both loop requests and compaction calls use this state. Headers lacking matching update records use complete active declarations. Same-name schema changes are allowed and invalidate prefix reuse even on `in-history` routes; registration-time rejection against historical tools is deferred ([rationale](../../../.agents/notes/implemented/architecture/2026-09-20-dynamic-tool-updates.md)). The system prompt remains part of `deriveMessages()`; header events add no message or prompt copy. When a turn ends with `INVALID_REQUEST`, the tool history records which historical declarations are inactive at rejection or missing from the next header.
+ 
+ #### Token effect
+ 
+diff --git a/packages/core/session/README.zh.md b/packages/core/session/README.zh.md
+index d9567bb3c7a231e98090ed48ce836ca33898647d..0d5a855b27f221d99a6c633bea06ac4f6c4a817d 100644
+--- a/packages/core/session/README.zh.md
++++ b/packages/core/session/README.zh.md
+@@ -199,7 +199,7 @@ surface 事件（`system/message`、`developer/message`、`user/message`、`assi
+ 
+ #### 模型看到什么
+ 
+-会话从请求头重建有效工具模式和调用配置；提供方专用的延迟声明与保留声明在分发时派生。`toolHistory()` 缓存对已提交请求头和 developer 消息的有状态归约，后续读取仅处理新增事件。它通过历史 `headerSeq` 解析添加定义，返回不可变快照，并在显式新请求序列或保留定义发生变化时重新建立声明。以未变化的定义恢复保留名称时序列继续，由记录的添加重新提供该工具。循环请求和压缩调用均使用此状态。 请求头缺少对应更新记录时，使用完整有效声明。 允许同名工具的 schema 变化，即使在 `in-history` 路由上也会使前缀复用失效；注册时对照历史工具进行拒绝检查留待后续实现（[原因](../../../.agents/notes/implemented/architecture/2026-09-20-dynamic-tool-updates.zh.md)）。系统提示词仍属于 `deriveMessages()`；请求头事件不添加消息或提示词副本。
++会话从请求头重建有效工具模式和调用配置；提供方专用的延迟声明与保留声明在分发时派生。`toolHistory()` 缓存对已提交请求头和 developer 消息的有状态归约，后续读取仅处理新增事件。它通过历史 `headerSeq` 解析添加定义，返回不可变快照，并在显式新请求序列或保留定义发生变化时重新建立声明。以未变化的定义恢复保留名称时序列继续，由记录的添加重新提供该工具。循环请求和压缩调用均使用此状态。 请求头缺少对应更新记录时，使用完整有效声明。 允许同名工具的 schema 变化，即使在 `in-history` 路由上也会使前缀复用失效；注册时对照历史工具进行拒绝检查留待后续实现（[原因](../../../.agents/notes/implemented/architecture/2026-09-20-dynamic-tool-updates.zh.md)）。系统提示词仍属于 `deriveMessages()`；请求头事件不添加消息或提示词副本。 当轮次以 `INVALID_REQUEST` 结束时，工具历史会记录在拒绝时已停用或在下一个请求头中消失的历史声明。
+ 
+ #### Token 影响
+ 
+diff --git a/packages/core/session/src/tool-history.ts b/packages/core/session/src/tool-history.ts
+index 90c28dab06aedda41dbe60cc93481551ca3dc392..445bb0976ce537649f2c01fd0e8462c6d263c907 100644
+--- a/packages/core/session/src/tool-history.ts
++++ b/packages/core/session/src/tool-history.ts
+@@ -16,6 +16,7 @@ export class ToolHistoryProjection {
+   private available = new Set<string>()
+   /** Header that starts the current declaration series; absent before the first header. */
+   private baselineSeq: SessionSeq | undefined
++  private lastRequestRejected = false
+   /** Immutable request snapshot of the current baseline and resolved updates. */
+   private history: ToolHistory = deepFreeze({ tools: [], updates: [] })
+ 
+@@ -24,7 +25,11 @@ export class ToolHistoryProjection {
+    * @param event - a session event, including inherited events during restoration.
+    */
+   apply(event: SessionEvent): void {
+-    if (event.type === 'request/header') {
++    if (event.type === 'turn/end') {
++      const reason = event.data.reason
++      this.lastRequestRejected = reason.kind === 'error' && reason.error.code === 'INVALID_REQUEST'
++      if (this.lastRequestRejected) this.retireInactive(this.active)
++    } else if (event.type === 'request/header') {
+       const tools = event.data.header.tools ?? []
+       this.headers.set(event.seq, tools)
+       // A retained name cannot acquire a different definition without losing
+@@ -38,7 +43,10 @@ export class ToolHistoryProjection {
+         this.declared = new Map(tools.map(tool => [tool.name, tool]))
+         this.history = deepFreeze({ tools, updates: [] })
+         this.available = new Set(tools.map(tool => tool.name))
++      } else if (this.lastRequestRejected) {
++        this.retireInactive(tools)
+       }
++      this.lastRequestRejected = false
+       this.active = tools
+     } else if (event.type === 'developer/message') {
+       const { message, headerSeq } = event.data
+@@ -55,12 +63,20 @@ export class ToolHistoryProjection {
+         else if (block.type === 'tool-removal') this.available.delete(block.toolName)
+       }
+       this.history = deepFreeze({
+-        tools: this.history.tools,
++        ...this.history,
+         updates: [...this.history.updates, { messageId: message.id, additions }],
+       })
+     }
+   }
+ 
++  private retireInactive(tools: readonly ToolSchema[]): void {
++    const active = new Set(tools.map(tool => tool.name))
++    const disabledAfterRejection = [...this.declared.keys()].filter(name => !active.has(name))
++    if (disabledAfterRejection.length > 0) {
++      this.history = deepFreeze({ ...this.history, disabledAfterRejection })
++    }
++  }
++
+   /**
+    * Read an immutable snapshot; subsequent events do not mutate it.
+    * @returns initial declarations and historically resolved additions for the current series.
+diff --git a/packages/core/session/tests/tool-history.spec.ts b/packages/core/session/tests/tool-history.spec.ts
+index 4f25146adf1df942ae29c09e019c0f6bb01f96ad..530b492b01372317e2d2af710b8f65796f1c4cc2 100644
+--- a/packages/core/session/tests/tool-history.spec.ts
++++ b/packages/core/session/tests/tool-history.spec.ts
+@@ -27,10 +27,10 @@ function header(session: Session, tools: ToolSchema[], extra: { reason?: 'change
+   }).seq
+ }
+ 
+-function update(session: Session, content: ContentBlock[], headerSeq?: SessionSeq) {
++function update(session: Session, content: ContentBlock[], headerSeq?: SessionSeq, turn = 1) {
+   const message = createDeveloperMessage({ source: { kind: 'test' }, content })
+   session.append('developer/message', {
+-    turn: 1, step: 1, message, ...headerSeq === undefined ? {} : { headerSeq },
++    turn, step: 1, message, ...headerSeq === undefined ? {} : { headerSeq },
+   }, { surfaceOp: 'append' })
+   return message
+ }
+@@ -133,6 +133,60 @@ describe('Session.toolHistory', () => {
+     expect(session.toolHistory()).toEqual({ tools: [search], updates: [] })
+   })
+ 
++  it.each([true, false])('retires a disabled declaration across restore when registration changes before rejection=%s', (disabledFirst) => {
++    const notes = { name: 'mcp__notes__lookup', description: 'Notes', parameters: { type: 'object' } }
++    const session = opened([search])
++    const added = update(session, [add(notes.name), add(fetch.name)], header(session, [search, notes, fetch]))
++    const disable = (turn: number) => {
++      header(session, [search, fetch])
++      update(session, [remove(notes.name), { type: 'text', text: 'Notebook disconnected.' }], undefined, turn)
++    }
++    if (disabledFirst) disable(1)
++    session.append('step/end', { turn: 1, step: 1 })
++    session.append('turn/end', { turn: 1, reason: { kind: 'error', error: { code: 'INVALID_REQUEST', message: 'Invalid tool schema' } } })
++    session.append('turn/start', { turn: 2 })
++    session.append('step/start', { turn: 2, step: 1 })
++    if (!disabledFirst) disable(2)
++
++    const restored = Session.fromRestore(session.id, session.snapshotEvents(), session.header, SessionLogOffset(0), 'shared-frozen')
++    for (const current of [session, restored]) {
++      const messages = current.deriveMessages()
++      const projected = projectToolUpdates(messages, [search, fetch], 'in-history', current.toolHistory())
++      expect(projected.tools?.map(tool => tool.name)).toEqual([search.name, fetch.name])
++      expect(projected.messages.map(message => message.content)).toEqual([
++        [add(fetch.name)], [{ type: 'text', text: 'Notebook disconnected.' }],
++      ])
++      expect(messages.find(message => message.id === added.id)?.content).toContainEqual(add(notes.name))
++    }
++  })
++
++  it('keeps disabled baseline tools out of recovery and offers an explicitly restored tool', () => {
++    const session = opened([search, fetch])
++    session.append('step/end', { turn: 1, step: 1 })
++    session.append('turn/end', { turn: 1, reason: { kind: 'error', error: { code: 'INVALID_REQUEST', message: 'Rejected' } } })
++    session.append('turn/start', { turn: 2 })
++    session.append('step/start', { turn: 2, step: 1 })
++    header(session, [search])
++    update(session, [remove(fetch.name)], undefined, 2)
++    expect(projectToolUpdates(session.deriveMessages(), [search], 'in-history', session.toolHistory()))
++      .toEqual({ tools: [search], messages: [] })
++    update(session, [add(fetch.name)], header(session, [search, fetch]), 2)
++    expect(projectToolUpdates(session.deriveMessages(), [search, fetch], 'in-history', session.toolHistory()).tools)
++      .toEqual([search, fetch])
++  })
++
++  it('retains the provider prefix after a rate limit and a subsequent registration change', () => {
++    const session = opened([search, fetch])
++    session.append('step/end', { turn: 1, step: 1 })
++    session.append('turn/end', { turn: 1, reason: { kind: 'error', error: { code: 'RATE_LIMIT', message: 'Busy' } } })
++    session.append('turn/start', { turn: 2 })
++    session.append('step/start', { turn: 2, step: 1 })
++    header(session, [search])
++    const removed = update(session, [remove(fetch.name)], undefined, 2)
++    expect(projectToolUpdates(session.deriveMessages(), [search], 'in-history', session.toolHistory()))
++      .toEqual({ tools: [search, fetch], messages: [removed] })
++  })
++
+   it('reconstructs inherited history on restore and continues from live events', () => {
+     const session = opened([search])
+     const headerSeq = header(session, [search, fetch])
+diff --git a/packages/llm/llm-deepseek/tests/adapter.spec.ts b/packages/llm/llm-deepseek/tests/adapter.spec.ts
+index 6d3ffed9131f22bc7aa73c51ccbb3d7a612864cb..b6bc35811dcd9d2063ec30a55680f5865d37c9d3 100644
+--- a/packages/llm/llm-deepseek/tests/adapter.spec.ts
++++ b/packages/llm/llm-deepseek/tests/adapter.spec.ts
+@@ -3,6 +3,7 @@ import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
+ import { accountStub } from '../../../account/deepseek-account/tests/account-stub.ts'
+ import type { AnonymousUserId } from '@deepseek-ai/dsh-anonymous-user-id'
+ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
++import { isDeepStrictEqual } from 'node:util'
+ import { tmpdir } from 'node:os'
+ import { join } from 'node:path'
+ import { pathToFileURL } from 'node:url'
+@@ -13,6 +14,7 @@ import AgentRegistry from '@deepseek-ai/dsh-agent'
+ import type { Agent } from '@deepseek-ai/dsh-agent'
+ import AgentLoop from '@deepseek-ai/dsh-agent-loop'
+ import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
++import { defineContentToolFixture } from '@deepseek-ai/dsh-tool-testkit'
+ import ToolRuntime from '@deepseek-ai/dsh-tools'
+ import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
+ import { brandString } from '@deepseek-ai/dsh-brand'
+@@ -402,6 +404,47 @@ describe('Cordis provider composition', () => {
+     return { ctx, http }
+   }
+ 
++  it('continues the original conversation after the Host disables an MCP tool rejected by the provider', async () => {
++    const name = 'mcp__notes__lookup'
++    const invalidPattern = '^[^\\uD800-\\uDFFF]*$'
++    const invalidSchema = { type: 'object', properties: { label: { type: 'string', pattern: invalidPattern } } }
++    const { ctx, http } = await boot((response, count) => {
++      const tools = http.requests[count - 1]?.body.tools
++      if (Array.isArray(tools) && tools.some((tool: unknown) => object(tool).name === name && isDeepStrictEqual(object(tool).input_schema, invalidSchema))) {
++        response.writeHead(400, { 'content-type': 'application/json' })
++        response.end(JSON.stringify({ error: { type: 'invalid_request_error', message: 'Invalid schema for function ' + name } }))
++      } else {
++        response.end(sse(textEvents))
++      }
++    })
++    await ctx.settings.update(Messages.name, { models: [{ id: MODEL, toolUpdate: 'in-history' }] })
++    const fixture = (name: string) => defineContentToolFixture({
++      name, description: 'Test lookup.', parameters: {}, execute: async () => [],
++    })
++    ctx.tools.register(fixture('clock'))
++    const agent = await ctx.agentLoop.create(brandString<SessionId>('schema-recovery'), { provider: 'deepseek-official', model: MODEL })
++    await send(agent, 'Remember the date.')
++    const disable = ctx.tools.register({
++      ...fixture(name), parameters: invalidSchema,
++    })
++    for (const text of ['Read my note.', 'Continue.']) {
++      agent.followup(user(text))
++      await agent.whenIdle()
++      expect(agent.session.snapshotEvents().at(-1)).toMatchObject({ type: 'turn/end', data: {
++        reason: { kind: 'error', error: { code: 'INVALID_REQUEST', status: 400 } },
++      } })
++    }
++    disable()
++    await send(agent, 'What did we discuss?')
++    await send(agent, 'Continue without the notebook.')
++    expect(http.requests).toHaveLength(5)
++    for (const { body } of http.requests.slice(3)) {
++      expect(body.tools).toMatchObject([{ name: 'clock' }])
++      expect(JSON.stringify(body.messages)).not.toContain(name)
++      expect(JSON.stringify(body.messages)).toContain('Remember the date.')
++    }
++  })
++
+   it.each(['deepseek-account', 'deepseek-official'].flatMap(provider => [
+     { provider, body: JSON.stringify({ error: { type: 'authentication_error', message: 'API key is invalid' } }) },
+     { provider, body: JSON.stringify({ error: { message: 'Authentication Fails (invalid dsh token)' } }) },
+diff --git a/packages/llm/llm/README.i18n.yaml b/packages/llm/llm/README.i18n.yaml
+index 0432b669559ba67ce0fc37d4fb176cabbd99490a..ad293bf7398189ef0a1cdf476dc57dd99873fbee 100644
+--- a/packages/llm/llm/README.i18n.yaml
++++ b/packages/llm/llm/README.i18n.yaml
+@@ -54,8 +54,8 @@
+   en: a81634136baef72f
+   zh: b92dda883986b0e1
+ /deepseek-ai-dsh-llm/known-limitations-and-deferred-work:
+-  en: 3dc4b5997e71996f
+-  zh: 082a1226bf4c7ea5
++  en: bb2f8613cd28e121
++  zh: ea7c92dae5134c9c
+ /deepseek-ai-dsh-llm/known-limitations-and-deferred-work/dev-note:
+   en: ecbc333b88e14d88
+   zh: 77c725d92efd8646
+diff --git a/packages/llm/llm/README.md b/packages/llm/llm/README.md
+index c7f3c02333bd4d4f6dff124bdf0b6c1b92b4f9e7..65d977ac630e3294f6eda85a3008681cc42933b9 100644
+--- a/packages/llm/llm/README.md
++++ b/packages/llm/llm/README.md
+@@ -186,7 +186,7 @@ These limits define where this service stops and other packages or future work b
+ - **Variants normally require a producer** — `prefill`, per-tool `strict`, block `cache` hints, and the `agent` message-source variant have no producer ([Agent Note](../../../.agents/notes/archived/simplification/2026-07-04-prune-producerless-vocabulary-variants.md)).
+ - **`BlockAssembler` handles core block kinds only** — a plugin-added block type whose stream is never closed by `block-end` makes `blocks()` throw.
+ - **`GenerateOptions.sessionId` is a locally-declared brand** — importing dsh-session's `SessionId` would create a dependency cycle.
+-- **Tool updates require session history** — `GenerateOptions.tools` contains active definitions. `toolHistory` supplies the initial declarations and historically resolved additions from `Session.toolHistory()`. At adapter dispatch, `projectToolUpdates` constructs deferred declarations and retains removed definitions for `in-history`; `addition-only` omits removed definitions and removal messages. Removing any tool or adding tools to an empty set on an addition-only route rebuilds the baseline from the declarations available after that update. Deferred declarations count as existing tools. Superseded tool blocks are omitted while unrelated content survives; subsequent additions remain deferred. Unsupported routes receive active tools without developer messages or `deferLoading`. Missing history or a request prefix omitting recorded updates falls back to current declarations without developer messages. Explicitly deferred tools become immediate during a rebuild only if an addition has already activated them; unactivated declarations remain deferred.
++- **Tool updates require session history** — `GenerateOptions.tools` contains active definitions. `toolHistory` supplies the initial declarations and historically resolved additions from `Session.toolHistory()`. At adapter dispatch, `projectToolUpdates` constructs deferred declarations and retains removed definitions for `in-history`; `addition-only` omits removed definitions and removal messages. Removing any tool or adding tools to an empty set on an addition-only route rebuilds the baseline from the declarations available after that update. Deferred declarations count as existing tools. Superseded tool blocks are omitted while unrelated content survives; subsequent additions remain deferred. Unsupported routes receive active tools without developer messages or `deferLoading`. Missing history or a request prefix omitting recorded updates falls back to current declarations without developer messages. Explicitly deferred tools become immediate during a rebuild only if an addition has already activated them; unactivated declarations remain deferred. Following an invalid request, an in-history route omits disabled declarations identified by Session and their activation and removal references. Other tools, user messages and past call results remain available.
+ 
+ <a id="dev-note"></a>
+ ### Dev Note
+diff --git a/packages/llm/llm/README.zh.md b/packages/llm/llm/README.zh.md
+index 4e5545e36e7b69924d896a3d9aeae6cb4d1c5fa7..652d6633b4b81b4abf07defcfe4e26e3844041ea 100644
+--- a/packages/llm/llm/README.zh.md
++++ b/packages/llm/llm/README.zh.md
+@@ -186,7 +186,7 @@ const configure = (maxTokens: number): ConfigureCall =>
+ - **变体通常要求实际产生方**——`prefill`、逐工具 `strict`、内容块 `cache` 提示和 `agent` 消息来源变体都没有产生方（见 [Agent Note](../../../.agents/notes/archived/simplification/2026-07-04-prune-producerless-vocabulary-variants.md)）。
+ - **`BlockAssembler` 只处理核心块类型**——插件添加块类型的流若从未由 `block-end` 关闭，`blocks()` 会抛出异常。
+ - **`GenerateOptions.sessionId` 是本地声明的品牌类型**——导入 dsh-session 的 `SessionId` 会产生依赖循环。
+-- **工具更新需要会话历史** — `GenerateOptions.tools` 包含当前有效定义。`toolHistory` 提供 `Session.toolHistory()` 派生的初始声明及已解析历史定义的添加记录。适配器分发时，`projectToolUpdates` 构造延迟声明，并在 `in-history` 模式保留已移除定义；`addition-only` 省略已移除定义和移除消息。在 addition-only 路由移除任何工具或向空工具集添加工具时，使用该次更新后的可用声明重建基线。延迟声明也计入已有工具。已被取代的工具块会被省略，其他内容保留；后续添加仍保持延迟加载。不支持更新的路由接收有效工具，不携带 developer 消息或 `deferLoading`。缺少历史或请求前缀遗漏已记录更新时，回退为当前声明且不发送 developer 消息。显式延迟工具仅在已有添加记录将其激活时，才会在重建时变为立即加载；尚未激活的声明仍保持延迟加载。
++- **工具更新需要会话历史** — `GenerateOptions.tools` 包含当前有效定义。`toolHistory` 提供 `Session.toolHistory()` 派生的初始声明及已解析历史定义的添加记录。适配器分发时，`projectToolUpdates` 构造延迟声明，并在 `in-history` 模式保留已移除定义；`addition-only` 省略已移除定义和移除消息。在 addition-only 路由移除任何工具或向空工具集添加工具时，使用该次更新后的可用声明重建基线。延迟声明也计入已有工具。已被取代的工具块会被省略，其他内容保留；后续添加仍保持延迟加载。不支持更新的路由接收有效工具，不携带 developer 消息或 `deferLoading`。缺少历史或请求前缀遗漏已记录更新时，回退为当前声明且不发送 developer 消息。显式延迟工具仅在已有添加记录将其激活时，才会在重建时变为立即加载；尚未激活的声明仍保持延迟加载。 请求被判无效后，支持历史工具更新的路由会跳过会话记录中已停用的声明及其启用和移除引用，其他工具、用户消息和过去的调用结果仍可用。
+ 
+ <a id="dev-note"></a>
+ ### 开发备注
+diff --git a/packages/llm/llm/src/content.ts b/packages/llm/llm/src/content.ts
+index f658fe43217bd5a5c701d5f4a0d56764b3f7eba1..f40bd49fbfce9d18be298439b357cd7f6599aefd 100644
+--- a/packages/llm/llm/src/content.ts
++++ b/packages/llm/llm/src/content.ts
+@@ -390,6 +390,12 @@ export function projectToolUpdates(
+ 
+   const projectedHistory = toolUpdate === 'addition-only' ? rebaseAdditionOnlyHistory(history, updates) : history
+   const declarations = toolDeclarations(projectedHistory)
++  if (toolUpdate === 'in-history' && history.disabledAfterRejection?.length) {
++    const active = new Set(tools?.map(tool => tool.name))
++    for (const name of history.disabledAfterRejection) {
++      if (!active.has(name)) declarations.delete(name)
++    }
++  }
+   const updateIds = new Set(history.updates.map(update => update.messageId))
+   const retainedUpdateIds = new Set(projectedHistory.updates.map(update => update.messageId))
+   // Deferred baseline tools still need their first addition to become available.
+@@ -413,7 +419,7 @@ export function projectToolUpdates(
+           return true
+         case 'tool-removal':
+           // Addition-only routes cannot deactivate a tool through history.
+-          if (toolUpdate !== 'in-history') return false
++          if (toolUpdate !== 'in-history' || !declarations.has(block.toolName)) return false
+           return offered.delete(block.toolName)
+         default:
+           // Other core and plugin-defined blocks retain their content and order.
+diff --git a/packages/llm/llm/src/types.ts b/packages/llm/llm/src/types.ts
+index 915769532472cee790ccf8931a744be761a2c198..0866c76861b84c2d8aa2264a153bef007536c75f 100644
+--- a/packages/llm/llm/src/types.ts
++++ b/packages/llm/llm/src/types.ts
+@@ -542,6 +542,8 @@ export type RequestMessage = Message | RequestUserInput
+ export interface ToolHistory {
+   /** Complete active declarations at the start of this history. */
+   readonly tools: readonly ToolSchema[]
++  /** Historical tools disabled at or after an invalid request. Omit their declarations and update references while inactive. */
++  readonly disabledAfterRejection?: readonly string[]
+   /** Ordered developer messages, with additions resolved from their historical headers. */
+   readonly updates: readonly {
+     /** Identity used to locate this update in the derived request history. */

@@ -2502,6 +2502,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'Updated preference and current extraction outcomes.',
       },
       {
+        signature: '@Remote async configure(request: { preference: \'enabled\' | \'autoExtract\'; enabled: boolean; expectedRevision: number }): Promise<MemoryDescribeValue>',
+        description: 'Update conversation access or automatic extraction under the revision seen by the owner.',
+        parameters: [{ name: 'request', description: 'Preference, new value and expected settings revision.' }],
+        returns: 'The current memory settings and extraction outcomes.',
+      },
+      {
         signature: '@Remote async retryExtraction(sessionId: SessionId): Promise<MemoryDescribeValue>',
         description: 'Retry extraction while its source conversation is open and idle.',
         parameters: [{ name: 'sessionId', description: 'Source conversation to retry.' }],
@@ -5427,10 +5433,16 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Authenticated application access to local history and fresh balance queries.',
     methods: [
       {
-        signature: '@Remote get(client: AccountClientMetadata): Promise<BalanceSnapshot>',
+        signature: '@Remote get(client: AccountClientMetadata, view?: \'history\' | BalanceSidebarRange): Promise<BalanceSnapshot>',
         description: 'Read balance observations under the current account and sampling preferences.',
-        parameters: [{ name: 'client', description: 'Platform request metadata.' }],
+        parameters: [{ name: 'client', description: 'Platform request metadata.' }, { name: 'view', description: 'Full retained history for settings or a compact sidebar time window.' }],
         returns: 'Sanitized current state and local sampling history.',
+      },
+      {
+        signature: '@Remote clear(client: AccountClientMetadata, request: BalanceCleanupRequest, view?: \'history\' | BalanceSidebarRange): Promise<BalanceSnapshot>',
+        description: 'Remove stored samples for the current account.',
+        parameters: [{ name: 'client', description: 'Platform request metadata.' }, { name: 'request', description: 'Cleanup mode and its bound.' }, { name: 'view', description: 'History detail requested by the active client view.' }],
+        returns: 'The remaining history.',
       },
     ],
   },
@@ -7135,8 +7147,16 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export class BackendRegistry {\n    register(name: string, backend: StorageBackend): () => void;\n    get(name: string): StorageBackend;\n    names(): string[];\n}',
   },
   {
+    name: 'BalanceCleanupRequest',
+    declaration: 'export type BalanceCleanupRequest = {\n    readonly mode: \'all\';\n} | {\n    readonly mode: \'count\';\n    readonly keep: number;\n} | {\n    readonly mode: \'age\';\n    readonly days: number;\n};',
+  },
+  {
     name: 'BalanceSample',
     declaration: 'export interface BalanceSample {\n    readonly time: number;\n    readonly wallets: readonly BalanceWallet[];\n}',
+  },
+  {
+    name: 'BalanceSidebarRange',
+    declaration: 'export type BalanceSidebarRange = \'1\' | \'7\' | \'30\';',
   },
   {
     name: 'BalanceSnapshot',
@@ -7596,7 +7616,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'CreateSessionOptions',
-    declaration: 'export interface CreateSessionOptions {\n    readonly seed?: readonly SessionEvent[];\n    readonly inheritedEventCount?: SessionLogOffset;\n    readonly meta?: {\n        readonly cwd?: string;\n        readonly parentSession?: SessionId;\n        readonly createdAt?: number;\n        readonly isSeeded?: boolean;\n        readonly origin?: \'subagent\';\n        readonly delegationDepth?: number;\n        readonly agentPreset?: string;\n    };\n}',
+    declaration: 'export interface CreateSessionOptions {\n    readonly seed?: readonly SessionEvent[];\n    readonly inheritedEventCount?: SessionLogOffset;\n    readonly meta?: SessionHeaderMeta;\n}',
   },
   {
     name: 'CreateShareRequest',
@@ -8900,7 +8920,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'MemoryDescribeValue',
-    declaration: 'export interface MemoryDescribeValue {\n    readonly totalRecords: number;\n    readonly limits: MemoryLimits;\n    readonly workspaces: readonly MemoryScopeOption[];\n    readonly modes: readonly MemoryScopeOption[];\n    readonly extraction: {\n        readonly enabled: boolean;\n        readonly revision: number | null;\n    };\n    readonly extractions: readonly MemoryExtractionStatus[];\n}',
+    declaration: 'export interface MemoryDescribeValue {\n    readonly enabled: boolean;\n    readonly totalRecords: number;\n    readonly limits: MemoryLimits;\n    readonly workspaces: readonly MemoryScopeOption[];\n    readonly modes: readonly MemoryScopeOption[];\n    readonly extraction: {\n        readonly enabled: boolean;\n        readonly revision: number | null;\n    };\n    readonly extractions: readonly MemoryExtractionStatus[];\n}',
   },
   {
     name: 'MemoryExtractionOptions',
@@ -10579,6 +10599,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SessionHeader {\n    readonly version: typeof SESSION_FORMAT_VERSION;\n    readonly id: SessionId;\n    readonly createdAt: number;\n    readonly cwd?: string;\n    readonly parentSession?: SessionId;\n    readonly isSeeded: boolean;\n    readonly origin?: \'subagent\';\n    readonly delegationDepth?: number;\n    readonly agentPreset?: string;\n}',
   },
   {
+    name: 'SessionHeaderMeta',
+    declaration: 'export interface SessionHeaderMeta {\n    readonly cwd?: string;\n    readonly parentSession?: SessionId;\n    readonly createdAt?: number;\n    readonly isSeeded?: boolean;\n    readonly origin?: \'subagent\';\n    readonly delegationDepth?: number;\n    readonly agentPreset?: string;\n}',
+  },
+  {
     name: 'SessionHistoryRecord',
     declaration: 'export type SessionHistoryRecord = SessionEventEntry;',
   },
@@ -10908,7 +10932,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SessionSurface',
-    declaration: 'export interface SessionSurface {\n    readonly nodes: readonly SessionSeq[];\n    readonly replaceGeneration: number;\n    readonly contentGeneration: number;\n}',
+    declaration: 'export interface SessionSurface {\n    readonly nodes: readonly SessionSeq[];\n    readonly systemNodes: readonly SystemSurfaceNode[];\n    readonly replaceGeneration: number;\n    readonly contentGeneration: number;\n}',
   },
   {
     name: 'SessionSurfaceSnapshot',
@@ -11587,6 +11611,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type SystemPromptUpdate = \'in-history\';',
   },
   {
+    name: 'SystemSurfaceNode',
+    declaration: 'export interface SystemSurfaceNode {\n    readonly seq: SessionSeq;\n    readonly isEmpty: boolean;\n}',
+  },
+  {
     name: 'TableKeyOf',
     declaration: 'export type TableKeyOf<S extends DomainSpec, N extends keyof S[\'tables\']> = S[\'tables\'][N] extends DomainTableSpec<infer K> ? K : never;',
   },
@@ -11944,7 +11972,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ToolHistory',
-    declaration: 'export interface ToolHistory {\n    readonly tools: readonly ToolSchema[];\n    readonly updates: readonly {\n        readonly messageId: MessageId;\n        readonly additions: readonly ToolSchema[];\n    }[];\n}',
+    declaration: 'export interface ToolHistory {\n    readonly tools: readonly ToolSchema[];\n    readonly disabledAfterRejection?: readonly string[];\n    readonly updates: readonly {\n        readonly messageId: MessageId;\n        readonly additions: readonly ToolSchema[];\n    }[];\n}',
   },
   {
     name: 'ToolInfo',

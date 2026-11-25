@@ -6,7 +6,7 @@ import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { Context } from '@deepseek-ai/cordis'
 import { brandString, type Branded } from '@deepseek-ai/dsh-brand'
 import { LocalFileSystem } from '@deepseek-ai/dsh-fs-local'
-import { createAssistantMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createAssistantMessage, createDeveloperMessage, createUserMessage, projectToolUpdates } from '@deepseek-ai/dsh-llm'
 import SessionStore, { Session, type SessionEvent, type SessionId, type SessionLogOffset } from '@deepseek-ai/dsh-session'
 import * as jsonl from '@deepseek-ai/dsh-session-persistence-jsonl'
 import MemoryService from '@deepseek-ai/dsh-memory'
@@ -136,6 +136,59 @@ it('preserves a released writing workspace, rolling ledger and compressed v4 Ses
     await ctx.fiber.dispose()
   }
 }, 30_000)
+
+it('recovers a rejected MCP declaration from a released v4 log and reopens the same conversation', async () => {
+  await mkdir(workspace, { recursive: true })
+  const ctx = new Context()
+  const id = brandString<SessionId>('released-notebook-recovery')
+  const config = { provider: 'deepseek-account', model: 'deepseek-flash' }
+  const clock = { name: 'clock', description: 'Read the date.', parameters: { type: 'object' } }
+  const notes = { name: 'mcp__notes__lookup', description: 'Read a label.', parameters: {
+    type: 'object', properties: { label: { type: 'string', pattern: '^[^\\uD800-\\uDFFF]*$' } },
+  } }
+  const userText = (text: string) => createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text }] })
+  try {
+    await ctx.plugin(LocalFileSystem, { cwd: workspace })
+    await ctx.plugin(jsonl, { root: join(directory, 'sessions'), compression: 'zstd' })
+    if (phase === 'write') {
+      const session = Session.create(id)
+      session.append('turn/start', { turn: 1 })
+      session.append('step/start', { turn: 1, step: 1 })
+      session.append('user/message', userText('Remember the label ORCHID.'), { surfaceOp: 'append' })
+      session.append('request/header', { reason: 'initial', header: { config, tools: [clock, notes] } })
+      session.append('step/end', { turn: 1, step: 1 })
+      session.append('turn/end', { turn: 1, reason: { kind: 'error', error: { code: 'INVALID_REQUEST', status: 400, message: 'Invalid schema for function ' + notes.name } } })
+      const handle = await ctx.sessionPersistence.create(session.header)
+      try { await handle.append(session.snapshotEvents()); await handle.flush() } finally { await handle.close() }
+      return
+    }
+    const handle = await ctx.sessionPersistence.open(id, phase === 'read' ? 'write' : 'read')
+    try {
+      const { events } = await handle.read()
+      const session = Session.fromRestore(id, events, handle.header, handle.inheritedEventCount, 'detached')
+      if (phase === 'read') {
+        session.append('turn/start', { turn: 2 })
+        session.append('step/start', { turn: 2, step: 1 })
+        session.append('user/message', userText('Continue without the notebook.'), { surfaceOp: 'append' })
+        session.append('request/header', { reason: 'resume', header: { config, tools: [clock] } })
+        session.append('developer/message', { turn: 2, step: 1, message: createDeveloperMessage({
+          source: { kind: 'tool-registry' }, content: [{ type: 'tool-removal', toolName: notes.name }],
+        }) }, { surfaceOp: 'append' })
+        session.append('step/end', { turn: 2, step: 1 })
+        session.append('turn/end', { turn: 2, reason: { kind: 'completed' } })
+        await handle.append(session.snapshotEvents().slice(events.length))
+        await handle.flush()
+      }
+      for (const mode of [undefined, 'addition-only', 'in-history'] as const) {
+        const projected = projectToolUpdates(session.deriveMessages(), [clock], mode, session.toolHistory())
+        expect(projected.tools).toEqual([clock])
+        expect(projected.messages.map(message => message.content)).toEqual([
+          [{ type: 'text', text: 'Remember the label ORCHID.' }], [{ type: 'text', text: 'Continue without the notebook.' }],
+        ])
+      }
+    } finally { await handle.close() }
+  } finally { await ctx.fiber.dispose() }
+})
 
 it('reopens the released workspace index with the same order, membership, pins and archive', async () => {
   const ctx = new Context()

@@ -16,6 +16,7 @@ export class ToolHistoryProjection {
   private available = new Set<string>()
   /** Header that starts the current declaration series; absent before the first header. */
   private baselineSeq: SessionSeq | undefined
+  private lastRequestRejected = false
   /** Immutable request snapshot of the current baseline and resolved updates. */
   private history: ToolHistory = deepFreeze({ tools: [], updates: [] })
 
@@ -24,7 +25,11 @@ export class ToolHistoryProjection {
    * @param event - a session event, including inherited events during restoration.
    */
   apply(event: SessionEvent): void {
-    if (event.type === 'request/header') {
+    if (event.type === 'turn/end') {
+      const reason = event.data.reason
+      this.lastRequestRejected = reason.kind === 'error' && reason.error.code === 'INVALID_REQUEST'
+      if (this.lastRequestRejected) this.retireInactive(this.active)
+    } else if (event.type === 'request/header') {
       const tools = event.data.header.tools ?? []
       this.headers.set(event.seq, tools)
       // A retained name cannot acquire a different definition without losing
@@ -38,7 +43,10 @@ export class ToolHistoryProjection {
         this.declared = new Map(tools.map(tool => [tool.name, tool]))
         this.history = deepFreeze({ tools, updates: [] })
         this.available = new Set(tools.map(tool => tool.name))
+      } else if (this.lastRequestRejected) {
+        this.retireInactive(tools)
       }
+      this.lastRequestRejected = false
       this.active = tools
     } else if (event.type === 'developer/message') {
       const { message, headerSeq } = event.data
@@ -55,9 +63,17 @@ export class ToolHistoryProjection {
         else if (block.type === 'tool-removal') this.available.delete(block.toolName)
       }
       this.history = deepFreeze({
-        tools: this.history.tools,
+        ...this.history,
         updates: [...this.history.updates, { messageId: message.id, additions }],
       })
+    }
+  }
+
+  private retireInactive(tools: readonly ToolSchema[]): void {
+    const active = new Set(tools.map(tool => tool.name))
+    const disabledAfterRejection = [...this.declared.keys()].filter(name => !active.has(name))
+    if (disabledAfterRejection.length > 0) {
+      this.history = deepFreeze({ ...this.history, disabledAfterRejection })
     }
   }
 

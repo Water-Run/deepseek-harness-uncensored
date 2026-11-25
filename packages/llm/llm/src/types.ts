@@ -542,6 +542,8 @@ export type RequestMessage = Message | RequestUserInput
 export interface ToolHistory {
   /** Complete active declarations at the start of this history. */
   readonly tools: readonly ToolSchema[]
+  /** Historical tools disabled at or after an invalid request. Omit their declarations and update references while inactive. */
+  readonly disabledAfterRejection?: readonly string[]
   /** Ordered developer messages, with additions resolved from their historical headers. */
   readonly updates: readonly {
     /** Identity used to locate this update in the derived request history. */
