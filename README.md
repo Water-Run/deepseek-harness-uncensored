@@ -282,6 +282,7 @@
 | 首次配置 | 设置 → 模型中填写提供方与凭据，详见[模型配置](docs/user/guide/providers.zh.md) |
 | 版本号 | `YYYY.MM.DD.N`，末位是当天的构建序号，每天第一个构建为 `0`，可在关于页核对 |
 | 数据目录 | 默认 `~/.dsh-uncensored`，可用环境变量 `DSH_UNCENSORED_HOME` 修改 |
+| 终端命令 | Windows 与 macOS 的桌面应用菜单中可注册 `dsh-uncensored`。安装后打开新终端，用 `dsh-uncensored --version` 查看 DSHU 版本 |
 | 与官方版并存 | 程序、配置、会话和更新渠道各自独立 |
 
 > [!IMPORTANT]

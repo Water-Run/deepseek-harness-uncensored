@@ -730,7 +730,7 @@ index 7664fb11d460ed9cd72274f3105cb782bc0d462e..a2e50daf0e267e4c067b6af167d1bdfa
    reportSkippedBundles('dsh', profile)
    const application = runProfile({
 diff --git a/apps/desktop/README.i18n.yaml b/apps/desktop/README.i18n.yaml
-index 1336a701c617d5f35477c8bc0082d6ae25996fcf..6b072505039451a532e7564b216db9d0e98f245d 100644
+index 1336a701c617d5f35477c8bc0082d6ae25996fcf..9731999b158f7bce169cc5a3fa8e8bd01221ff70 100644
 --- a/apps/desktop/README.i18n.yaml
 +++ b/apps/desktop/README.i18n.yaml
 @@ -9,20 +9,20 @@
@@ -750,8 +750,10 @@ index 1336a701c617d5f35477c8bc0082d6ae25996fcf..6b072505039451a532e7564b216db9d0
 +  en: 4bfa6f3cf6dc5331
 +  zh: 09ad17cadeff934d
  /deepseek-harness-desktop/terminal-command:
-   en: 988bf8bb84cf7c9a
-   zh: 28cefc949c7f52ce
+-  en: 988bf8bb84cf7c9a
+-  zh: 28cefc949c7f52ce
++  en: f8de42534c249a53
++  zh: 486fef48b2d4d03e
  /deepseek-harness-desktop/closing-the-window-and-quitting:
 -  en: bb35a022c37955c9
 -  zh: ab2ef22d398d83a0
@@ -760,6 +762,22 @@ index 1336a701c617d5f35477c8bc0082d6ae25996fcf..6b072505039451a532e7564b216db9d0
  /deepseek-harness-desktop/key-technical-decisions:
    en: 19642526da04f108
    zh: 506ea427d46bb38f
+@@ -30,11 +30,11 @@
+   en: 764bdc09fa8f5701
+   zh: da7897e14434b43c
+ /deepseek-harness-desktop/bundled-command-runtime:
+-  en: 372297005b57a08b
+-  zh: 074a635ac17e4362
++  en: 28500454ae5611ed
++  zh: 7e93558faa09f85a
+ /deepseek-harness-desktop/installation-ownership:
+-  en: 3d3b0e92079a4ef7
+-  zh: 4ab572bf57f4c55c
++  en: 2bf2b49583ea5cf3
++  zh: 3a2c7c024674599d
+ /deepseek-harness-desktop/installation-ownership/runtime-and-plugin-activation:
+   en: 4951cd3ee659eb33
+   zh: 96bdd6358dad587a
 @@ -42,11 +42,11 @@
    en: 98cf848762482d48
    zh: 74f9100a39ec8c2f
@@ -807,7 +825,7 @@ index 1336a701c617d5f35477c8bc0082d6ae25996fcf..6b072505039451a532e7564b216db9d0
    en: 8e26b460ba31f21b
    zh: fbcd0307b3867125
 diff --git a/apps/desktop/README.md b/apps/desktop/README.md
-index af6f44dd177d452eef214f20de3ae784cd5612cd..cf182ef34620005178674d6427d2605f57c13a5e 100644
+index af6f44dd177d452eef214f20de3ae784cd5612cd..71df9c8f9ece2e892e9fc6aaff23e79bc48e6b88 100644
 --- a/apps/desktop/README.md
 +++ b/apps/desktop/README.md
 @@ -8,6 +8,8 @@ English | [中文](README.zh.md)
@@ -828,7 +846,20 @@ index af6f44dd177d452eef214f20de3ae784cd5612cd..cf182ef34620005178674d6427d2605f
  
  Desktop’s local native directory flow opens an Electron folder dialog attached to the application window, restoring, showing, and focusing that window first. Concurrent requests share one dialog; cancellation returns no path and failures remain retryable. Ordinary Web uses the Host chooser. Browse mode lists Host directories. On Linux without zenity or kdialog, automatic selection uses browse instead of the Electron dialog.
  
-@@ -73,7 +75,7 @@ Command registration is optional after installing Desktop. Windows manual uninst
+@@ -63,17 +65,17 @@ Press F12 (Fn+F12 on media-key keyboards), Command+Option+I on macOS, or Ctrl+Sh
+ 
+ ## Terminal command
+ 
+-The application menu's **Manage dsh Command…** entry, immediately below **Check for Updates…**, shows the current command and offers Install, Repair, and Remove. The command uses Desktop's installed runtime and the ordinary [dsh CLI](../cli/README.md), including when the Desktop application is closed. Open a new terminal after installation and run `dsh --version`.
++The application menu's **Manage dsh-uncensored Command…** entry, immediately below **Check for Updates…**, shows the current command and offers Install, Repair, and Remove. The command uses Desktop's installed runtime and the ordinary [dsh CLI](../cli/README.md), including when the Desktop application is closed. Open a new terminal after installation and run `dsh-uncensored --version`.
+ 
+-On macOS, installation creates `/usr/local/bin/dsh` and requests administrator authentication when the directory requires it. Shell startup files are unchanged. On Windows, the management dialog registers the command in the current user's PATH. A pre-existing command requires confirmation before switching; repairing Desktop's own selected command does not repeat that confirmation. The macOS link preserves and restores the displaced launcher; Windows preserves other PATH entries, including entries that predate registration. A command with higher PATH precedence is reported with its location. After moving the application, use Repair on macOS or Install from the new location on Windows. Remove leaves unrelated installations intact.
++On macOS, installation creates `/usr/local/bin/dsh-uncensored` and requests administrator authentication when the directory requires it. Shell startup files are unchanged. On Windows, the management dialog registers the command in the current user's PATH. A pre-existing command requires confirmation before switching; repairing Desktop's own selected command does not repeat that confirmation. The macOS link preserves and restores the displaced launcher; Windows preserves other PATH entries, including entries that predate registration. A command with higher PATH precedence is reported with its location. After moving the application, use Repair on macOS or Install from the new location on Windows. Remove leaves unrelated installations intact.
+ 
+-Command registration is optional after installing Desktop. Windows manual uninstall removes CLI registration owned by that installation; on macOS, use **Manage dsh Command… → Remove** before uninstalling Desktop. Finish CLI commands before updating or uninstalling Desktop. The CLI runtime version follows the installed Desktop release. See [bundled command runtime](#bundled-command-runtime) for Desktop plugin commands and runtime limitations.
++Command registration is optional after installing Desktop. Windows manual uninstall removes CLI registration owned by that installation; on macOS, use **Manage dsh-uncensored Command… → Remove** before uninstalling Desktop. Finish CLI commands before updating or uninstalling Desktop. The CLI runtime version follows the installed Desktop release. See [bundled command runtime](#bundled-command-runtime) for Desktop plugin commands and runtime limitations.
+ 
+ <a id="closing-the-window-and-quitting"></a>
  
  ## Closing the window and quitting
  
@@ -836,6 +867,24 @@ index af6f44dd177d452eef214f20de3ae784cd5612cd..cf182ef34620005178674d6427d2605f
 +Closing the main window (macOS close button and ⌘W; Windows ×, Alt+F4, and the taskbar Close window command) hides it; Windows asks for acknowledgement before the first hide. The page and the Host keep running, tasks continue, and the next show presents the same document with its session, drafts, and scroll position; a fullscreen macOS window leaves fullscreen before hiding. The window returns through the Dock icon, a second launch, or `dshu://open` on macOS, and through the tray on Windows. Minimize is unchanged. Closing the welcome window before the workspace opens quits on Windows and, on macOS, keeps the application in the Dock without a window.
  
  Windows keeps a tray icon for the whole run. Its tooltip is the product name, a single click shows and focuses the window, and the context menu offers Open DeepSeek Harness and Quit DeepSeek Harness in the shell locale. Before the first hide, the shared update-dialog overlay explains that running tasks continue and the window can be reopened from the system tray. Confirm hides the window and writes `background-close-confirmed` under Electron userData; Escape, dismissal, or dialog failure keeps the window visible and does not record acknowledgement. Repeated close requests focus the existing shell dialog. In-place updates retain the marker and uninstall removes it. The old `background-notice-shown` marker does not suppress this confirmation. Closing the window sends no system notification. The tray bitmaps are `resources/tray-windows.ico`, rendered from `resources/icon-windows.svg` at 16, 20, 24, 32, 40, 48, and 64 pixels by `pnpm run render:tray-icon`, and packaged as `resources/tray.ico`. macOS ships no menu bar icon.
+ 
+@@ -137,7 +139,7 @@ Welcome loads the shared Toast palette and shadow tokens, with system typography
+ 
+ ## Bundled command runtime
+ 
+-The installed `resources/runtime/cli/bin/dsh` shell script (`dsh.cmd` on Windows) runs the ordinary CLI dispatcher using Desktop's Electron executable and bundled pnpm. It works while Desktop is closed and retains the Electron runtime limitations. Ordinary profile, configuration, and plugin commands use the same implementation as npm dsh; the command does not open Desktop.
++The installed `resources/runtime/cli/bin/dsh-uncensored` shell script (`dsh-uncensored.cmd` on Windows) runs the ordinary CLI dispatcher using Desktop's Electron executable and bundled pnpm. It works while Desktop is closed and retains the Electron runtime limitations. Ordinary profile, configuration, and plugin commands use the same implementation as npm dsh; the command does not open Desktop.
+ 
+ To manage Desktop's plugins, launch Desktop once to initialize its profile, fully quit the application, then run `dsh plugin --profile desktop add <package>`, `list`, or `remove <package>`. Reopen Desktop to use the changes. Package operations retain the shared profile write lock and compatibility checks. The installed command refuses an uninitialized Desktop profile instead of creating an ordinary CLI profile in its place.
+ 
+@@ -165,7 +167,7 @@ Electron chooses typed shell copy in the eight [shipped Client languages](../../
+ 
+ Windows and macOS relay native fullscreen transitions and the state after each page load to the renderer, so overlays can adapt their caption clearance.
+ 
+-Windows uses a 40-DIP caption with native window controls and colors synchronized from the application palette. Localized Application and Edit entries beside the sidebar toggle open native popup menus. They mount only after the application frame publishes its shell overlay seat, and remain absent during startup loading. Application provides About, Settings, Check for Updates, Manage dsh Command, Developer tools, and Exit; Edit provides undo, redo, cut, copy, paste, delete, and select all by sending the corresponding keys to the focused editor, independently of custom shortcut bindings. Plugin management uses the main application's Plugins page. No separate native menu row appears on Alt. Other platforms retain their native menus. Editable fields retain keyboard commands and a context menu without shortcut labels; Chromium supplies command availability, and selected read-only text offers Copy.
++Windows uses a 40-DIP caption with native window controls and colors synchronized from the application palette. Localized Application and Edit entries beside the sidebar toggle open native popup menus. They mount only after the application frame publishes its shell overlay seat, and remain absent during startup loading. Application provides About, Settings, Check for Updates, Manage dsh-uncensored Command, Developer tools, and Exit; Edit provides undo, redo, cut, copy, paste, delete, and select all by sending the corresponding keys to the focused editor, independently of custom shortcut bindings. Plugin management uses the main application's Plugins page. No separate native menu row appears on Alt. Other platforms retain their native menus. Editable fields retain keyboard commands and a context menu without shortcut labels; Chromium supplies command availability, and selected read-only text offers Copy.
+ 
+ On macOS the custom menu retains Electron's standard Window menu and application hide commands, including Minimize (⌘M) and Hide (⌘H). Its Edit menu copies Electron's, binds Paste and Match Style to ⇧⌘V, and keeps Electron's ⌥⇧⌘V as a hidden alias; the Substitutions and Speech titles come from the desktop locale, while the other items keep Electron's English labels. Linux keeps the application and Edit menus.
  
 @@ -199,7 +201,7 @@ The development application menu offers Reload Page (Cmd+R on macOS, Ctrl+R else
  pnpm run dev:desktop
@@ -889,7 +938,7 @@ index af6f44dd177d452eef214f20de3ae784cd5612cd..cf182ef34620005178674d6427d2605f
  When an expired account returns to Welcome, the main process retains a one-time notification until the renderer requests it over window-owned IPC. Reloading Welcome does not repeat the notice; manual sign-out and cold startup do not create it.
  
 diff --git a/apps/desktop/README.zh.md b/apps/desktop/README.zh.md
-index 56161096b2f742f2c592b7b87f8693a8ceb8989a..33228ed39a6b83e8fa874431d5becf02082a84fe 100644
+index 56161096b2f742f2c592b7b87f8693a8ceb8989a..1942bb7cde1ce1a940366f86f8b5040050e2e8cd 100644
 --- a/apps/desktop/README.zh.md
 +++ b/apps/desktop/README.zh.md
 @@ -8,6 +8,8 @@ description: "Desktop 在原生应用中运行 Harness 工作区。本参考文
@@ -910,7 +959,20 @@ index 56161096b2f742f2c592b7b87f8693a8ceb8989a..33228ed39a6b83e8fa874431d5becf02
  
  Desktop 的本地原生目录流程打开绑定应用窗口的 Electron 文件夹对话框，并先恢复、显示和聚焦该窗口。并发请求共用一个对话框；取消不返回路径，失败后可以重试。普通 Web 使用 Host 选择器。浏览模式列出 Host 目录。Linux 缺少 zenity 或 kdialog 时，自动选择使用浏览模式，不使用 Electron 对话框。
  
-@@ -73,7 +75,7 @@ macOS 安装会创建 `/usr/local/bin/dsh`；目录权限需要时，系统会
+@@ -63,17 +65,17 @@ Desktop Host 的 Platform API 请求与更新策略请求用相同的 Platform 
+ 
+ ## 终端命令
+ 
+-应用菜单中的**管理 dsh 命令…**位于**检查更新…**下方，显示当前命令，并提供安装、修复和移除操作。命令复用 Desktop 已安装的运行时和普通 [dsh CLI](../cli/README.zh.md)，Desktop 应用关闭后也可以使用。安装后打开新终端，运行 `dsh --version`。
++应用菜单中的**管理 dsh-uncensored 命令…**位于**检查更新…**下方，显示当前命令，并提供安装、修复和移除操作。命令复用 Desktop 已安装的运行时和普通 [dsh CLI](../cli/README.zh.md)，Desktop 应用关闭后也可以使用。安装后打开新终端，运行 `dsh-uncensored --version`。
+ 
+-macOS 安装会创建 `/usr/local/bin/dsh`；目录权限需要时，系统会请求管理员认证，不会修改 shell 启动文件。Windows 管理对话框将命令注册到当前用户的 PATH。切换已有命令前会要求确认；修复当前已选中的 Desktop 命令不会重复要求切换确认。macOS 链接会保留并恢复被替换的启动器；Windows 会保留其他 PATH 条目，包括注册前就已存在的条目。若其他命令的 PATH 优先级更高，对话框会显示其位置。移动应用后，macOS 使用“修复”，Windows 从新位置使用“安装”。“移除”不会改动无关安装。
++macOS 安装会创建 `/usr/local/bin/dsh-uncensored`；目录权限需要时，系统会请求管理员认证，不会修改 shell 启动文件。Windows 管理对话框将命令注册到当前用户的 PATH。切换已有命令前会要求确认；修复当前已选中的 Desktop 命令不会重复要求切换确认。macOS 链接会保留并恢复被替换的启动器；Windows 会保留其他 PATH 条目，包括注册前就已存在的条目。若其他命令的 PATH 优先级更高，对话框会显示其位置。移动应用后，macOS 使用“修复”，Windows 从新位置使用“安装”。“移除”不会改动无关安装。
+ 
+-命令注册是安装 Desktop 后的可选操作。Windows 手动卸载会移除属于该安装的 CLI 注册；macOS 卸载前请通过**管理 dsh 命令… → 移除**删除注册。更新或卸载 Desktop 前请结束 CLI 命令。CLI 运行时版本随已安装的 Desktop 版本变化。Desktop 插件命令与运行时限制见[内置命令运行时](#bundled-command-runtime)。
++命令注册是安装 Desktop 后的可选操作。Windows 手动卸载会移除属于该安装的 CLI 注册；macOS 卸载前请通过**管理 dsh-uncensored 命令… → 移除**删除注册。更新或卸载 Desktop 前请结束 CLI 命令。CLI 运行时版本随已安装的 Desktop 版本变化。Desktop 插件命令与运行时限制见[内置命令运行时](#bundled-command-runtime)。
+ 
+ <a id="closing-the-window-and-quitting"></a>
  
  ## 关闭窗口与退出
  
@@ -918,6 +980,24 @@ index 56161096b2f742f2c592b7b87f8693a8ceb8989a..33228ed39a6b83e8fa874431d5becf02
 +关闭主窗口（macOS 的关闭按钮和 ⌘W；Windows 的 ×、Alt+F4 和任务栏"关闭窗口"）会隐藏窗口；Windows 首次隐藏前需要确认。页面和 Host 继续运行，任务不受影响，下次显示时仍是原来的文档，会话、草稿和滚动位置都保留；macOS 全屏窗口先退出全屏再隐藏。macOS 通过 Dock 图标、再次启动或 `dshu://open` 找回窗口，Windows 通过托盘找回。最小化行为不变。进入工作区前关闭欢迎窗口，Windows 上走退出流程，macOS 上应用留在 Dock 中且没有窗口。
  
  Windows 在整个运行期间常驻托盘图标。悬停提示为产品名，单击显示并聚焦窗口，右键菜单提供壳语言下的"打开 DeepSeek Harness"和"退出 DeepSeek Harness"。首次隐藏前复用更新弹窗，显示“正在运行的任务不会中断，可在系统托盘中重新打开窗口”和“确认”按钮。确认后隐藏窗口，并在 Electron userData 下写入 `background-close-confirmed`；Esc、关闭弹窗或加载失败均保持主窗口可见，不记录确认。重复关闭请求会聚焦已有壳弹窗。覆盖更新保留标记，卸载删除标记。旧的 `background-notice-shown` 标记不会跳过此确认。关闭窗口不发送系统通知。托盘位图是 `resources/tray-windows.ico`，由 `pnpm run render:tray-icon` 从 `resources/icon-windows.svg` 按 16、20、24、32、40、48、64 像素分别渲染，打包为 `resources/tray.ico`。macOS 不提供菜单栏图标。
+ 
+@@ -137,7 +139,7 @@ Welcome 加载共享 Toast 的配色和阴影变量，挂载在 body 下的通
+ 
+ ## 内置命令运行时
+ 
+-安装后的 `resources/runtime/cli/bin/dsh` shell 脚本（Windows 为 `dsh.cmd`）使用 Desktop 的 Electron 可执行文件和内置 pnpm 运行普通 CLI 分派入口。Desktop 关闭时也可使用，并保留 Electron 运行时限制。普通 profile、配置和插件命令与 npm dsh 使用相同实现；该命令不会打开 Desktop。
++安装后的 `resources/runtime/cli/bin/dsh-uncensored` shell 脚本（Windows 为 `dsh-uncensored.cmd`）使用 Desktop 的 Electron 可执行文件和内置 pnpm 运行普通 CLI 分派入口。Desktop 关闭时也可使用，并保留 Electron 运行时限制。普通 profile、配置和插件命令与 npm dsh 使用相同实现；该命令不会打开 Desktop。
+ 
+ 管理 Desktop 插件前，先启动一次 Desktop 以初始化其 profile，完全退出应用，再运行 `dsh plugin --profile desktop add <package>`、`list` 或 `remove <package>`。重新打开 Desktop 后使用更改。包操作保留共享的 profile 写锁和兼容性检查。内置命令拒绝未初始化的 Desktop profile，不会在其位置创建普通 CLI profile。
+ 
+@@ -165,7 +167,7 @@ Electron 根据应用语言选择类型化的八种[内置 Client 语言](../../
+ 
+ Windows 和 macOS 会在原生全屏切换及每次页面加载后向渲染器同步全屏状态，让浮层调整顶栏避让距离。
+ 
+-Windows 使用 40 DIP 顶栏，保留原生窗口按钮，颜色随应用调色板同步。侧栏开关旁的本地化“应用”和“编辑”入口打开原生弹出菜单。仅当应用框架发布 shell overlay 席位后才挂载菜单，启动加载期间不显示。“应用”提供关于、设置、检查更新、管理 dsh 命令、开发者工具和退出；“编辑”向当前编辑器发送对应按键，提供撤销、重做、剪切、复制、粘贴、删除和全选，不受自定义快捷键绑定影响。插件管理使用主应用的“插件”页面。按 Alt 不会出现额外的原生菜单行。其他平台保留原生菜单。可编辑区域保留快捷键和不带快捷键标注的右键菜单；命令可用状态由 Chromium 提供，选中的只读文本提供“复制”命令。
++Windows 使用 40 DIP 顶栏，保留原生窗口按钮，颜色随应用调色板同步。侧栏开关旁的本地化“应用”和“编辑”入口打开原生弹出菜单。仅当应用框架发布 shell overlay 席位后才挂载菜单，启动加载期间不显示。“应用”提供关于、设置、检查更新、管理 dsh-uncensored 命令、开发者工具和退出；“编辑”向当前编辑器发送对应按键，提供撤销、重做、剪切、复制、粘贴、删除和全选，不受自定义快捷键绑定影响。插件管理使用主应用的“插件”页面。按 Alt 不会出现额外的原生菜单行。其他平台保留原生菜单。可编辑区域保留快捷键和不带快捷键标注的右键菜单；命令可用状态由 Chromium 提供，选中的只读文本提供“复制”命令。
+ 
+ macOS 上自定义菜单保留 Electron 的标准 Window 菜单及应用隐藏命令，包括 Minimize（⌘M）和 Hide（⌘H）。其 Edit 菜单复制 Electron 的默认菜单，把 Paste and Match Style 绑定到 ⇧⌘V，并保留 Electron 默认的 ⌥⇧⌘V 作为隐藏别名；Substitutions 和 Speech 标题取自桌面端语言包，其余条目保留 Electron 的英文标签。Linux 保留应用菜单和 Edit 菜单。
  
 @@ -199,7 +201,7 @@ macOS 和 Linux 从图形界面启动的程序只继承会话管理器提供的
  pnpm run dev:desktop
@@ -971,10 +1051,10 @@ index 56161096b2f742f2c592b7b87f8693a8ceb8989a..33228ed39a6b83e8fa874431d5becf02
  账号失效并返回 Welcome 时，主进程保留一次性通知，直到渲染器通过所属窗口的 IPC 领取。重新加载 Welcome 不会重复提示；主动退登和冷启动不会生成该通知。
  
 diff --git a/apps/desktop/packaging/README.i18n.yaml b/apps/desktop/packaging/README.i18n.yaml
-index 228f07da880b886dd478781fc5cd56399d4f1488..42560b8d14badaadf32c2d1153e1a3777ce451ba 100644
+index 228f07da880b886dd478781fc5cd56399d4f1488..255278a65b05eadeb5c2e3a8c3d43374e2f96b77 100644
 --- a/apps/desktop/packaging/README.i18n.yaml
 +++ b/apps/desktop/packaging/README.i18n.yaml
-@@ -30,8 +30,8 @@
+@@ -30,11 +30,11 @@
    en: b7c6668f451d2e16
    zh: d3125c2bb6cf8e7b
  /desktop-packaging/unsigned-windows-test-installer:
@@ -983,10 +1063,15 @@ index 228f07da880b886dd478781fc5cd56399d4f1488..42560b8d14badaadf32c2d1153e1a377
 +  en: 5cf06bcceb801c90
 +  zh: 036bac56c61b4a5c
  /desktop-packaging/local-macos-dmg-without-release-signing:
-   en: 1146bbc11be43960
-   zh: 7c13543a0513c059
+-  en: 1146bbc11be43960
+-  zh: 7c13543a0513c059
++  en: 4764dbfc0d1c9e23
++  zh: 7492b655a3223cc3
+ /desktop-packaging/macos-release-signing-and-diagnostics:
+   en: a0b4aa1080ecf6fb
+   zh: 37d4b8934f89bee8
 diff --git a/apps/desktop/packaging/README.md b/apps/desktop/packaging/README.md
-index d8aa7714ee03dac6fa90d35027488ebc595e3881..069713fa35f88ee950bc5069f8347401d6ddf1fc 100644
+index d8aa7714ee03dac6fa90d35027488ebc595e3881..c7e1fe1d000436293fd66799c35357eeba901cfb 100644
 --- a/apps/desktop/packaging/README.md
 +++ b/apps/desktop/packaging/README.md
 @@ -159,7 +159,7 @@ On Windows x64, use the complete unsigned packaging command for local installati
@@ -998,8 +1083,17 @@ index d8aa7714ee03dac6fa90d35027488ebc595e3881..069713fa35f88ee950bc5069f8347401
  
  Run `pnpm install --frozen-lockfile`, then `pnpm run package:desktop:win:x64:unsigned --check` to validate configuration and tooling before the full command above. Packaging performs its own complete build and isolated runtime smoke without an online model. Stage logs remain under `.desktop-build/packaging-runs/`; a successful build alone does not qualify the installer. Dependency installation and runtime preparation need access to npm, GitHub release assets and nodejs.org; use the existing registry and proxy configuration when the network requires it. Caches and tool locations belong to the build machine, not tracked personal paths.
  
+@@ -176,7 +176,7 @@ pnpm run package:desktop:mac:x64:unsigned
+ 
+ Add `--check` to validate local configuration and tools without building, or `--dir` to stop at the unpacked application. The DMG is `apps/desktop/.desktop-build/targets/<target>/unsigned-artifacts/deepseek-harness-<version>-mac-<arch>-unsigned.dmg`. After all checks pass, the command prints `DMG:` followed by its absolute path. Open it and copy the application to a local test directory.
+ 
+-These commands ignore `.env.macos` and inherited release settings, use `com.deepseek.harness` as the app ID, and omit automatic-update and mandatory-update configuration. Build tools, standard network proxies, and `DSH_DESKTOP_NPM_REGISTRY` remain available from the shell. They skip Developer ID signing, Apple notarization, temporary signing keychains, and notarization proxy changes. Electron receives a local ad-hoc signature without certificates so the modified executable can run; the DMG is unsigned. Both preparation and the assembled application still run runtime integrity and smoke checks. Local builds omit update feeds, ZIPs, and release completion records, and the upload commands cannot publish them. macOS may require approval in System Settings → Privacy & Security to open an unnotarized application. These builds stage no Computer Use helper, so Computer Use reports the missing helper when it prepares.
++These commands ignore `.env.macos` and inherited release settings, use `com.deepseek.dsh.uncensored` as the app ID, and omit automatic-update and mandatory-update configuration. Build tools, standard network proxies, and `DSH_DESKTOP_NPM_REGISTRY` remain available from the shell. They skip Developer ID signing, Apple notarization, temporary signing keychains, and notarization proxy changes. Electron receives a local ad-hoc signature without certificates so the modified executable can run; the DMG is unsigned. Both preparation and the assembled application still run runtime integrity and smoke checks. Local builds omit update feeds, ZIPs, and release completion records, and the upload commands cannot publish them. macOS may require approval in System Settings → Privacy & Security to open an unnotarized application. These builds stage no Computer Use helper, so Computer Use reports the missing helper when it prepares.
+ 
+ <a id="macos-release-signing"></a>
+ 
 diff --git a/apps/desktop/packaging/README.zh.md b/apps/desktop/packaging/README.zh.md
-index bdffd46c99697416431fc74e5a783725529c1034..6705637dce101b189122cbd618a28f9dc1edeb65 100644
+index bdffd46c99697416431fc74e5a783725529c1034..12d6fa779bcfcc2b4ac99be2f308092b34b4fe26 100644
 --- a/apps/desktop/packaging/README.zh.md
 +++ b/apps/desktop/packaging/README.zh.md
 @@ -159,7 +159,7 @@ bash apps/desktop/scripts/macos-runner-service.sh status "$HOME/dsh-ci/runner"
@@ -1010,6 +1104,15 @@ index bdffd46c99697416431fc74e5a783725529c1034..6705637dce101b189122cbd618a28f9d
 +该命令读取 `.env.windows`，要求设置 `DSH_DESKTOP_APP_ID` 和[强制更新策略配置](../README.zh.md#mandatory-update-policy)，包括真实的 HTTPS 服务 origin。本机验收和 CI 使用 Node 24；其他工具为根 `packageManager` 固定版本的 pnpm、Git、PowerShell 7（`pwsh`）、tar、Python、Visual C++ Build Tools 和 Windows SDK。工具探测也识别装有 x86/x64 C++ 工具的 Visual Studio Insiders。Python 不在 `PATH` 中时设置 `PYTHON`。命令将安装包写入 `.desktop-build/targets/win-x64/unsigned-artifacts/`，省略普通自动更新配置，清除签名凭据，且不生成发布完成记录。无需 EV 或上传凭据。签名打包和上传仍遵循正式发布要求。
  
  先运行 `pnpm install --frozen-lockfile`，再运行 `pnpm run package:desktop:win:x64:unsigned --check` 校验配置和工具，最后执行上面的完整命令。打包自行执行完整构建和隔离的运行时 smoke，不调用在线模型。阶段日志保留在 `.desktop-build/packaging-runs/`；仅构建成功不代表安装包验证通过。依赖安装和运行时准备需要访问 npm、GitHub release 资源和 nodejs.org；网络需要时使用现有 registry 和代理配置。缓存与工具位置属于构建机器配置，不在跟踪文件中固定个人路径。
+ 
+@@ -176,7 +176,7 @@ pnpm run package:desktop:mac:x64:unsigned
+ 
+ 添加 `--check` 仅验证本地配置和工具而不构建，或添加 `--dir` 只生成解包应用。DMG 路径为 `apps/desktop/.desktop-build/targets/<target>/unsigned-artifacts/deepseek-harness-<version>-mac-<arch>-unsigned.dmg`。所有检查通过后，命令打印 `DMG:` 及其绝对路径。打开后将应用复制到本地测试目录。
+ 
+-这些命令忽略 `.env.macos` 和继承的发布配置，使用 `com.deepseek.harness` 作为应用 ID，并省略自动更新和强制更新配置。构建工具、标准网络代理与 `DSH_DESKTOP_NPM_REGISTRY` 仍可从 shell 提供。它们跳过 Developer ID 签名、Apple 公证、临时签名钥匙串和公证代理修改。Electron 使用无需证书的本地 ad-hoc 签名，以便修改后的可执行文件能够运行；DMG 不签名。准备阶段和组装后的应用仍执行运行时完整性与冒烟检查。本地构建不生成更新源、ZIP 或发布完成记录，上传命令无法发布这些产物。macOS 可能要求在“系统设置 → 隐私与安全性”中批准打开未经公证的应用。这类构建不放入 Computer Use helper，Computer Use 准备时会报告 helper 缺失。
++这些命令忽略 `.env.macos` 和继承的发布配置，使用 `com.deepseek.dsh.uncensored` 作为应用 ID，并省略自动更新和强制更新配置。构建工具、标准网络代理与 `DSH_DESKTOP_NPM_REGISTRY` 仍可从 shell 提供。它们跳过 Developer ID 签名、Apple 公证、临时签名钥匙串和公证代理修改。Electron 使用无需证书的本地 ad-hoc 签名，以便修改后的可执行文件能够运行；DMG 不签名。准备阶段和组装后的应用仍执行运行时完整性与冒烟检查。本地构建不生成更新源、ZIP 或发布完成记录，上传命令无法发布这些产物。macOS 可能要求在“系统设置 → 隐私与安全性”中批准打开未经公证的应用。这类构建不放入 Computer Use helper，Computer Use 准备时会报告 helper 缺失。
+ 
+ <a id="macos-release-signing"></a>
  
 diff --git a/apps/desktop/scripts/desktop-toolchain-preflight.ts b/apps/desktop/scripts/desktop-toolchain-preflight.ts
 index da0f06a8ecd798ce20e3db5244a9a6b340448423..992d22d6b7a1a2bb27e9302ea8c361f9a72253cf 100644
@@ -1100,10 +1203,45 @@ index 83ebe7415a9931f5d1ed769cf68f5f70eb534246..be734bf67c9f219b2724a11051ffdfb4
      open(): Promise<void>
      subscribe(listener: (state: DesktopUpdatePresentation) => void): () => void
 diff --git a/apps/desktop/src/locale.ts b/apps/desktop/src/locale.ts
-index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..cfa00c2111979ed8065002b8c7d7d117b8d10af7 100644
+index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..554b1444eb5df0ed3bcf0f19cf9b904a19c30b88 100644
 --- a/apps/desktop/src/locale.ts
 +++ b/apps/desktop/src/locale.ts
-@@ -31,9 +31,9 @@ export const en = {
+@@ -1,13 +1,13 @@
+ /** Typed shell copy for every shipped language owned by the Electron shell. */
+ 
+ export const en = {
+-  cliCommandMenu: 'Manage dsh Command…',
+-  cliCommandTitle: 'Manage dsh Command',
++  cliCommandMenu: 'Manage dsh-uncensored Command…',
++  cliCommandTitle: 'Manage dsh-uncensored Command',
+   cliCommandLocation: 'Desktop command: {path}',
+-  cliCommandSelected: 'Current dsh command: {path}',
++  cliCommandSelected: 'Current dsh-uncensored command: {path}',
+   cliCommandTarget: 'Current launcher target: {path}',
+-  cliCommandShadowed: 'Another dsh takes precedence. Remove or reorder that installation to use the Desktop command by default. You can also run the Desktop command by its full path.',
+-  cliCommandSelectionUnknown: 'Your shell command could not be verified. An alias or another dsh installation may take precedence.',
++  cliCommandShadowed: 'Another dsh-uncensored takes precedence. Remove or reorder that installation to use the Desktop command by default. You can also run the Desktop command by its full path.',
++  cliCommandSelectionUnknown: 'Your shell command could not be verified. An alias or another dsh-uncensored installation may take precedence.',
+   cliCommandInstalled: 'The Desktop command is installed.',
+   cliCommandNotInstalled: 'Add the Desktop command to your terminal.',
+   cliCommandBroken: 'The Desktop command needs repair.',
+@@ -18,22 +18,22 @@ export const en = {
+   cliCommandSwitch: 'Continue with the Desktop command?',
+   cliCommandPreserve: 'An existing command will be preserved. Other installations and shell startup files will not be changed.',
+   cliCommandContinue: 'Continue',
+-  cliCommandInstallApp: 'Install Desktop in your Applications folder before managing the dsh command.',
++  cliCommandInstallApp: 'Install Desktop in your Applications folder before managing the dsh-uncensored command.',
+   cliCommandUpdating: 'An update is being installed. Manage the command after installation finishes.',
+-  cliCommandNewTerminal: 'Open a new terminal and run dsh --version.',
++  cliCommandNewTerminal: 'Open a new terminal and run dsh-uncensored --version.',
+   cliCommandRemoved: 'Desktop command registration removed.',
+   cliCommandPreviousRestored: 'The previous launcher has been restored.',
+   cliCommandOtherKept: 'Other command installations have been left in place.',
+   cliCommandBackupKept: 'A previous launcher is preserved at: {path}',
+-  cliCommandChanged: 'The command or PATH changed while this dialog was open. Open Manage dsh Command again to review the current state.',
++  cliCommandChanged: 'The command or PATH changed while this dialog was open. Open Manage dsh-uncensored Command again to review the current state.',
+   cliCommandOwnershipError: 'The command registration or backup changed. No unrelated command was removed.',
+   cliCommandFailed: 'The command could not be updated. Check that the application is installed and the destination is writable, then retry.',
    application: 'Application',
    fileMenu: 'File',
    closePage: 'Close Page or Window',
@@ -1132,7 +1270,42 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..cfa00c2111979ed8065002b8c7d7d117
    updateConfigurationRead: 'Settings file error; updates are paused',
    updateConfigurationFormat: 'Settings file error; updates are paused',
    updateConfigurationChannel: 'Settings file error; updates are paused',
-@@ -227,9 +228,9 @@ export const zh = {
+@@ -197,13 +198,13 @@ export const en = {
+ export type DesktopMessages = { readonly [Key in keyof typeof en]: string }
+ 
+ export const zh = {
+-  cliCommandMenu: '管理 dsh 命令…',
+-  cliCommandTitle: '管理 dsh 命令',
++  cliCommandMenu: '管理 dsh-uncensored 命令…',
++  cliCommandTitle: '管理 dsh-uncensored 命令',
+   cliCommandLocation: 'Desktop 命令：{path}',
+-  cliCommandSelected: '当前 dsh 命令：{path}',
++  cliCommandSelected: '当前 dsh-uncensored 命令：{path}',
+   cliCommandTarget: '当前启动器目标：{path}',
+-  cliCommandShadowed: '另一个 dsh 的优先级更高。请移除或调整该安装的顺序，以默认使用 Desktop 命令；也可以通过完整路径运行 Desktop 命令。',
+-  cliCommandSelectionUnknown: '无法确认 shell 中的命令。别名或另一个 dsh 安装可能具有更高优先级。',
++  cliCommandShadowed: '另一个 dsh-uncensored 的优先级更高。请移除或调整该安装的顺序，以默认使用 Desktop 命令；也可以通过完整路径运行 Desktop 命令。',
++  cliCommandSelectionUnknown: '无法确认 shell 中的命令。别名或另一个 dsh-uncensored 安装可能具有更高优先级。',
+   cliCommandInstalled: 'Desktop 命令已安装。',
+   cliCommandNotInstalled: '将 Desktop 命令添加到终端。',
+   cliCommandBroken: 'Desktop 命令需要修复。',
+@@ -214,22 +215,22 @@ export const zh = {
+   cliCommandSwitch: '继续使用 Desktop 命令？',
+   cliCommandPreserve: '现有命令会被保留，不会修改其他安装或 shell 启动文件。',
+   cliCommandContinue: '继续',
+-  cliCommandInstallApp: '请先将 Desktop 安装到“应用程序”文件夹，再管理 dsh 命令。',
++  cliCommandInstallApp: '请先将 Desktop 安装到“应用程序”文件夹，再管理 dsh-uncensored 命令。',
+   cliCommandUpdating: '正在安装更新。请在安装完成后管理命令。',
+-  cliCommandNewTerminal: '打开新终端并运行 dsh --version。',
++  cliCommandNewTerminal: '打开新终端并运行 dsh-uncensored --version。',
+   cliCommandRemoved: '已移除 Desktop 命令注册。',
+   cliCommandPreviousRestored: '已恢复之前的启动器。',
+   cliCommandOtherKept: '其他命令安装保持不变。',
+   cliCommandBackupKept: '之前的启动器保留在：{path}',
+-  cliCommandChanged: '对话框打开期间命令或 PATH 已改变。请重新打开“管理 dsh 命令”检查当前状态。',
++  cliCommandChanged: '对话框打开期间命令或 PATH 已改变。请重新打开“管理 dsh-uncensored 命令”检查当前状态。',
+   cliCommandOwnershipError: '命令注册或备份已改变，未移除无关命令。',
+   cliCommandFailed: '无法更新命令。请检查应用是否已安装、目标位置是否可写，然后重试。',
    application: '应用',
    fileMenu: '文件',
    closePage: '关闭页面或窗口',
@@ -1161,7 +1334,42 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..cfa00c2111979ed8065002b8c7d7d117
    updateConfigurationRead: '配置文件异常，更新已暂停',
    updateConfigurationFormat: '配置文件异常，更新已暂停',
    updateConfigurationChannel: '配置文件异常，更新已暂停',
-@@ -421,9 +423,9 @@ export const ja = {
+@@ -391,13 +393,13 @@ export const zh = {
+ 
+ /** Japanese copy, checked against the English keys. */
+ export const ja = {
+-  cliCommandMenu: 'dsh コマンドを管理…',
+-  cliCommandTitle: 'dsh コマンドを管理',
++  cliCommandMenu: 'dsh-uncensored コマンドを管理…',
++  cliCommandTitle: 'dsh-uncensored コマンドを管理',
+   cliCommandLocation: 'デスクトップコマンド: {path}',
+-  cliCommandSelected: '現在の dsh コマンド: {path}',
++  cliCommandSelected: '現在の dsh-uncensored コマンド: {path}',
+   cliCommandTarget: '現在のランチャーターゲット: {path}',
+-  cliCommandShadowed: '別の dsh が優先されています。デフォルトでデスクトップコマンドを使用するには、そのインストールを削除するか順序を変更してください。デスクトップコマンドはフルパスでも実行できます。',
+-  cliCommandSelectionUnknown: 'シェルコマンドを確認できませんでした。エイリアスや別の dsh インストールが優先されている可能性があります。',
++  cliCommandShadowed: '別の dsh-uncensored が優先されています。デフォルトでデスクトップコマンドを使用するには、そのインストールを削除するか順序を変更してください。デスクトップコマンドはフルパスでも実行できます。',
++  cliCommandSelectionUnknown: 'シェルコマンドを確認できませんでした。エイリアスや別の dsh-uncensored インストールが優先されている可能性があります。',
+   cliCommandInstalled: 'デスクトップコマンドがインストールされています。',
+   cliCommandNotInstalled: 'デスクトップコマンドをターミナルに追加します。',
+   cliCommandBroken: 'デスクトップコマンドの修復が必要です。',
+@@ -408,22 +410,22 @@ export const ja = {
+   cliCommandSwitch: 'デスクトップコマンドで続行しますか？',
+   cliCommandPreserve: '既存のコマンドは保持されます。他のインストールやシェルの起動ファイルは変更されません。',
+   cliCommandContinue: '続行',
+-  cliCommandInstallApp: 'dsh コマンドを管理する前に、デスクトップをアプリケーションフォルダにインストールしてください。',
++  cliCommandInstallApp: 'dsh-uncensored コマンドを管理する前に、デスクトップをアプリケーションフォルダにインストールしてください。',
+   cliCommandUpdating: 'アップデートをインストール中です。インストール完了後にコマンドを管理してください。',
+-  cliCommandNewTerminal: '新しいターミナルを開いて dsh --version を実行してください。',
++  cliCommandNewTerminal: '新しいターミナルを開いて dsh-uncensored --version を実行してください。',
+   cliCommandRemoved: 'デスクトップコマンドの登録を削除しました。',
+   cliCommandPreviousRestored: '以前のランチャーを復元しました。',
+   cliCommandOtherKept: '他のコマンドインストールはそのまま残されています。',
+   cliCommandBackupKept: '以前のランチャーは次の場所に保持されています: {path}',
+-  cliCommandChanged: 'このダイアログを開いている間にコマンドまたは PATH が変更されました。現在の状態を確認するには、dsh コマンドを管理を再度開いてください。',
++  cliCommandChanged: 'このダイアログを開いている間にコマンドまたは PATH が変更されました。現在の状態を確認するには、dsh-uncensored コマンドを管理を再度開いてください。',
+   cliCommandOwnershipError: 'コマンド登録またはバックアップが変更されました。無関係なコマンドは削除されていません。',
+   cliCommandFailed: 'コマンドを更新できませんでした。アプリケーションがインストールされ、保存先に書き込み権限があることを確認してから再試行してください。',
    application: 'アプリケーション',
    fileMenu: 'ファイル',
    closePage: 'ページまたはウィンドウを閉じる',
@@ -1190,7 +1398,42 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..cfa00c2111979ed8065002b8c7d7d117
    updateConfigurationRead: '設定ファイルに問題があるため、更新を停止しています',
    updateConfigurationFormat: '設定ファイルに問題があるため、更新を停止しています',
    updateConfigurationChannel: '設定ファイルに問題があるため、更新を停止しています',
-@@ -615,9 +618,9 @@ export const es = {
+@@ -585,13 +588,13 @@ export const ja = {
+ 
+ /** Spanish dictionary, checked against the English keys. */
+ export const es = {
+-  cliCommandMenu: 'Administrar el comando dsh…',
+-  cliCommandTitle: 'Administrar el comando dsh',
++  cliCommandMenu: 'Administrar el comando dsh-uncensored…',
++  cliCommandTitle: 'Administrar el comando dsh-uncensored',
+   cliCommandLocation: 'Comando de escritorio: {path}',
+-  cliCommandSelected: 'Comando dsh actual: {path}',
++  cliCommandSelected: 'Comando dsh-uncensored actual: {path}',
+   cliCommandTarget: 'Objetivo actual del lanzador: {path}',
+-  cliCommandShadowed: 'Otro dsh tiene prioridad. Elimine o reordene esa instalación para usar el comando Escritorio de forma predeterminada. También puede ejecutar el comando Escritorio por su ruta completa.',
+-  cliCommandSelectionUnknown: 'No se pudo verificar su comando de shell. Un alias u otra instalación de dsh puede tener prioridad.',
++  cliCommandShadowed: 'Otro dsh-uncensored tiene prioridad. Elimine o reordene esa instalación para usar el comando Escritorio de forma predeterminada. También puede ejecutar el comando Escritorio por su ruta completa.',
++  cliCommandSelectionUnknown: 'No se pudo verificar su comando de shell. Un alias u otra instalación de dsh-uncensored puede tener prioridad.',
+   cliCommandInstalled: 'El comando Escritorio está instalado.',
+   cliCommandNotInstalled: 'Agregue el comando Escritorio a su terminal.',
+   cliCommandBroken: 'El comando de escritorio necesita reparación.',
+@@ -602,22 +605,22 @@ export const es = {
+   cliCommandSwitch: '¿Continuar con el comando Escritorio?',
+   cliCommandPreserve: 'Se conservará un comando existente. Otras instalaciones y archivos de inicio del shell no se modificarán.',
+   cliCommandContinue: 'Continuar',
+-  cliCommandInstallApp: 'Instale Desktop en su carpeta de Aplicaciones antes de administrar el comando dsh.',
++  cliCommandInstallApp: 'Instale Desktop en su carpeta de Aplicaciones antes de administrar el comando dsh-uncensored.',
+   cliCommandUpdating: 'Se está instalando una actualización. Administre el comando una vez finalizada la instalación.',
+-  cliCommandNewTerminal: 'Abra una nueva terminal y ejecute dsh --version.',
++  cliCommandNewTerminal: 'Abra una nueva terminal y ejecute dsh-uncensored --version.',
+   cliCommandRemoved: 'Se eliminó el registro de comandos de escritorio.',
+   cliCommandPreviousRestored: 'El lanzador anterior ha sido restaurado.',
+   cliCommandOtherKept: 'Otras instalaciones de mando se han dejado en su lugar.',
+   cliCommandBackupKept: 'Se conserva un lanzador anterior en: {path}',
+-  cliCommandChanged: 'El comando o RUTA cambió mientras este cuadro de diálogo estaba abierto. Abra Administrar comando dsh nuevamente para revisar el estado actual.',
++  cliCommandChanged: 'El comando o RUTA cambió mientras este cuadro de diálogo estaba abierto. Abra Administrar comando dsh-uncensored nuevamente para revisar el estado actual.',
+   cliCommandOwnershipError: 'El registro del comando o la copia de seguridad cambió. No se eliminó ningún comando no relacionado.',
+   cliCommandFailed: 'El comando no se pudo actualizar. Verifique que la aplicación esté instalada y que se pueda escribir en el destino, luego vuelva a intentarlo.',
    application: 'Solicitud',
    fileMenu: 'Archivo',
    closePage: 'Cerrar página o ventana',
@@ -1219,7 +1462,42 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..cfa00c2111979ed8065002b8c7d7d117
    updateConfigurationRead: 'Error en el archivo de ajustes; actualizaciones pausadas',
    updateConfigurationFormat: 'Error en el archivo de ajustes; actualizaciones pausadas',
    updateConfigurationChannel: 'Error en el archivo de ajustes; actualizaciones pausadas',
-@@ -809,9 +813,9 @@ export const fr = {
+@@ -779,13 +783,13 @@ export const es = {
+ 
+ /** French dictionary, checked against the English keys. */
+ export const fr = {
+-  cliCommandMenu: 'Gérer la commande dsh…',
+-  cliCommandTitle: 'Gérer la commande dsh',
++  cliCommandMenu: 'Gérer la commande dsh-uncensored…',
++  cliCommandTitle: 'Gérer la commande dsh-uncensored',
+   cliCommandLocation: 'Commande de bureau : {path}',
+-  cliCommandSelected: 'Commande dsh actuelle : {path}',
++  cliCommandSelected: 'Commande dsh-uncensored actuelle : {path}',
+   cliCommandTarget: 'Cible actuelle du lanceur : {path}',
+-  cliCommandShadowed: 'Un autre dsh est prioritaire. Supprimez ou réorganisez cette installation pour utiliser la commande Bureau par défaut. Vous pouvez également exécuter la commande Desktop par son chemin complet.',
+-  cliCommandSelectionUnknown: "Votre commande shell n'a pas pu être vérifiée. Un alias ou une autre installation dsh peut être prioritaire.",
++  cliCommandShadowed: 'Un autre dsh-uncensored est prioritaire. Supprimez ou réorganisez cette installation pour utiliser la commande Bureau par défaut. Vous pouvez également exécuter la commande Desktop par son chemin complet.',
++  cliCommandSelectionUnknown: "Votre commande shell n'a pas pu être vérifiée. Un alias ou une autre installation dsh-uncensored peut être prioritaire.",
+   cliCommandInstalled: 'La commande Bureau est installée.',
+   cliCommandNotInstalled: 'Ajoutez la commande Bureau à votre terminal.',
+   cliCommandBroken: 'La commande Bureau doit être réparée.',
+@@ -796,22 +800,22 @@ export const fr = {
+   cliCommandSwitch: 'Continuer avec la commande Bureau ?',
+   cliCommandPreserve: 'Une commande existante sera conservée. Les autres installations et fichiers de démarrage du shell ne seront pas modifiés.',
+   cliCommandContinue: 'Continuer',
+-  cliCommandInstallApp: 'Installez Desktop dans votre dossier Applications avant de gérer la commande dsh.',
++  cliCommandInstallApp: 'Installez Desktop dans votre dossier Applications avant de gérer la commande dsh-uncensored.',
+   cliCommandUpdating: "Une mise à jour est en cours d'installation. Gérez la commande une fois l'installation terminée.",
+-  cliCommandNewTerminal: 'Ouvrez un nouveau terminal et exécutez dsh --version.',
++  cliCommandNewTerminal: 'Ouvrez un nouveau terminal et exécutez dsh-uncensored --version.',
+   cliCommandRemoved: 'Enregistrement des commandes de bureau supprimé.',
+   cliCommandPreviousRestored: 'Le lanceur précédent a été restauré.',
+   cliCommandOtherKept: "D'autres installations de commandement ont été laissées en place.",
+   cliCommandBackupKept: 'Un lanceur précédent est conservé à : {path}',
+-  cliCommandChanged: "La commande ou PATH a changé pendant que cette boîte de dialogue était ouverte. Ouvrez à nouveau la commande Gérer dsh pour vérifier l'état actuel.",
++  cliCommandChanged: "La commande ou PATH a changé pendant que cette boîte de dialogue était ouverte. Ouvrez à nouveau la commande Gérer dsh-uncensored pour vérifier l'état actuel.",
+   cliCommandOwnershipError: "L'enregistrement ou la sauvegarde de la commande a été modifiée. Aucune commande sans rapport n'a été supprimée.",
+   cliCommandFailed: "La commande n'a pas pu être mise à jour. Vérifiez que l'application est installée et que la destination est accessible en écriture, puis réessayez.",
    application: 'Application',
    fileMenu: 'Fichier',
    closePage: 'Fermer la page ou la fenêtre',
@@ -1248,7 +1526,42 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..cfa00c2111979ed8065002b8c7d7d117
    updateConfigurationRead: 'Erreur du fichier de paramètres ; mises à jour suspendues',
    updateConfigurationFormat: 'Erreur du fichier de paramètres ; mises à jour suspendues',
    updateConfigurationChannel: 'Erreur du fichier de paramètres ; mises à jour suspendues',
-@@ -1003,9 +1008,9 @@ export const de = {
+@@ -973,13 +978,13 @@ export const fr = {
+ 
+ /** German dictionary, checked against the English keys. */
+ export const de = {
+-  cliCommandMenu: 'dsh-Befehl verwalten…',
+-  cliCommandTitle: 'dsh-Befehl verwalten',
++  cliCommandMenu: 'dsh-uncensored-Befehl verwalten…',
++  cliCommandTitle: 'dsh-uncensored-Befehl verwalten',
+   cliCommandLocation: 'Desktop-Befehl: {path}',
+-  cliCommandSelected: 'Aktueller dsh-Befehl: {path}',
++  cliCommandSelected: 'Aktueller dsh-uncensored-Befehl: {path}',
+   cliCommandTarget: 'Aktuelles Launcher-Ziel: {path}',
+-  cliCommandShadowed: 'Ein anderer dsh hat Vorrang. Entfernen Sie diese Installation oder ordnen Sie sie neu an, um standardmäßig den Desktop-Befehl zu verwenden. Sie können den Desktop-Befehl auch über seinen vollständigen Pfad ausführen.',
+-  cliCommandSelectionUnknown: 'Ihr Shell-Befehl konnte nicht überprüft werden. Ein Alias oder eine andere dsh-Installation kann Vorrang haben.',
++  cliCommandShadowed: 'Ein anderer dsh-uncensored hat Vorrang. Entfernen Sie diese Installation oder ordnen Sie sie neu an, um standardmäßig den Desktop-Befehl zu verwenden. Sie können den Desktop-Befehl auch über seinen vollständigen Pfad ausführen.',
++  cliCommandSelectionUnknown: 'Ihr Shell-Befehl konnte nicht überprüft werden. Ein Alias oder eine andere dsh-uncensored-Installation kann Vorrang haben.',
+   cliCommandInstalled: 'Der Desktop-Befehl ist installiert.',
+   cliCommandNotInstalled: 'Fügen Sie den Desktop-Befehl zu Ihrem Terminal hinzu.',
+   cliCommandBroken: 'Der Desktop-Befehl muss repariert werden.',
+@@ -990,22 +995,22 @@ export const de = {
+   cliCommandSwitch: 'Mit dem Desktop-Befehl fortfahren?',
+   cliCommandPreserve: 'Ein vorhandener Befehl bleibt erhalten. Andere Installationen und Shell-Startdateien werden nicht geändert.',
+   cliCommandContinue: 'Weiter',
+-  cliCommandInstallApp: 'Installieren Sie Desktop in Ihrem Anwendungsordner, bevor Sie den Befehl dsh verwalten.',
++  cliCommandInstallApp: 'Installieren Sie Desktop in Ihrem Anwendungsordner, bevor Sie den Befehl dsh-uncensored verwalten.',
+   cliCommandUpdating: 'Ein Update wird installiert. Verwalten Sie den Befehl nach Abschluss der Installation.',
+-  cliCommandNewTerminal: 'Öffnen Sie ein neues Terminal und führen Sie dsh --version aus.',
++  cliCommandNewTerminal: 'Öffnen Sie ein neues Terminal und führen Sie dsh-uncensored --version aus.',
+   cliCommandRemoved: 'Desktop-Befehlsregistrierung entfernt.',
+   cliCommandPreviousRestored: 'Der vorherige Launcher wurde wiederhergestellt.',
+   cliCommandOtherKept: 'Andere Befehlsinstallationen wurden beibehalten.',
+   cliCommandBackupKept: 'Ein früherer Launcher ist unter folgender Adresse erhalten: {path}',
+-  cliCommandChanged: 'Der Befehl oder PATH hat sich geändert, während dieses Dialogfeld geöffnet war. Öffnen Sie den Befehl „dsh verwalten“ erneut, um den aktuellen Status zu überprüfen.',
++  cliCommandChanged: 'Der Befehl oder PATH hat sich geändert, während dieses Dialogfeld geöffnet war. Öffnen Sie den Befehl „dsh-uncensored verwalten“ erneut, um den aktuellen Status zu überprüfen.',
+   cliCommandOwnershipError: 'Die Befehlsregistrierung oder Sicherung wurde geändert. Es wurde kein nicht verwandter Befehl entfernt.',
+   cliCommandFailed: 'Der Befehl konnte nicht aktualisiert werden. Überprüfen Sie, ob die Anwendung installiert ist und das Ziel beschreibbar ist, und versuchen Sie es dann erneut.',
    application: 'Anwendung',
    fileMenu: 'Datei',
    closePage: 'Seite oder Fenster schließen',
@@ -1277,7 +1590,42 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..cfa00c2111979ed8065002b8c7d7d117
    updateConfigurationRead: 'Fehler in der Einstellungsdatei; Updates pausiert',
    updateConfigurationFormat: 'Fehler in der Einstellungsdatei; Updates pausiert',
    updateConfigurationChannel: 'Fehler in der Einstellungsdatei; Updates pausiert',
-@@ -1197,9 +1203,9 @@ export const ru = {
+@@ -1167,13 +1173,13 @@ export const de = {
+ 
+ /** Russian dictionary, checked against the English keys. */
+ export const ru = {
+-  cliCommandMenu: 'Управление командой dsh…',
+-  cliCommandTitle: 'Управление командой dsh',
++  cliCommandMenu: 'Управление командой dsh-uncensored…',
++  cliCommandTitle: 'Управление командой dsh-uncensored',
+   cliCommandLocation: 'Команда Desktop: {path}',
+-  cliCommandSelected: 'Текущая команда dsh: {path}.',
++  cliCommandSelected: 'Текущая команда dsh-uncensored: {path}.',
+   cliCommandTarget: 'Текущая цель лаунчера: {path}',
+-  cliCommandShadowed: 'Другой dsh имеет приоритет. Удалите или измените порядок установки, чтобы использовать команду «Desktop» по умолчанию. Вы также можете запустить команду «Desktop» по ее полному пути.',
+-  cliCommandSelectionUnknown: 'Не удалось проверить вашу команду оболочки. Псевдоним или другая установка dsh может иметь приоритет.',
++  cliCommandShadowed: 'Другой dsh-uncensored имеет приоритет. Удалите или измените порядок установки, чтобы использовать команду «Desktop» по умолчанию. Вы также можете запустить команду «Desktop» по ее полному пути.',
++  cliCommandSelectionUnknown: 'Не удалось проверить вашу команду оболочки. Псевдоним или другая установка dsh-uncensored может иметь приоритет.',
+   cliCommandInstalled: 'Команда «Desktop» установлена.',
+   cliCommandNotInstalled: 'Добавьте команду «Desktop» в свой терминал.',
+   cliCommandBroken: 'Команда Desktop требует ремонта.',
+@@ -1184,22 +1190,22 @@ export const ru = {
+   cliCommandSwitch: 'Продолжить команду «Desktop»?',
+   cliCommandPreserve: 'Существующая команда будет сохранена. Другие установки и файлы запуска оболочки не будут изменены.',
+   cliCommandContinue: 'Продолжить',
+-  cliCommandInstallApp: 'Установите Desktop в папку «Приложения», прежде чем управлять командой dsh.',
++  cliCommandInstallApp: 'Установите Desktop в папку «Приложения», прежде чем управлять командой dsh-uncensored.',
+   cliCommandUpdating: 'Идет установка обновления. Управляйте командой после завершения установки.',
+-  cliCommandNewTerminal: 'Откройте новый терминал и запустите dsh --version.',
++  cliCommandNewTerminal: 'Откройте новый терминал и запустите dsh-uncensored --version.',
+   cliCommandRemoved: 'Регистрация команд Desktop удалена.',
+   cliCommandPreviousRestored: 'Предыдущий лаунчер восстановлен.',
+   cliCommandOtherKept: 'Остальные командные установки остались на месте.',
+   cliCommandBackupKept: 'Предыдущий лаунчер сохранился по адресу: {path}.',
+-  cliCommandChanged: 'Команда или PATH изменилась, пока это диалоговое окно было открыто. Откройте команду «Управление dsh» еще раз, чтобы просмотреть текущее состояние.',
++  cliCommandChanged: 'Команда или PATH изменилась, пока это диалоговое окно было открыто. Откройте команду «Управление dsh-uncensored» еще раз, чтобы просмотреть текущее состояние.',
+   cliCommandOwnershipError: 'Регистрация команд или резервное копирование изменены. Ни одна несвязанная команда не была удалена.',
+   cliCommandFailed: 'Не удалось обновить команду. Убедитесь, что приложение установлено и место назначения доступно для записи, затем повторите попытку.',
    application: 'Приложение',
    fileMenu: 'Файл',
    closePage: 'Закрыть страницу или окно',
@@ -1306,7 +1654,42 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..cfa00c2111979ed8065002b8c7d7d117
    updateConfigurationRead: 'Ошибка файла настроек; обновления приостановлены',
    updateConfigurationFormat: 'Ошибка файла настроек; обновления приостановлены',
    updateConfigurationChannel: 'Ошибка файла настроек; обновления приостановлены',
-@@ -1391,9 +1398,9 @@ export const pt = {
+@@ -1361,13 +1368,13 @@ export const ru = {
+ 
+ /** Portuguese dictionary, checked against the English keys. */
+ export const pt = {
+-  cliCommandMenu: 'Gerenciar comando dsh…',
+-  cliCommandTitle: 'Gerenciar comando dsh',
++  cliCommandMenu: 'Gerenciar comando dsh-uncensored…',
++  cliCommandTitle: 'Gerenciar comando dsh-uncensored',
+   cliCommandLocation: 'Comando da área de trabalho: {path}',
+-  cliCommandSelected: 'Comando dsh atual: {path}',
++  cliCommandSelected: 'Comando dsh-uncensored atual: {path}',
+   cliCommandTarget: 'Alvo atual do iniciador: {path}',
+-  cliCommandShadowed: 'Outro dsh tem precedência. Remova ou reordene essa instalação para usar o comando Desktop por padrão. Você também pode executar o comando Desktop pelo caminho completo.',
+-  cliCommandSelectionUnknown: 'Seu comando shell não pôde ser verificado. Um alias ou outra instalação do dsh pode ter precedência.',
++  cliCommandShadowed: 'Outro dsh-uncensored tem precedência. Remova ou reordene essa instalação para usar o comando Desktop por padrão. Você também pode executar o comando Desktop pelo caminho completo.',
++  cliCommandSelectionUnknown: 'Seu comando shell não pôde ser verificado. Um alias ou outra instalação do dsh-uncensored pode ter precedência.',
+   cliCommandInstalled: 'O comando Desktop está instalado.',
+   cliCommandNotInstalled: 'Adicione o comando Desktop ao seu terminal.',
+   cliCommandBroken: 'O comando Desktop precisa de reparo.',
+@@ -1378,22 +1385,22 @@ export const pt = {
+   cliCommandSwitch: 'Continuar com o comando Desktop?',
+   cliCommandPreserve: 'Um comando existente será preservado. Outras instalações e arquivos de inicialização do shell não serão alterados.',
+   cliCommandContinue: 'Continuar',
+-  cliCommandInstallApp: 'Instale o Desktop na pasta Aplicativos antes de gerenciar o comando dsh.',
++  cliCommandInstallApp: 'Instale o Desktop na pasta Aplicativos antes de gerenciar o comando dsh-uncensored.',
+   cliCommandUpdating: 'Uma atualização está sendo instalada. Gerencie o comando após a conclusão da instalação.',
+-  cliCommandNewTerminal: 'Abra um novo terminal e execute dsh --version.',
++  cliCommandNewTerminal: 'Abra um novo terminal e execute dsh-uncensored --version.',
+   cliCommandRemoved: 'Registro de comando da área de trabalho removido.',
+   cliCommandPreviousRestored: 'O inicializador anterior foi restaurado.',
+   cliCommandOtherKept: 'Outras instalações de comando foram mantidas.',
+   cliCommandBackupKept: 'Um inicializador anterior é preservado em: {path}',
+-  cliCommandChanged: 'O comando ou PATH foi alterado enquanto esta caixa de diálogo estava aberta. Abra o comando Gerenciar dsh novamente para revisar o estado atual.',
++  cliCommandChanged: 'O comando ou PATH foi alterado enquanto esta caixa de diálogo estava aberta. Abra o comando Gerenciar dsh-uncensored novamente para revisar o estado atual.',
+   cliCommandOwnershipError: 'O registro ou backup do comando foi alterado. Nenhum comando não relacionado foi removido.',
+   cliCommandFailed: 'O comando não pôde ser atualizado. Verifique se o aplicativo está instalado e se o destino é gravável e tente novamente.',
    application: 'Aplicativo',
    fileMenu: 'Arquivo',
    closePage: 'Fechar página ou janela',
@@ -1720,7 +2103,7 @@ index 85f5e10da15bd5cd3cc7b7d3eef1c206245f41c0..cfd5747ccfcf8a32eb147fc4440fccb6
    if (channel !== 'nightly' && channel !== 'stable') throw new Error('desktop update: invalid packaged channel')
    return channel
 diff --git a/apps/desktop/tests/main-startup.spec.ts b/apps/desktop/tests/main-startup.spec.ts
-index e689f3e67299fbc63ef0cb13bf680efc13115c7b..f0370a25054d517c35cd2b161cfaa98363316ecd 100644
+index e689f3e67299fbc63ef0cb13bf680efc13115c7b..12a3a3365c419b5b7ee4918fefd9a2cdf6b93c8a 100644
 --- a/apps/desktop/tests/main-startup.spec.ts
 +++ b/apps/desktop/tests/main-startup.spec.ts
 @@ -189,6 +189,8 @@ const harness = await vi.hoisted(async () => {
@@ -2087,7 +2470,7 @@ index e689f3e67299fbc63ef0cb13bf680efc13115c7b..f0370a25054d517c35cd2b161cfaa983
      const application = handler(event, 'application', 48, 34)
      expect(harness.menu.buildFromTemplate.mock.lastCall![0].map(item => item.label ?? item.type)).toEqual([
 -      '关于 DeepSeek Harness', 'separator', '设置…', 'separator', '检查更新…', '管理 dsh 命令…', 'separator', zh.toggleDevToolsMenu, 'separator', '退出',
-+      '关于 DeepSeek Harness Uncensored', 'separator', '设置…', 'separator', '检查更新…', '管理 dsh 命令…', 'separator', zh.toggleDevToolsMenu, 'separator', '退出',
++      '关于 DeepSeek Harness Uncensored', 'separator', '设置…', 'separator', '检查更新…', '管理 dsh-uncensored 命令…', 'separator', zh.toggleDevToolsMenu, 'separator', '退出',
      ])
      expect(harness.popup.mock.lastCall![0]).toMatchObject({ window, x: 48, y: 34 })
      expect(harness.popup.mock.lastCall![0].callback).toBeTypeOf('function')
@@ -28234,18 +28617,6 @@ index 0000000000000000000000000000000000000000..6421434359d1400a49d72e2ec665716b
 +    }
 +  ]
 +}
-diff --git a/apps/desktop/package.json b/apps/desktop/package.json
-index bc3faafabbf221d80ef72a5bc20ca30f24627a62..894dbcfc787eee2ae717a25ee4f34a851c9b1586 100644
---- a/apps/desktop/package.json
-+++ b/apps/desktop/package.json
-@@ -2,6 +2,7 @@
-   "name": "@deepseek-ai/dsh-desktop",
-   "description": "Electron desktop shell for a bundled dsh runtime and external plugins",
-   "version": "0.2.3-alpha.2",
-+  "dshuVersion": "2026.11.23.0",
-   "private": true,
-   "license": "MIT",
-   "author": {
 diff --git a/apps/desktop/src/about-routing.ts b/apps/desktop/src/about-routing.ts
 new file mode 100644
 index 0000000000000000000000000000000000000000..2a20ccbdb815a5565b64b1da67e1570c6f25efd8
@@ -28490,7 +28861,7 @@ index 8dc6ee90632bbab44957e49729a661964225e6df..54f845535f8e99a469d91ca9e5ffadd2
        "version": "",
        "copyright": "",
 diff --git a/apps/desktop/tests/expected/application-menu-en-US.json b/apps/desktop/tests/expected/application-menu-en-US.json
-index 8ed5ca42ea9596774a5d6b41409b9b3d88fed88a..e577492c8132674597d440f5aa12ae62786e4fc1 100644
+index 8ed5ca42ea9596774a5d6b41409b9b3d88fed88a..ca3acbc64932c9b465d2efa3cd66bb60f27c2e15 100644
 --- a/apps/desktop/tests/expected/application-menu-en-US.json
 +++ b/apps/desktop/tests/expected/application-menu-en-US.json
 @@ -1,7 +1,6 @@
@@ -28502,8 +28873,17 @@ index 8ed5ca42ea9596774a5d6b41409b9b3d88fed88a..e577492c8132674597d440f5aa12ae62
    },
    {
      "type": "separator"
+@@ -18,7 +17,7 @@
+     "label": "Check for Updates…"
+   },
+   {
+-    "label": "Manage dsh Command…"
++    "label": "Manage dsh-uncensored Command…"
+   },
+   {
+     "type": "separator"
 diff --git a/apps/desktop/tests/expected/application-menu-zh-CN.json b/apps/desktop/tests/expected/application-menu-zh-CN.json
-index 978bf0d7eed9cd70ac7ea489eda4036db0891b77..2f16fb2003408f52b38e4b669a3484d5752d7025 100644
+index 978bf0d7eed9cd70ac7ea489eda4036db0891b77..c2388ee873ab43489ec2f5abd071e9b8f6242b83 100644
 --- a/apps/desktop/tests/expected/application-menu-zh-CN.json
 +++ b/apps/desktop/tests/expected/application-menu-zh-CN.json
 @@ -1,7 +1,6 @@
@@ -28512,6 +28892,15 @@ index 978bf0d7eed9cd70ac7ea489eda4036db0891b77..2f16fb2003408f52b38e4b669a3484d5
 -    "label": "关于 DeepSeek Harness",
 -    "role": "about"
 +    "label": "关于 DeepSeek Harness Uncensored"
+   },
+   {
+     "type": "separator"
+@@ -18,7 +17,7 @@
+     "label": "检查更新…"
+   },
+   {
+-    "label": "管理 dsh 命令…"
++    "label": "管理 dsh-uncensored 命令…"
    },
    {
      "type": "separator"
@@ -30013,7 +30402,7 @@ index be4f55f3b6656fbfa3e9f533dd9258ee61d44ec8..1e303f0677ce8c6bbf1228fbd23e07f6
 -设置意见反馈退出登录
 +设置关于意见反馈退出登录
 diff --git a/scripts/client-build-environment.client.spec.ts b/scripts/client-build-environment.client.spec.ts
-index 4348284834920bf70bb757cf29963d5eadaa440c..a4fc3205ec870ce7e87e55dd98cd2f7a231c5089 100644
+index 4348284834920bf70bb757cf29963d5eadaa440c..adae12182fa2d72419c9de157a6016e4dff00928 100644
 --- a/scripts/client-build-environment.client.spec.ts
 +++ b/scripts/client-build-environment.client.spec.ts
 @@ -81,6 +81,20 @@ function repositoryFixture(version = '1.2.3-rc.4'): string {
@@ -30022,8 +30411,8 @@ index 4348284834920bf70bb757cf29963d5eadaa440c..a4fc3205ec870ce7e87e55dd98cd2f7a
  describe('client build environment', () => {
 +  it('keeps the DSHU calendar version separate from its kernel and exposes only a matching source tree', () => {
 +    const root = repositoryFixture('0.2.3-alpha.2')
-+    write(join(root, 'apps/desktop/package.json'), JSON.stringify({ dshuVersion: '2026.11.23.0' }))
-+    git(root, ['add', 'apps/desktop/package.json'])
++    write(join(root, 'apps/cli/package.json'), JSON.stringify({ dshuVersion: '2026.11.23.0' }))
++    git(root, ['add', 'apps/cli/package.json'])
 +    const local = repositoryClientBuildEnvironment(root, { DSH_CLIENT_BUILD_TIME: '2026-11-25T00:00:00.000Z' })
 +    expect(local.DSH_CLIENT_FORK_VERSION).toBe('2026.11.23.0')
 +    expect(local.DSH_CLIENT_VERSION).toBe('0.2.3-alpha.2')
@@ -30038,7 +30427,7 @@ index 4348284834920bf70bb757cf29963d5eadaa440c..a4fc3205ec870ce7e87e55dd98cd2f7a
      const expected = {
        DSH_CLIENT_BUILD_PROFILE: 'official',
 diff --git a/scripts/client-build-environment.ts b/scripts/client-build-environment.ts
-index 6eed371b08d156b0a307d45c9dd6644ba871bb30..6ae9d4f297be86476fea2bda4a7e8b053cbcc646 100644
+index 6eed371b08d156b0a307d45c9dd6644ba871bb30..934efa736614b901672ddfe683ce44a83ed52f37 100644
 --- a/scripts/client-build-environment.ts
 +++ b/scripts/client-build-environment.ts
 @@ -41,6 +41,31 @@ const CLIENT_ARTIFACT_PATTERNS = [
@@ -30049,12 +30438,12 @@ index 6eed371b08d156b0a307d45c9dd6644ba871bb30..6ae9d4f297be86476fea2bda4a7e8b05
 +  'DSH_CLIENT_UPSTREAM_DATE', 'DSH_CLIENT_CANDIDATE_TREE'] as const
 +
 +function candidateBuildEnvironment(root: string, environment: NodeJS.ProcessEnv): ClientBuildEnvironment {
-+  const path = resolve(root, 'apps/desktop/package.json')
++  const path = resolve(root, 'apps/cli/package.json')
 +  if (!existsSync(path)) return {}
 +  const manifest: unknown = JSON.parse(readFileSync(path, 'utf8'))
 +  if (!isObject(manifest) || manifest.dshuVersion === undefined) return {}
 +  if (typeof manifest.dshuVersion !== 'string' || !/^\d{4}\.\d{2}\.\d{2}\.\d+$/u.test(manifest.dshuVersion)) {
-+    throw new Error('apps/desktop/package.json must declare a DSHU calendar version')
++    throw new Error('apps/cli/package.json must declare a DSHU calendar version')
 +  }
 +  const buildTime = environment.DSH_CLIENT_BUILD_TIME ?? new Date().toISOString()
 +  if (!Number.isFinite(Date.parse(buildTime)) || new Date(buildTime).toISOString() !== buildTime) {
@@ -30103,22 +30492,34 @@ index 6eed371b08d156b0a307d45c9dd6644ba871bb30..6ae9d4f297be86476fea2bda4a7e8b05
        DSH_CLIENT_VERSION: version,
        ...(profile === 'official' ? OFFICIAL_CLIENT_BUILD_ENVIRONMENT : {
 diff --git a/apps/cli/src/bin.ts b/apps/cli/src/bin.ts
-index 1ae0c4a59182c3ebe7dd38fcc17292e185332cdc..bf804a48e487109dfc91a9279599827a2796b554 100644
+index 1ae0c4a59182c3ebe7dd38fcc17292e185332cdc..085ee244ea5e01cb4170022d07c44f60e5397b58 100644
 --- a/apps/cli/src/bin.ts
 +++ b/apps/cli/src/bin.ts
-@@ -7,7 +7,7 @@
+@@ -6,8 +6,9 @@
+ 
  /* v8 ignore file -- built-bin acceptance exercises this self-executing dispatch. */
  
++import { createRequire } from 'node:module'
  import { getDshRuntimeVersion, loadLayeredEnv, StartupError } from '@deepseek-ai/dsh-app-boot'
 -import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 +import { assertSeparateDshHome, resolveDshHome } from '@deepseek-ai/dsh-home-paths'
  import { parseDshArgs } from './args.ts'
  import { reportStartupFailure } from './startup-diagnostics.ts'
  import type { RunProfileOptions } from './profile-boot.ts'
-@@ -28,6 +28,17 @@ export async function runCli(options: RunCliOptions = {}): Promise<void> {
+@@ -24,9 +25,24 @@ export type RunCliOptions = Pick<RunProfileOptions, 'packageManager'> & {
+  * @returns a promise that settles when the selected command mode finishes.
+  */
+ export async function runCli(options: RunCliOptions = {}): Promise<void> {
+-  const version = getDshRuntimeVersion()
++  const metadata: unknown = createRequire(import.meta.url)('@deepseek-ai/dsh/package.json')
++  if (typeof metadata !== 'object' || metadata === null || !('dshuVersion' in metadata)
++    || typeof metadata.dshuVersion !== 'string' || !/^\d{4}\.\d{2}\.\d{2}\.\d+$/u.test(metadata.dshuVersion)) {
++    throw new Error('dsh-uncensored: the installed CLI package must declare a DSHU calendar version')
++  }
    const { manageDesktopProfile, ...profileOptions } = options
-   const invocation = parseDshArgs(process.argv.slice(2), version, manageDesktopProfile)
- 
+-  const invocation = parseDshArgs(process.argv.slice(2), version, manageDesktopProfile)
++  const invocation = parseDshArgs(process.argv.slice(2), metadata.dshuVersion, manageDesktopProfile)
++
 +  const harnessHome = resolveDshHome()
 +  try {
 +    await assertSeparateDshHome(harnessHome)
@@ -30129,15 +30530,35 @@ index 1ae0c4a59182c3ebe7dd38fcc17292e185332cdc..bf804a48e487109dfc91a9279599827a
 +  }
 +  process.env.DSH_UNCENSORED_HOME = harnessHome
 +  process.env.DSH_HOME = harnessHome
-+
+ 
    switch (invocation.mode) {
      case 'profile': {
-       const { runProfile } = await import('./profile-boot.ts')
+@@ -42,7 +58,7 @@ export async function runCli(options: RunCliOptions = {}): Promise<void> {
+         })
+       } catch (error) {
+         if (!(error instanceof StartupError)) throw error
+-        await reportStartupFailure(error, { home: resolveDshHome(), version, profile: invocation.profile })
++        await reportStartupFailure(error, { home: resolveDshHome(), version: getDshRuntimeVersion(), profile: invocation.profile })
+         process.exit(1)
+       }
+       break
 diff --git a/apps/cli/tests/built-bin.e2e.ts b/apps/cli/tests/built-bin.e2e.ts
-index abf66a630e83f01201411a9b0403ceb4e21a5f03..14619775340de8a1fcd2f9e894ccd4155c1c030d 100644
+index abf66a630e83f01201411a9b0403ceb4e21a5f03..d290d77ebbe42866818e244471bd186415a405e1 100644
 --- a/apps/cli/tests/built-bin.e2e.ts
 +++ b/apps/cli/tests/built-bin.e2e.ts
-@@ -355,6 +355,30 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)',
+@@ -24,9 +24,8 @@ const repoRoot = fileURLToPath(new URL('../../../', import.meta.url))
+ // execa deadline, its error text, the outer vitest case budget, and waitForFile all
+ // share this value so a widening cannot leave a stale 25s diagnostic behind.
+ const SPAWN_TIMEOUT_MS = 60_000
+-// The release version, including a prerelease such as 0.0.1-rc.1: `--version`
+-// prints what this manifest carries, so no test may pin it to a literal.
+-const cliVersion = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version
++// The installed CLI reports the same product version as the About panel.
++const cliVersion = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { dshuVersion: string }).dshuVersion
+ const dshBin = join(repoRoot, 'apps/cli/lib/bin.js')
+ const invalidProvider = fileURLToPath(new URL('./fixtures/invalid-provider.cordis.yml', import.meta.url))
+ const webReadyExitHook = new URL('./fixtures/web-browser-open/register.mjs', import.meta.url).href
+@@ -355,6 +354,30 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)',
      }
    }, SPAWN_TIMEOUT_MS + 5_000)
  
@@ -30169,14 +30590,16 @@ index abf66a630e83f01201411a9b0403ceb4e21a5f03..14619775340de8a1fcd2f9e894ccd415
      const bare = await runBuiltBin()
      expect(bare.code).toBe(1)
 diff --git a/apps/desktop/installer/uninstall.nsh b/apps/desktop/installer/uninstall.nsh
-index 151d9c7b04033fc0090c6b487c7d85981ca1e9e1..b2f1002180ee931f8b6093ace2fb714521543ce5 100644
+index 151d9c7b04033fc0090c6b487c7d85981ca1e9e1..c0123aa606840053179205933dafc7e6f1f044a7 100644
 --- a/apps/desktop/installer/uninstall.nsh
 +++ b/apps/desktop/installer/uninstall.nsh
-@@ -144,7 +144,7 @@ FunctionEnd
+@@ -143,8 +143,8 @@ FunctionEnd
+ 
  ; Upgrade replacement retains integrations; KEEP_APP_DATA controls only user data.
  !define /ifndef DSH_COMMAND_ENVIRONMENT_KEY "Environment"
- !define /ifndef DSH_COMMAND_OWNER_KEY "Software\DeepSeekHarness\Command"
+-!define /ifndef DSH_COMMAND_OWNER_KEY "Software\DeepSeekHarness\Command"
 -!define /ifndef DSH_PROTOCOL_KEY "Software\Classes\dsh"
++!define /ifndef DSH_COMMAND_OWNER_KEY "Software\DeepSeekHarnessUncensored\Command"
 +!define /ifndef DSH_PROTOCOL_KEY "Software\Classes\dshu"
  !define /ifndef DSH_COMMAND_MUTEX "default"
  Function un.CleanRegistration
@@ -32112,3 +32535,708 @@ index 2e5184e084e215d3e0dacca1e5eb303e1e18b7e4..ee6ddaec460f705e72714f8dcbdcdea3
    'packages/client/config': { kind: 'none', reason: 'Browser configuration types register nothing and add no model input.' },
    'packages/client/script-realm': { kind: 'none', reason: 'Optional browser execution-provider registration contributes no model input.' },
    'packages/client/script-realm-iframe': { kind: 'none', reason: 'Same-origin browser script environments contribute no model input.' },
+diff --git a/apps/cli/README.i18n.yaml b/apps/cli/README.i18n.yaml
+index f60b605949ebf0347f3e6f480ac81dbd473b0db8..514da58737631593ad51b235d3ab11fc7a33b09e 100644
+--- a/apps/cli/README.i18n.yaml
++++ b/apps/cli/README.i18n.yaml
+@@ -12,8 +12,8 @@
+   en: cc03e6b75206661b
+   zh: 99e41f4143198352
+ /deepseek-ai-dsh/profiles:
+-  en: 85171337ac2fb2ff
+-  zh: 705a4eef97d9b519
++  en: a7d53d44875d0367
++  zh: d36afd5398723348
+ /deepseek-ai-dsh/optional-overlays:
+   en: bedb55bd3a80599c
+   zh: a381da5cd5db885b
+diff --git a/apps/cli/README.md b/apps/cli/README.md
+index bf989c919aab759920993ea6efb794c041fbad39..e44860bed922cde5853dc6f87e86a5b4e8c39c21 100644
+--- a/apps/cli/README.md
++++ b/apps/cli/README.md
+@@ -36,7 +36,7 @@ dsh --help                          # the launcher's own help
+ 
+ A profile directory holds a `package.json` (out-of-tree plugin dependencies plus the profile manifest `dsh.profile` with its ordered `bundles` list) and a `cordis.patch.yml` (the user's own patch layer). `dsh-hmr`, when enabled in YAML, watches the profile manifest, the profile and home patch files, and every `--patch` overlay file, then recomposes all layers through one serialized reload. Without HMR, changes apply on restart, except that a Config Editor save applies the current contents of every patch and overlay file. Edits arriving during watcher registration use the same nonfatal reload reporting as later edits. [Plugin Manager](../../packages/boot/plugin-manager/README.md) shares package operations and the profile write lock with `dsh plugin`; package updates retain disabled bundle selections. CLI package commands inherit authentication variables and terminal descriptors, including interactive build approval; service calls retain their scrubbed environment and captured diagnostics.
+ 
+-Installation and profile startup enforce the declared `engines.dsh` range, or DSH peer ranges when it is absent, against the same runtime version shown by `dsh --version`. Incompatible plugins require an explicitly acknowledged exact-version exemption. The [plugin manager's compatibility reference](../../packages/boot/plugin-manager/README.md#version-compatibility-and-exemptions) documents `version-exemptions`, `allow-version`, `revoke-version`, persistence, and risks.
++`dsh-uncensored --version` prints the DSHU calendar version shown in About. Installation and profile startup check the DSH kernel version against the declared `engines.dsh` range, or the DSH peer ranges when it is absent. Incompatible plugins require an explicitly acknowledged exact-version exemption. The [plugin manager's compatibility reference](../../packages/boot/plugin-manager/README.md#version-compatibility-and-exemptions) documents `version-exemptions`, `allow-version`, `revoke-version`, persistence, and risks.
+ 
+ The tree composes over an empty root:
+ - each bundle's patch in `dsh.profile.bundles` order
+diff --git a/apps/cli/README.zh.md b/apps/cli/README.zh.md
+index 3c62793f4b9cfd0584ea9d7dd6719defd8b1a4da..4298c7ff9f41df54b84581dce0f39bf3eef63715 100644
+--- a/apps/cli/README.zh.md
++++ b/apps/cli/README.zh.md
+@@ -36,7 +36,7 @@ dsh --help                          # the launcher's own help
+ 
+ profile 目录包含一个 `package.json`，其中记录树外插件依赖，以及 profile manifest（元数据清单）`dsh.profile`、其中按顺序排列的 `bundles` 列表；还包含一个 `cordis.patch.yml`，其中保存用户自己的 patch 层。在 YAML 中启用的 `dsh-hmr` 监视 profile manifest、profile 与 home 级 patch 文件以及每个 `--patch` overlay 文件，再通过统一串行重载重新组合所有层。未启用 HMR 时，更改在重启后生效；例外是 Config Editor 保存时会应用所有 patch 与 overlay 文件的当前内容。监听器注册期间发生的编辑与后续编辑使用相同的非致命重载错误报告。[插件管理器](../../packages/boot/plugin-manager/README.zh.md) 与 `dsh plugin` 共享包操作和 profile 写锁；更新依赖会保留已停用的组合包选择。CLI 包操作继承认证环境和终端描述符，支持交互式构建批准；service 调用保留清理后的环境并捕获诊断。
+ 
+-安装和 profile 启动会按声明的 `engines.dsh` 范围（未声明时按 DSH peer 范围），检查与 `dsh --version` 显示值相同的运行时版本。不兼容插件需要用户明确确认精确版本豁免。[插件管理器的兼容性参考](../../packages/boot/plugin-manager/README.zh.md#version-compatibility-and-exemptions)说明 `version-exemptions`、`allow-version`、`revoke-version`、持久化规则与风险。
++`dsh-uncensored --version` 显示关于页左侧的 DSHU 日期版本。安装和 profile 启动使用 DSH 内核版本校验 `engines.dsh` 范围，未声明时使用 DSH peer 范围。不兼容插件需要用户明确确认精确版本豁免。[插件管理器的兼容性参考](../../packages/boot/plugin-manager/README.zh.md#version-compatibility-and-exemptions)说明 `version-exemptions`、`allow-version`、`revoke-version`、持久化规则与风险。
+ 
+ 配置树以空根为起点，依次叠加以下配置层：
+ - `dsh.profile.bundles` 中各组合包的 patch
+diff --git a/apps/cli/package.json b/apps/cli/package.json
+index 07dd27c73da8d5b98c590b6ef0c8ea99bb7f4e08..d19875a34c0d4bd581616a84cd4c1e15e78c664c 100644
+--- a/apps/cli/package.json
++++ b/apps/cli/package.json
+@@ -2,6 +2,7 @@
+   "name": "@deepseek-ai/dsh",
+   "description": "dsh CLI: profile launch, plugin management, and configuration inspection",
+   "version": "0.2.3-alpha.2",
++  "dshuVersion": "2026.11.23.0",
+   "publishConfig": {
+     "access": "public"
+   },
+diff --git a/apps/desktop/cli/dsh b/apps/desktop/cli/dsh
+index ee657a3d0b262c31a1525b7747169cae266f9d53..92ed021e99f70a78dbdfece56850ca095024eef8 100644
+--- a/apps/desktop/cli/dsh
++++ b/apps/desktop/cli/dsh
+@@ -11,4 +11,4 @@ while [ -L "$launcher" ]; do
+   esac
+ done
+ resources=$(CDPATH= cd -- "$(dirname -- "$launcher")/../../.." && pwd -P)
+-ELECTRON_RUN_AS_NODE=1 exec "$resources/../MacOS/DeepSeek Harness" --expose-internals "$resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-desktop-host/lib/cli.js" "$@"
++ELECTRON_RUN_AS_NODE=1 exec "$resources/../MacOS/DeepSeek Harness Uncensored" --expose-internals "$resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-desktop-host/lib/cli.js" "$@"
+diff --git a/apps/desktop/cli/dsh.cmd b/apps/desktop/cli/dsh.cmd
+index 73af33537af9d5220784917ed361caf8ab3c9b03..6b3a546476e369851b005f3b7e25970192ecc89a 100644
+--- a/apps/desktop/cli/dsh.cmd
++++ b/apps/desktop/cli/dsh.cmd
+@@ -1,5 +1,5 @@
+ @echo off
+ setlocal DisableDelayedExpansion
+ set "ELECTRON_RUN_AS_NODE=1"
+-"%~dp0..\..\..\..\DeepSeek Harness.exe" --expose-internals "%~dp0..\..\..\app.asar\dsh\node_modules\@deepseek-ai\dsh-desktop-host\lib\cli.js" %*
++"%~dp0..\..\..\..\DeepSeek Harness Uncensored.exe" --expose-internals "%~dp0..\..\..\app.asar\dsh\node_modules\@deepseek-ai\dsh-desktop-host\lib\cli.js" %*
+ exit /b %errorlevel%
+diff --git a/apps/desktop/scripts/command-path.ps1 b/apps/desktop/scripts/command-path.ps1
+index 3b4807cc92714b227ea486b2d794f5c10bcd1790..b7fb887bf409921c183c895f3f56e53b00ecd6dd 100644
+--- a/apps/desktop/scripts/command-path.ps1
++++ b/apps/desktop/scripts/command-path.ps1
+@@ -76,7 +76,7 @@ function Invoke-DshCommandPath {
+             }
+         }
+         if ($Request.operation -eq 'install') {
+-            if (-not (Test-Path -LiteralPath (Join-Path $directory 'dsh.cmd') -PathType Leaf)) { Fail 'ENOENT' 'The installed launcher is unavailable.' }
++            if (-not (Test-Path -LiteralPath (Join-Path $directory 'dsh-uncensored.cmd') -PathType Leaf)) { Fail 'ENOENT' 'The installed launcher is unavailable.' }
+             $next = (@($directory) + $kept) -join ';'
+             $environment = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($EnvironmentKey)
+             $owner = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($OwnerKey)
+@@ -114,7 +114,7 @@ function Invoke-DshCommandPath {
+             $extensions = if ($env:PATHEXT) { @($env:PATHEXT.Split(';')) } else { @('.com','.exe','.bat','.cmd') }
+             foreach ($extension in (@('.ps1') + $extensions)) {
+                 try {
+-                    $candidate = Join-Path $path ('dsh' + $extension)
++                    $candidate = Join-Path $path ('dsh-uncensored' + $extension)
+                     if (Test-Path -LiteralPath $candidate -PathType Leaf) { $active = $candidate; break }
+                 } catch {
+                     # Invalid or unavailable PATH candidates do not prevent checking later entries.
+@@ -124,7 +124,7 @@ function Invoke-DshCommandPath {
+             if ($active) { break }
+         }
+         $onPath = @(([string]$raw).Split(';') | Where-Object { (Comparable $_) -eq $current }).Count -gt 0
+-        return [ordered]@{ fingerprint=$fingerprint; directory=$directory; ownedDirectory=$owned; managed=([bool]$owned -and (Comparable ([string]$owned)) -eq $current); activeCommand=$active; available=($onPath -and (Test-Path -LiteralPath (Join-Path $directory 'dsh.cmd') -PathType Leaf)) }
++        return [ordered]@{ fingerprint=$fingerprint; directory=$directory; ownedDirectory=$owned; managed=([bool]$owned -and (Comparable ([string]$owned)) -eq $current); activeCommand=$active; available=($onPath -and (Test-Path -LiteralPath (Join-Path $directory 'dsh-uncensored.cmd') -PathType Leaf)) }
+     } finally {
+         if ($locked) { $mutex.ReleaseMutex() }
+         $mutex.Dispose()
+@@ -155,7 +155,7 @@ if ($MyInvocation.InvocationName -ne '.') {
+         try { $machinePath = [string]$machine.GetValue('Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames) }
+         finally { $machine.Dispose() }
+         $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+-        $state = Invoke-DshCommandPath -Request $request -EnvironmentKey 'Environment' -OwnerKey 'Software\DeepSeekHarness\Command' -MachinePath $machinePath -MutexName ('Global\DeepSeekHarness.Command.' + $sid)
++        $state = Invoke-DshCommandPath -Request $request -EnvironmentKey 'Environment' -OwnerKey 'Software\DeepSeekHarnessUncensored\Command' -MachinePath $machinePath -MutexName ('Global\DeepSeekHarnessUncensored.Command.' + $sid)
+         if ($request.operation -ne 'inspect') {
+             Send-DshCommandEnvironmentChange
+         }
+diff --git a/apps/desktop/scripts/desktop-package-environment.mjs b/apps/desktop/scripts/desktop-package-environment.mjs
+index d301ac4b3134d777076bd58979c505b4c833413b..43c998ad3f06548e08acebf0c32effa096929232 100644
+--- a/apps/desktop/scripts/desktop-package-environment.mjs
++++ b/apps/desktop/scripts/desktop-package-environment.mjs
+@@ -28,7 +28,7 @@ const AMBIENT_RELEASE_SETTING = /^(?:DSH_DESKTOP_(?:APP_ID|AUTO_UPDATE_ENV|MANDA
+ export function localMacOSPackageEnvironment(environment = process.env) {
+   return {
+     ...Object.fromEntries(Object.entries(environment).filter(([name]) => !AMBIENT_RELEASE_SETTING.test(name))),
+-    DSH_DESKTOP_APP_ID: 'com.deepseek.harness',
++    DSH_DESKTOP_APP_ID: 'com.deepseek.dsh.uncensored',
+     DSH_DESKTOP_UNSIGNED: '1',
+   }
+ }
+diff --git a/apps/desktop/scripts/prepare-cli.ts b/apps/desktop/scripts/prepare-cli.ts
+index d2b9e14200c328907d7745461b2cb4ff40344b7d..a3f830b4a3416c685273a6284a1f1bc25ec2307f 100644
+--- a/apps/desktop/scripts/prepare-cli.ts
++++ b/apps/desktop/scripts/prepare-cli.ts
+@@ -10,7 +10,7 @@ import { join } from 'node:path'
+  */
+ export function prepareDesktopCli(destination: string, platform: 'darwin' | 'win32'): void {
+   const name = platform === 'win32' ? 'dsh.cmd' : 'dsh'
+-  const command = join(destination, 'bin', name)
++  const command = join(destination, 'bin', platform === 'win32' ? 'dsh-uncensored.cmd' : 'dsh-uncensored')
+   mkdirSync(join(destination, 'bin'), { recursive: true })
+   copyFileSync(join(import.meta.dirname, '..', 'cli', name), command)
+   if (platform === 'darwin') chmodSync(command, 0o755)
+diff --git a/apps/desktop/scripts/uninstall-registration.ps1 b/apps/desktop/scripts/uninstall-registration.ps1
+index 6dd01815d66bca2dae2eabd6acc5926e9f624e94..eaf765e5280a22fdc2bd2981e318fc476d01b76d 100644
+--- a/apps/desktop/scripts/uninstall-registration.ps1
++++ b/apps/desktop/scripts/uninstall-registration.ps1
+@@ -1,6 +1,6 @@
+ ﻿<# Remove only owned registrations; independently failed operations leave a diagnostic report. #>
+ param([Parameter(Mandatory)][string]$Directory,
+-    [string]$ExecutableName = 'DeepSeek Harness.exe',
++    [string]$ExecutableName = 'DeepSeek Harness Uncensored.exe',
+     [Parameter(Mandatory)][string]$EnvironmentKey,
+     [Parameter(Mandatory)][string]$OwnerKey,
+     [Parameter(Mandatory)][string]$ProtocolKey,
+@@ -19,7 +19,7 @@ $failures = [Collections.Generic.List[string]]::new()
+ try {
+     if (-not $MutexName -or $MutexName -eq 'default') {
+         $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+-        $MutexName = 'Global\DeepSeekHarness.Command.' + $sid
++        $MutexName = 'Global\DeepSeekHarnessUncensored.Command.' + $sid
+     }
+     $options = @{ EnvironmentKey=$EnvironmentKey; OwnerKey=$OwnerKey; MachinePath=''; MutexName=$MutexName }
+     $command = Join-Path $Directory 'resources\runtime\cli\bin'
+diff --git a/apps/desktop/src/command-installation.ts b/apps/desktop/src/command-installation.ts
+index 3e181ae984b90424af24ec8a9ab9b28a0aa114ee..b8489b7a7d8432804918bd136a0b047e86ed6d9d 100644
+--- a/apps/desktop/src/command-installation.ts
++++ b/apps/desktop/src/command-installation.ts
+@@ -53,7 +53,7 @@ function digest(value: unknown): string {
+ }
+ 
+ function receiptPath(options: FileCommandInstallation): string {
+-  return join(dirname(options.destination), '.dsh-desktop-command.json')
++  return join(dirname(options.destination), '.dsh-uncensored-command.json')
+ }
+ 
+ async function readEntry(path: string): Promise<Entry> {
+diff --git a/apps/desktop/src/command-management.ts b/apps/desktop/src/command-management.ts
+index 34c7848dfb3d9bf67105f51378af1a1359962abc..32f9dfa63b917895019d0de627ae74ab413b31a4 100644
+--- a/apps/desktop/src/command-management.ts
++++ b/apps/desktop/src/command-management.ts
+@@ -55,7 +55,7 @@ function parseState(value: unknown, platform: NodeJS.Platform): CommandState {
+   if (!object(value) || typeof value.fingerprint !== 'string' || !/^[a-f0-9]{64}$/u.test(value.fingerprint)
+     || typeof value.managed !== 'boolean' || typeof value.available !== 'boolean') throw new Error('Invalid command-manager response.')
+   const destination = platform === 'win32' && typeof value.directory === 'string'
+-    ? join(value.directory, 'dsh.cmd') : value.destination
++    ? join(value.directory, 'dsh-uncensored.cmd') : value.destination
+   const launcher = platform === 'win32' ? destination : value.launcher
+   if (typeof destination !== 'string' || !isAbsolute(destination) || typeof launcher !== 'string' || !isAbsolute(launcher)) {
+     throw new Error('Invalid command-manager locations.')
+@@ -112,7 +112,7 @@ export function presentCommandManagement(
+ async function shellCommand(): Promise<{ activeCommand?: string; selectionUnknown?: boolean }> {
+   const shell = userInfo().shell
+   if (shell === null) return { selectionUnknown: true }
+-  const script = "printf '\\0DSH_COMMAND\\0'; command -v dsh; printf '\\0'"
++  const script = "printf '\\0DSH_COMMAND\\0'; command -v dsh-uncensored; printf '\\0'"
+   const { stdout } = await promisify(execFile)(shell, ['-ilc', script], { timeout: 5000, maxBuffer: 65536 })
+   const value = stdout.split('\0DSH_COMMAND\0')[1]?.split('\0')[0]?.trim()
+   if (value === undefined) return { selectionUnknown: true }
+diff --git a/apps/desktop/src/command-manager-entry.ts b/apps/desktop/src/command-manager-entry.ts
+index edfd61c2175e01eecdc48d612e6469b3a37d1089..7a1c63b1c4220d096b6944aa7d8cbc2ebfce008c 100644
+--- a/apps/desktop/src/command-manager-entry.ts
++++ b/apps/desktop/src/command-manager-entry.ts
+@@ -15,7 +15,7 @@ try {
+   if (!['inspect', 'install', 'remove'].includes(operation ?? '')) throw new CommandInstallationError('EINVAL', 'Invalid command-management operation.')
+   if (operation !== 'inspect' && !/^[a-f0-9]{64}$/u.test(fingerprint)) throw new CommandInstallationError('EINVAL', 'Missing command confirmation.')
+   if (process.platform === 'darwin') {
+-    const options = { destination: '/usr/local/bin/dsh', launcher: join(resources, 'runtime', 'cli', 'bin', 'dsh'),
++    const options = { destination: '/usr/local/bin/dsh-uncensored', launcher: join(resources, 'runtime', 'cli', 'bin', 'dsh-uncensored'),
+       linkHelper: join(resources, 'runtime', 'cli', 'link-entry') }
+     const state = operation === 'inspect' ? await inspectFileCommand(options)
+       : operation === 'install' ? await installFileCommand(options, fingerprint) : await removeFileCommand(options, fingerprint)
+diff --git a/apps/desktop/tests/cli-launcher.spec.ts b/apps/desktop/tests/cli-launcher.spec.ts
+index 67e38da2564361c971d82f75248f49bcafdfed6e..ca303ed73e97022ec3191460ed15c0fb0bf4a8f7 100644
+--- a/apps/desktop/tests/cli-launcher.spec.ts
++++ b/apps/desktop/tests/cli-launcher.spec.ts
+@@ -24,7 +24,7 @@ function fixture() {
+   const resources = join(application, ...platform === 'darwin' ? ['Contents', 'Resources'] : ['resources'])
+   const cli = join(resources, 'runtime', 'cli')
+   prepareDesktopCli(cli, platform)
+-  const electron = join(application, ...platform === 'darwin' ? ['Contents', 'MacOS', 'DeepSeek Harness'] : ['DeepSeek Harness.exe'])
++  const electron = join(application, ...platform === 'darwin' ? ['Contents', 'MacOS', 'DeepSeek Harness Uncensored'] : ['DeepSeek Harness Uncensored.exe'])
+   mkdirSync(dirname(electron), { recursive: true })
+   if (platform === 'win32') copyFileSync(process.execPath, electron)
+   else symlinkSync(process.execPath, electron)
+@@ -39,7 +39,7 @@ function fixture() {
+     'process.exitCode = 23',
+     '',
+   ].join('\n'))
+-  const command = join(cli, 'bin', platform === 'win32' ? 'dsh.cmd' : 'dsh')
++  const command = join(cli, 'bin', platform === 'win32' ? 'dsh-uncensored.cmd' : 'dsh-uncensored')
+   function start(args: string[], executable = command) {
+     // cmd fixture inputs contain no metacharacters; POSIX cases exercise literal expansion characters separately.
+     const child = platform === 'win32'
+@@ -76,7 +76,7 @@ it('preserves common arguments, cwd, environment, binary input, stderr and exit
+ it.skipIf(process.platform === 'win32')('resolves chained command symlinks without expanding argument contents', async () => {
+   const f = fixture()
+   const link = join(f.root, 'command-link')
+-  const command = join(f.root, 'dsh')
++  const command = join(f.root, 'dsh-uncensored')
+   symlinkSync(relative(f.root, f.command), link)
+   symlinkSync(link, command)
+   const args = ['quote"inside', 'trailing\\', '%PATH%', '$HOME', '`literal`', '']
+diff --git a/apps/desktop/tests/command-installation.spec.ts b/apps/desktop/tests/command-installation.spec.ts
+index e81cff702797c360f6ea26cc457e075b416b46a6..fb2e6bb6f4d71194a5c4e4b1add4e4013028ae06 100644
+--- a/apps/desktop/tests/command-installation.spec.ts
++++ b/apps/desktop/tests/command-installation.spec.ts
+@@ -25,7 +25,7 @@ vi.mock('node:fs/promises', async (importOriginal) => {
+     await barrier.afterStat?.(args[0], result.isFile())
+     return result
+   }, rename: async (...args: Parameters<typeof actual.rename>) => {
+-    if (barrier.failReceipt && String(args[1]).endsWith('.dsh-desktop-command.json')) {
++    if (barrier.failReceipt && String(args[1]).endsWith('.dsh-uncensored-command.json')) {
+       throw Object.assign(new Error('No space for receipt'), { code: 'ENOSPC' })
+     }
+     await actual.rename(...args)
+@@ -43,7 +43,7 @@ async function fixture() {
+   onTestFinished(() => rm(root, { recursive: true, force: true }))
+   const launcher = join(root, 'desktop-launcher')
+   await writeFile(launcher, 'desktop\n', { mode: 0o755 })
+-  return { root, options: { destination: join(root, 'dsh'), launcher, linkHelper: join(compiled, 'link-entry') } }
++  return { root, options: { destination: join(root, 'dsh-uncensored'), launcher, linkHelper: join(compiled, 'link-entry') } }
+ }
+ 
+ describe.skipIf(process.platform === 'win32')('macOS command entry ownership', () => {
+@@ -113,7 +113,7 @@ describe.skipIf(process.platform === 'win32')('macOS command entry ownership', (
+   it.each(['install', 'remove'] as const)('preserves a replacement arriving during %s after the approved entry was read', async (operation) => {
+     const f = await fixture()
+     const installed = await installFileCommand(f.options, (await inspectFileCommand(f.options)).fingerprint)
+-    const receipt = join(f.root, '.dsh-desktop-command.json')
++    const receipt = join(f.root, '.dsh-uncensored-command.json')
+     const originalReceipt = await readFile(receipt, 'utf8')
+     barrier.afterRead = async (path) => {
+       if (path !== receipt) return
+@@ -184,7 +184,7 @@ describe.skipIf(process.platform === 'win32')('macOS command entry ownership', (
+     const f = await fixture()
+     const installed = await installFileCommand(f.options, (await inspectFileCommand(f.options)).fingerprint)
+     barrier.beforeUnlink = (path) => {
+-      if (path !== join(f.root, '.dsh-desktop-command.json')) return
++      if (path !== join(f.root, '.dsh-uncensored-command.json')) return
+       barrier.afterStat = async () => { throw Object.assign(new Error('Restoration denied'), { code: 'EPERM' }) }
+       throw Object.assign(new Error('Receipt removal denied'), { code: 'EACCES' })
+     }
+@@ -205,7 +205,7 @@ describe.skipIf(process.platform === 'win32')('macOS command entry ownership', (
+     await symlink('previous-command', f.options.destination)
+     const installed = await installFileCommand(f.options, (await inspectFileCommand(f.options)).fingerprint)
+     barrier.beforeUnlink = (path) => {
+-      if (path === join(f.root, '.dsh-desktop-command.json')) throw Object.assign(new Error('Receipt removal denied'), { code: 'EACCES' })
++      if (path === join(f.root, '.dsh-uncensored-command.json')) throw Object.assign(new Error('Receipt removal denied'), { code: 'EACCES' })
+     }
+     onTestFinished(() => { barrier.beforeUnlink = undefined })
+     await expect(removeFileCommand(f.options, installed.fingerprint)).rejects.toMatchObject({ code: 'EACCES' })
+@@ -245,7 +245,7 @@ describe.skipIf(process.platform === 'win32')('macOS command entry ownership', (
+ 
+   it('rejects linked receipts and backup paths outside the command directory', async () => {
+     const f = await fixture()
+-    const receipt = join(f.root, '.dsh-desktop-command.json')
++    const receipt = join(f.root, '.dsh-uncensored-command.json')
+     await symlink(f.options.launcher, receipt)
+     await expect(inspectFileCommand(f.options)).rejects.toMatchObject({ code: 'EOWNERSHIP' })
+     await unlink(receipt)
+diff --git a/apps/desktop/tests/command-management.spec.ts b/apps/desktop/tests/command-management.spec.ts
+index bef9121d23ab063bcfd928460106f54d883d58d3..64684c999dc893ea8822b8ff9acef572c4a95d93 100644
+--- a/apps/desktop/tests/command-management.spec.ts
++++ b/apps/desktop/tests/command-management.spec.ts
+@@ -5,16 +5,16 @@ import { en, zh } from '../src/locale.ts'
+ import { presentCommandManagement } from '../src/command-management.ts'
+ 
+ it.each([en, zh])('shows installation, repair/removal and shadowed command locations', (messages) => {
+-  const destination = '/usr/local/bin/dsh'
++  const destination = '/usr/local/bin/dsh-uncensored'
+   const missing = presentCommandManagement({ managed: false, available: false, destination }, messages, 'darwin')
+   expect(missing.buttons).toEqual([messages.cliCommandInstall, messages.cancel])
+   expect(missing.cancelId).toBe(1)
+   const installed = presentCommandManagement({ managed: true, available: true, destination, activeCommand: destination }, messages, 'darwin')
+   expect(installed.buttons).toEqual([messages.cliCommandClose, messages.cliCommandRepair, messages.cliCommandRemove])
+   expect(installed.cancelId).toBe(0)
+-  const shadowed = presentCommandManagement({ managed: true, available: true, destination, activeCommand: '/opt/homebrew/bin/dsh' }, messages, 'darwin')
++  const shadowed = presentCommandManagement({ managed: true, available: true, destination, activeCommand: '/opt/homebrew/bin/dsh-uncensored' }, messages, 'darwin')
+   expect(shadowed.type).toBe('warning')
+-  expect(shadowed.detail).toContain('/opt/homebrew/bin/dsh')
++  expect(shadowed.detail).toContain('/opt/homebrew/bin/dsh-uncensored')
+   expect(shadowed.detail).toContain(messages.cliCommandShadowed)
+   const unknown = presentCommandManagement({ managed: false, available: false, destination, selectionUnknown: true }, messages, 'darwin')
+   expect(unknown.detail).toContain(messages.cliCommandSelectionUnknown)
+@@ -24,8 +24,8 @@ it.each([
+   ['darwin', 'en-US', en], ['darwin', 'zh-CN', zh],
+   ['win32', 'en-US', en], ['win32', 'zh-CN', zh],
+ ] as const)('records command status on %s in %s', async (platform, language, messages) => {
+-  const destination = platform === 'darwin' ? '/usr/local/bin/dsh' : 'C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd'
+-  const other = platform === 'darwin' ? '/opt/homebrew/bin/dsh' : 'C:\\Program Files\\nodejs\\dsh.cmd'
++  const destination = platform === 'darwin' ? '/usr/local/bin/dsh-uncensored' : 'C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness Uncensored\\resources\\runtime\\cli\\bin\\dsh-uncensored.cmd'
++  const other = platform === 'darwin' ? '/opt/homebrew/bin/dsh-uncensored' : 'C:\\Program Files\\nodejs\\dsh-uncensored.cmd'
+   const states = [
+     { managed: false, available: false, destination },
+     { managed: true, available: true, destination, activeCommand: destination },
+diff --git a/apps/desktop/tests/desktop-package-environment.spec.ts b/apps/desktop/tests/desktop-package-environment.spec.ts
+index a8d79a2c96f82358872c5b9e94e1d6dbe4e3d286..739edbae37380a811b8cf9edf7822d83525e5fb5 100644
+--- a/apps/desktop/tests/desktop-package-environment.spec.ts
++++ b/apps/desktop/tests/desktop-package-environment.spec.ts
+@@ -114,7 +114,7 @@ describe('Desktop local packaging configuration', () => {
+     const local = localMacOSPackageEnvironment(parent)
+     expect(local).toEqual({
+       PATH: parent.PATH, HTTPS_PROXY: parent.HTTPS_PROXY, DSH_DESKTOP_NPM_REGISTRY: parent.DSH_DESKTOP_NPM_REGISTRY,
+-      DSH_DESKTOP_APP_ID: 'com.deepseek.harness', DSH_DESKTOP_UNSIGNED: '1',
++      DSH_DESKTOP_APP_ID: 'com.deepseek.dsh.uncensored', DSH_DESKTOP_UNSIGNED: '1',
+     })
+     expect(() => { validateDesktopPackageEnvironment(local, MACOS, { unsigned: true }) }).not.toThrow()
+     expect(parent.DSH_DESKTOP_UNSIGNED).toBe('0')
+diff --git a/apps/desktop/tests/expected/command-management-darwin-en-US.json b/apps/desktop/tests/expected/command-management-darwin-en-US.json
+index 02f12214f5602f97c86bc9dc86769633a020a032..74d99463b3babb1bdd6363dfe2f38d8f3b9b31e0 100644
+--- a/apps/desktop/tests/expected/command-management-darwin-en-US.json
++++ b/apps/desktop/tests/expected/command-management-darwin-en-US.json
+@@ -2,9 +2,9 @@
+   "dialogs": [
+     {
+       "type": "info",
+-      "title": "Manage dsh Command",
++      "title": "Manage dsh-uncensored Command",
+       "message": "Add the Desktop command to your terminal.",
+-      "detail": "Desktop command: /usr/local/bin/dsh",
++      "detail": "Desktop command: /usr/local/bin/dsh-uncensored",
+       "buttons": [
+         "Install",
+         "Cancel"
+@@ -14,9 +14,9 @@
+     },
+     {
+       "type": "info",
+-      "title": "Manage dsh Command",
++      "title": "Manage dsh-uncensored Command",
+       "message": "The Desktop command is installed.",
+-      "detail": "Desktop command: /usr/local/bin/dsh\n\nCurrent dsh command: /usr/local/bin/dsh",
++      "detail": "Desktop command: /usr/local/bin/dsh-uncensored\n\nCurrent dsh-uncensored command: /usr/local/bin/dsh-uncensored",
+       "buttons": [
+         "Close",
+         "Repair",
+@@ -27,9 +27,9 @@
+     },
+     {
+       "type": "info",
+-      "title": "Manage dsh Command",
++      "title": "Manage dsh-uncensored Command",
+       "message": "The Desktop command needs repair.",
+-      "detail": "Desktop command: /usr/local/bin/dsh",
++      "detail": "Desktop command: /usr/local/bin/dsh-uncensored",
+       "buttons": [
+         "Close",
+         "Repair",
+@@ -40,9 +40,9 @@
+     },
+     {
+       "type": "warning",
+-      "title": "Manage dsh Command",
++      "title": "Manage dsh-uncensored Command",
+       "message": "The Desktop command is installed.",
+-      "detail": "Desktop command: /usr/local/bin/dsh\n\nCurrent dsh command: /opt/homebrew/bin/dsh\n\nAnother dsh takes precedence. Remove or reorder that installation to use the Desktop command by default. You can also run the Desktop command by its full path.",
++      "detail": "Desktop command: /usr/local/bin/dsh-uncensored\n\nCurrent dsh-uncensored command: /opt/homebrew/bin/dsh-uncensored\n\nAnother dsh-uncensored takes precedence. Remove or reorder that installation to use the Desktop command by default. You can also run the Desktop command by its full path.",
+       "buttons": [
+         "Close",
+         "Repair",
+@@ -53,9 +53,9 @@
+     },
+     {
+       "type": "info",
+-      "title": "Manage dsh Command",
++      "title": "Manage dsh-uncensored Command",
+       "message": "Add the Desktop command to your terminal.",
+-      "detail": "Desktop command: /usr/local/bin/dsh\n\nYour shell command could not be verified. An alias or another dsh installation may take precedence.",
++      "detail": "Desktop command: /usr/local/bin/dsh-uncensored\n\nYour shell command could not be verified. An alias or another dsh-uncensored installation may take precedence.",
+       "buttons": [
+         "Install",
+         "Cancel"
+diff --git a/apps/desktop/tests/expected/command-management-darwin-zh-CN.json b/apps/desktop/tests/expected/command-management-darwin-zh-CN.json
+index 9b22c7213a48eab22a20d50beb2ba610693a4741..6564c71e8786cb10c005672477310748ec689a55 100644
+--- a/apps/desktop/tests/expected/command-management-darwin-zh-CN.json
++++ b/apps/desktop/tests/expected/command-management-darwin-zh-CN.json
+@@ -2,9 +2,9 @@
+   "dialogs": [
+     {
+       "type": "info",
+-      "title": "管理 dsh 命令",
++      "title": "管理 dsh-uncensored 命令",
+       "message": "将 Desktop 命令添加到终端。",
+-      "detail": "Desktop 命令：/usr/local/bin/dsh",
++      "detail": "Desktop 命令：/usr/local/bin/dsh-uncensored",
+       "buttons": [
+         "安装",
+         "取消"
+@@ -14,9 +14,9 @@
+     },
+     {
+       "type": "info",
+-      "title": "管理 dsh 命令",
++      "title": "管理 dsh-uncensored 命令",
+       "message": "Desktop 命令已安装。",
+-      "detail": "Desktop 命令：/usr/local/bin/dsh\n\n当前 dsh 命令：/usr/local/bin/dsh",
++      "detail": "Desktop 命令：/usr/local/bin/dsh-uncensored\n\n当前 dsh-uncensored 命令：/usr/local/bin/dsh-uncensored",
+       "buttons": [
+         "关闭",
+         "修复",
+@@ -27,9 +27,9 @@
+     },
+     {
+       "type": "info",
+-      "title": "管理 dsh 命令",
++      "title": "管理 dsh-uncensored 命令",
+       "message": "Desktop 命令需要修复。",
+-      "detail": "Desktop 命令：/usr/local/bin/dsh",
++      "detail": "Desktop 命令：/usr/local/bin/dsh-uncensored",
+       "buttons": [
+         "关闭",
+         "修复",
+@@ -40,9 +40,9 @@
+     },
+     {
+       "type": "warning",
+-      "title": "管理 dsh 命令",
++      "title": "管理 dsh-uncensored 命令",
+       "message": "Desktop 命令已安装。",
+-      "detail": "Desktop 命令：/usr/local/bin/dsh\n\n当前 dsh 命令：/opt/homebrew/bin/dsh\n\n另一个 dsh 的优先级更高。请移除或调整该安装的顺序，以默认使用 Desktop 命令；也可以通过完整路径运行 Desktop 命令。",
++      "detail": "Desktop 命令：/usr/local/bin/dsh-uncensored\n\n当前 dsh-uncensored 命令：/opt/homebrew/bin/dsh-uncensored\n\n另一个 dsh-uncensored 的优先级更高。请移除或调整该安装的顺序，以默认使用 Desktop 命令；也可以通过完整路径运行 Desktop 命令。",
+       "buttons": [
+         "关闭",
+         "修复",
+@@ -53,9 +53,9 @@
+     },
+     {
+       "type": "info",
+-      "title": "管理 dsh 命令",
++      "title": "管理 dsh-uncensored 命令",
+       "message": "将 Desktop 命令添加到终端。",
+-      "detail": "Desktop 命令：/usr/local/bin/dsh\n\n无法确认 shell 中的命令。别名或另一个 dsh 安装可能具有更高优先级。",
++      "detail": "Desktop 命令：/usr/local/bin/dsh-uncensored\n\n无法确认 shell 中的命令。别名或另一个 dsh-uncensored 安装可能具有更高优先级。",
+       "buttons": [
+         "安装",
+         "取消"
+diff --git a/apps/desktop/tests/expected/command-management-win32-en-US.json b/apps/desktop/tests/expected/command-management-win32-en-US.json
+index 34ee59a94c9da653e5e3ba2d43079e67e79a2618..2cc8b6ad2d5631fa00ff126d4a6f50c94fdc5f1c 100644
+--- a/apps/desktop/tests/expected/command-management-win32-en-US.json
++++ b/apps/desktop/tests/expected/command-management-win32-en-US.json
+@@ -2,9 +2,9 @@
+   "dialogs": [
+     {
+       "type": "info",
+-      "title": "Manage dsh Command",
++      "title": "Manage dsh-uncensored Command",
+       "message": "Add the Desktop command to your terminal.",
+-      "detail": "Desktop command: C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd",
++      "detail": "Desktop command: C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness Uncensored\\resources\\runtime\\cli\\bin\\dsh-uncensored.cmd",
+       "buttons": [
+         "Install",
+         "Cancel"
+@@ -14,9 +14,9 @@
+     },
+     {
+       "type": "info",
+-      "title": "Manage dsh Command",
++      "title": "Manage dsh-uncensored Command",
+       "message": "The Desktop command is installed.",
+-      "detail": "Desktop command: C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd\n\nCurrent dsh command: C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd",
++      "detail": "Desktop command: C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness Uncensored\\resources\\runtime\\cli\\bin\\dsh-uncensored.cmd\n\nCurrent dsh-uncensored command: C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness Uncensored\\resources\\runtime\\cli\\bin\\dsh-uncensored.cmd",
+       "buttons": [
+         "Close",
+         "Repair",
+@@ -27,9 +27,9 @@
+     },
+     {
+       "type": "info",
+-      "title": "Manage dsh Command",
++      "title": "Manage dsh-uncensored Command",
+       "message": "The Desktop command needs repair.",
+-      "detail": "Desktop command: C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd",
++      "detail": "Desktop command: C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness Uncensored\\resources\\runtime\\cli\\bin\\dsh-uncensored.cmd",
+       "buttons": [
+         "Close",
+         "Repair",
+@@ -40,9 +40,9 @@
+     },
+     {
+       "type": "warning",
+-      "title": "Manage dsh Command",
++      "title": "Manage dsh-uncensored Command",
+       "message": "The Desktop command is installed.",
+-      "detail": "Desktop command: C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd\n\nCurrent dsh command: C:\\Program Files\\nodejs\\dsh.cmd\n\nAnother dsh takes precedence. Remove or reorder that installation to use the Desktop command by default. You can also run the Desktop command by its full path.",
++      "detail": "Desktop command: C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness Uncensored\\resources\\runtime\\cli\\bin\\dsh-uncensored.cmd\n\nCurrent dsh-uncensored command: C:\\Program Files\\nodejs\\dsh-uncensored.cmd\n\nAnother dsh-uncensored takes precedence. Remove or reorder that installation to use the Desktop command by default. You can also run the Desktop command by its full path.",
+       "buttons": [
+         "Close",
+         "Repair",
+@@ -53,9 +53,9 @@
+     },
+     {
+       "type": "info",
+-      "title": "Manage dsh Command",
++      "title": "Manage dsh-uncensored Command",
+       "message": "Add the Desktop command to your terminal.",
+-      "detail": "Desktop command: C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd\n\nYour shell command could not be verified. An alias or another dsh installation may take precedence.",
++      "detail": "Desktop command: C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness Uncensored\\resources\\runtime\\cli\\bin\\dsh-uncensored.cmd\n\nYour shell command could not be verified. An alias or another dsh-uncensored installation may take precedence.",
+       "buttons": [
+         "Install",
+         "Cancel"
+diff --git a/apps/desktop/tests/expected/command-management-win32-zh-CN.json b/apps/desktop/tests/expected/command-management-win32-zh-CN.json
+index c124453ad695007e4abd203f3ca4cc0cf65762eb..1eea69579d69a6fdb5203dd35e385b502506a5d4 100644
+--- a/apps/desktop/tests/expected/command-management-win32-zh-CN.json
++++ b/apps/desktop/tests/expected/command-management-win32-zh-CN.json
+@@ -2,9 +2,9 @@
+   "dialogs": [
+     {
+       "type": "info",
+-      "title": "管理 dsh 命令",
++      "title": "管理 dsh-uncensored 命令",
+       "message": "将 Desktop 命令添加到终端。",
+-      "detail": "Desktop 命令：C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd",
++      "detail": "Desktop 命令：C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness Uncensored\\resources\\runtime\\cli\\bin\\dsh-uncensored.cmd",
+       "buttons": [
+         "安装",
+         "取消"
+@@ -14,9 +14,9 @@
+     },
+     {
+       "type": "info",
+-      "title": "管理 dsh 命令",
++      "title": "管理 dsh-uncensored 命令",
+       "message": "Desktop 命令已安装。",
+-      "detail": "Desktop 命令：C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd\n\n当前 dsh 命令：C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd",
++      "detail": "Desktop 命令：C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness Uncensored\\resources\\runtime\\cli\\bin\\dsh-uncensored.cmd\n\n当前 dsh-uncensored 命令：C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness Uncensored\\resources\\runtime\\cli\\bin\\dsh-uncensored.cmd",
+       "buttons": [
+         "关闭",
+         "修复",
+@@ -27,9 +27,9 @@
+     },
+     {
+       "type": "info",
+-      "title": "管理 dsh 命令",
++      "title": "管理 dsh-uncensored 命令",
+       "message": "Desktop 命令需要修复。",
+-      "detail": "Desktop 命令：C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd",
++      "detail": "Desktop 命令：C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness Uncensored\\resources\\runtime\\cli\\bin\\dsh-uncensored.cmd",
+       "buttons": [
+         "关闭",
+         "修复",
+@@ -40,9 +40,9 @@
+     },
+     {
+       "type": "warning",
+-      "title": "管理 dsh 命令",
++      "title": "管理 dsh-uncensored 命令",
+       "message": "Desktop 命令已安装。",
+-      "detail": "Desktop 命令：C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd\n\n当前 dsh 命令：C:\\Program Files\\nodejs\\dsh.cmd\n\n另一个 dsh 的优先级更高。请移除或调整该安装的顺序，以默认使用 Desktop 命令；也可以通过完整路径运行 Desktop 命令。",
++      "detail": "Desktop 命令：C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness Uncensored\\resources\\runtime\\cli\\bin\\dsh-uncensored.cmd\n\n当前 dsh-uncensored 命令：C:\\Program Files\\nodejs\\dsh-uncensored.cmd\n\n另一个 dsh-uncensored 的优先级更高。请移除或调整该安装的顺序，以默认使用 Desktop 命令；也可以通过完整路径运行 Desktop 命令。",
+       "buttons": [
+         "关闭",
+         "修复",
+@@ -53,9 +53,9 @@
+     },
+     {
+       "type": "info",
+-      "title": "管理 dsh 命令",
++      "title": "管理 dsh-uncensored 命令",
+       "message": "将 Desktop 命令添加到终端。",
+-      "detail": "Desktop 命令：C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd\n\n无法确认 shell 中的命令。别名或另一个 dsh 安装可能具有更高优先级。",
++      "detail": "Desktop 命令：C:\\Users\\user\\AppData\\Local\\Programs\\DeepSeek Harness Uncensored\\resources\\runtime\\cli\\bin\\dsh-uncensored.cmd\n\n无法确认 shell 中的命令。别名或另一个 dsh-uncensored 安装可能具有更高优先级。",
+       "buttons": [
+         "安装",
+         "取消"
+diff --git a/apps/desktop/tests/fixtures/command-path.ps1 b/apps/desktop/tests/fixtures/command-path.ps1
+index 699289bbc78d7bb3f4d0c55a6310bafa92ccf179..b644b6d9a1d2c73fcd5502771459cbb8353c5990 100644
+--- a/apps/desktop/tests/fixtures/command-path.ps1
++++ b/apps/desktop/tests/fixtures/command-path.ps1
+@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
+ [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+ . $Worker
+ $identity = [Guid]::NewGuid().ToString('N')
+-$keyRoot = 'Software\DeepSeekHarness\CommandTests\' + $identity
++$keyRoot = 'Software\DeepSeekHarnessUncensored\CommandTests\' + $identity
+ $environmentKey = $keyRoot + '\Environment'
+ $ownerKey = $keyRoot + '\Owner'
+ $options = @{ EnvironmentKey=$environmentKey; OwnerKey=$ownerKey; MachinePath=''; MutexName=('Local\DshCommandTest-' + $identity) }
+@@ -24,17 +24,20 @@ try {
+     $npm = Join-Path $Root 'npm'
+     $system = Join-Path $Root 'system'
+     New-Item -ItemType Directory -Force $desktop, $other, $npm, $system | Out-Null
+-    [IO.File]::WriteAllText((Join-Path $desktop 'dsh.cmd'), 'fixture')
+-    [IO.File]::WriteAllText((Join-Path $other 'dsh.cmd'), 'fixture')
+-    [IO.File]::WriteAllText((Join-Path $npm 'dsh.cmd'), 'fixture')
++    [IO.File]::WriteAllText((Join-Path $desktop 'dsh-uncensored.cmd'), 'fixture')
++    [IO.File]::WriteAllText((Join-Path $other 'dsh-uncensored.cmd'), 'fixture')
++    $officialCommand = Join-Path $npm 'dsh.cmd'
++    [IO.File]::WriteAllText($officialCommand, 'official command')
+     $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($environmentKey)
+     try { $key.SetValue('Path', $npm, [Microsoft.Win32.RegistryValueKind]::ExpandString) }
+     finally { $key.Dispose() }
++    Require ($null -eq (State $desktop).activeCommand) 'the official dsh command was selected as DSHU'
++    [IO.File]::WriteAllText((Join-Path $npm 'dsh-uncensored.cmd'), 'fixture')
+     $before = State $desktop
+     # .NET may expand a CI runner's short temporary-directory name.
+     $desktop = $before.directory
+     $other = (State $other).directory
+-    Require ($before.activeCommand -eq (Join-Path $npm 'dsh.cmd')) 'existing npm command was not detected'
++    Require ($before.activeCommand -eq (Join-Path $npm 'dsh-uncensored.cmd')) 'existing npm command was not detected'
+     [void](Apply 'install' $desktop)
+     Require ((UserPath) -eq ($desktop + ';' + $npm)) 'installation changed unrelated PATH entries'
+     $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($environmentKey, $true)
+@@ -56,9 +59,9 @@ try {
+     [void](Apply 'remove' $desktop)
+     Require ((UserPath) -eq $newer) 'old installation removed the newer command'
+     Require ((State $other).managed) 'old installation deleted newer ownership'
+-    [IO.File]::WriteAllText((Join-Path $system 'dsh.exe'), 'fixture')
++    [IO.File]::WriteAllText((Join-Path $system 'dsh-uncensored.exe'), 'fixture')
+     $options.MachinePath = $system
+-    Require ((State $other).activeCommand -eq (Join-Path $system 'dsh.exe')) 'machine PATH precedence was hidden'
++    Require ((State $other).activeCommand -eq (Join-Path $system 'dsh-uncensored.exe')) 'machine PATH precedence was hidden'
+     [void](Apply 'remove' $other)
+     $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($environmentKey, $true)
+     $manualPath = $npm + ';' + $desktop + ';' + $desktop
+@@ -77,15 +80,16 @@ try {
+     finally { $key.Dispose() }
+     [void](Apply 'remove' $desktop)
+     Require ((UserPath) -eq $manualPath) 'removal deleted a retained entry after the owned entry was removed manually'
+-    [IO.File]::Delete((Join-Path $npm 'dsh.cmd'))
+-    [IO.File]::WriteAllText((Join-Path $npm 'dsh.ps1'), 'fixture')
++    Require ([IO.File]::ReadAllText($officialCommand) -eq 'official command') 'DSHU changed the official launcher'
++    [IO.File]::Delete((Join-Path $npm 'dsh-uncensored.cmd'))
++    [IO.File]::WriteAllText((Join-Path $npm 'dsh-uncensored.ps1'), 'fixture')
+     $options.MachinePath = ''
+-    Require ((State $desktop).activeCommand -eq (Join-Path $npm 'dsh.ps1')) 'PowerShell launcher was not detected'
++    Require ((State $desktop).activeCommand -eq (Join-Path $npm 'dsh-uncensored.ps1')) 'PowerShell launcher was not detected'
+     $invalidPath = 'C:\invalid|entry;C:\<missing>;' + $npm
+     $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($environmentKey, $true)
+     try { $key.SetValue('Path', $invalidPath, [Microsoft.Win32.RegistryValueKind]::ExpandString) }
+     finally { $key.Dispose() }
+-    Require ((State $desktop).activeCommand -eq (Join-Path $npm 'dsh.ps1')) 'invalid PATH entries prevented command discovery'
++    Require ((State $desktop).activeCommand -eq (Join-Path $npm 'dsh-uncensored.ps1')) 'invalid PATH entries prevented command discovery'
+     [void](Apply 'install' $desktop)
+     function Add-Type { throw 'Environment notification is unavailable' }
+     try { Send-DshCommandEnvironmentChange } finally { Remove-Item Function:\Add-Type }
+@@ -96,7 +100,7 @@ try {
+     $app = Join-Path $Root 'Uninstall A'
+     $bin = Join-Path $app 'resources\runtime\cli\bin'
+     New-Item -ItemType Directory -Force $bin | Out-Null
+-    [IO.File]::WriteAllText((Join-Path $bin 'dsh.cmd'), 'fixture')
++    [IO.File]::WriteAllText((Join-Path $bin 'dsh-uncensored.cmd'), 'fixture')
+     [void](Apply 'install' $other)
+     $protocolKey = $keyRoot + '\Protocol'
+     $foreignCommand = '"' + (Join-Path $other 'DeepSeek Harness.exe') + '" "%1"'
+@@ -112,7 +116,7 @@ try {
+     $scheme = 'dsh-command-test-' + $identity
+     $protocolKey = 'Software\Classes\' + $scheme
+     $launcher = Join-Path $PSScriptRoot 'register-test-protocol.cjs'
+-    $exe = Join-Path $app 'DeepSeek Harness.exe'
++    $exe = Join-Path $app 'DeepSeek Harness Uncensored.exe'
+     $registration = Start-Process $Electron -ArgumentList @(('"' + $launcher + '"'), ('"--user-data-dir=' + $Root + '\profile"'), $scheme, ('"' + $exe + '"')) -PassThru -WindowStyle Hidden
+     try {
+         if (-not $registration.WaitForExit(20000)) { $registration.Kill(); $registration.WaitForExit(); throw 'Electron protocol registration timed out' }
+diff --git a/apps/desktop/tests/runtime-preparation.spec.ts b/apps/desktop/tests/runtime-preparation.spec.ts
+index 5da6e9815d0b170142b274db59eda3d49bacf10a..5b634780fa0b60ac42ffae7a46372a73be7b2c9f 100644
+--- a/apps/desktop/tests/runtime-preparation.spec.ts
++++ b/apps/desktop/tests/runtime-preparation.spec.ts
+@@ -86,7 +86,8 @@ it.each(['mac-arm64', 'mac-x64', 'win-x64'] as const)('prepares %s with one pnpm
+   expect(existsSync(join(runtime, 'pnpm'))).toBe(false)
+   expect(existsSync(join(runtime, 'primary-runtime', 'dependencies', 'pnpm', 'bin', 'pnpm.mjs'))).toBe(true)
+   expect(existsSync(join(runtime, 'bin', 'node'))).toBe(true)
+-  expect(existsSync(join(runtime, 'cli', 'bin', windows ? 'dsh.cmd' : 'dsh'))).toBe(true)
++  expect(existsSync(join(runtime, 'cli', 'bin', windows ? 'dsh-uncensored.cmd' : 'dsh-uncensored'))).toBe(true)
++  expect(existsSync(join(runtime, 'cli', 'bin', windows ? 'dsh.cmd' : 'dsh'))).toBe(false)
+   expect(readFileSync(join(runtime, 'cli', 'command-manager.js'), 'utf8')).toBe('command manager fixture')
+   expect(existsSync(join(runtime, 'cli', 'command-path.ps1'))).toBe(true)
+   expect(JSON.parse(readFileSync(join(runtime, 'versions.json'), 'utf8'))).toEqual({

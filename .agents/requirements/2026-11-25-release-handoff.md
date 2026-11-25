@@ -124,7 +124,7 @@ pnpm run test:web:built apps/web/tests/balance-cleanup.e2e.ts apps/web/tests/bal
 
 | 关于页字段 | 当前候选数据与核对方法 |
 | --- | --- |
-| DSHU 版本与编译时间 | 左侧显示 `2026.11.23.0`，沿用 DSHU 源码产品版本。候选构建从 `apps/desktop/package.json` 的 `dshuVersion` 读取公开日期格式。编译时间以 UTC 显示，显式传入 `DSH_CLIENT_BUILD_TIME` 时必须使用带毫秒的 ISO UTC 时间。GitHub 最新安装包有独立的发行版本。 |
+| DSHU 版本与编译时间 | 左侧显示 `2026.11.23.0`，沿用 DSHU 源码产品版本。当前候选的 CLI 与关于页共用 `apps/cli/package.json` 的 `dshuVersion`，插件兼容性依然按内核版本判断。编译时间以 UTC 显示，显式传入 `DSH_CLIENT_BUILD_TIME` 时必须使用带毫秒的 ISO UTC 时间。GitHub 最新安装包有独立的发行版本。 |
 | DSH 内核与源码 | 右侧显示运行内核 `0.2.3-alpha.2`、固定上游提交及其时间。候选源码树取构建时的 Git 暂存树；工作区存在未暂存修改或非忽略的未跟踪文件时，会显示工作区状态。还原后用 `git write-tree` 核对清单。 |
 | 组件与许可 | 分别展示 DSHU 和上游许可。dsh-purge Community 1.7.20 与 REA 6.9.0 各自列有许可、来源提交及时间。两项标为发行版清单参考，当前通用源码候选未装配这两个组件。正式安装包另须核对实际载荷。 |
 | 桌面原生菜单 | 工作区就绪时通过当前主文档打开同一页面，内嵌的 Platform 视图在关闭后恢复；启动和恢复期间使用原生关于面板。测试覆盖失效文档、延迟加载、订阅清理和菜单回退。设备上的原生安装验收单独记录。 |
@@ -204,6 +204,20 @@ node scripts/verify-kernel-released-data.mjs .artifacts/review-old .artifacts/re
 重点核对工作区标识、写作资料选择、滚动额度、会话事件和多代分叉。记忆要同时核对模型请求里的来源记录、资料库里的文本与修订号、禁用状态、作用域及总开关。账单里出现过提炼费用只证明历史事件能被计价，还需要证明确实能打开、检索和修改资料库。[记忆服务](../../packages/memory/memory/README.md) · [账单与迁移记录](2026-11-24-dsh-kernel-upgrade.md)
 
 持久化检查另有一项已知缺口。历史 `target/admission` 事件的两个必填字段缺少兼容性声明。当前通用资料样本覆盖工作区、会话与记忆。持久化维护者须在旧资料副本上验证该类历史事件，登记读取决定，再运行目录与变更声明检查。见[已有会话兼容性缺口](2026-11-24-dsh-kernel-upgrade.md#已有会话兼容性缺口)。
+
+### 已安装的终端命令
+
+两个正式版使用同一公开名称 `dsh-uncensored`。候选树 `bcf38a70caa09aef3b371ea8abec34e02e1dbee4` 也使用这个名称。Windows 菜单将包含 `dsh-uncensored.cmd` 的目录注册到当前用户的 PATH，并通过 `Software\DeepSeekHarnessUncensored\Command` 判断安装归属。macOS 菜单管理 `/usr/local/bin/dsh-uncensored`，修复和移除读取已发行版本的 `.dsh-uncensored-command.json`。本地 macOS 未签名打包配置使用 DSHU 的应用标识 `com.deepseek.dsh.uncensored`。
+
+Windows x64 的实测使用 Electron `44.11.5`、构建后的桌面 Host 和带空格及中文的临时安装目录。运行 `dsh-uncensored --version` 得到日期版本 `2026.11.23.0`，与关于页左侧一致。内核仍为 `0.2.3-alpha.2`。运行 `dsh-uncensored --profile web --dump-config` 能读取包含记忆和余额的配置。两条命令均正常退出，测试用户的官方资料目录保留了原有条目和标记内容。这次测试使用单独准备的启动目录，正式安装器仍按下表验收。
+
+在候选目录运行以下用例可复验菜单、启动器、Windows PATH 和卸载时的归属检查。Windows 用例在专用的临时注册表键上运行。275 项在 Windows 通过，另有 18 项受平台条件限制。macOS 的公开链接和终端参数转发还需在 macOS 上执行同一组用例，并用实际应用包复核。
+
+同一树的构建 10 项和文档检查 43 项均已通过。构建环境与 CLI 参数另有 71 项通过。编译后的 CLI 在 Windows 验证了公开入口别名和版本查询。中英文 Chromium 用例分别核对桌面与窄屏的两种版本标识。 对两个正式版重新运行上节的升级用例，每版的 27 个样本文件均通过 SHA-256 核对。
+
+```sh
+pnpm exec vitest run --maxWorkers=2 apps/desktop/tests/cli-launcher.spec.ts apps/desktop/tests/command-path.spec.ts apps/desktop/tests/command-management.spec.ts apps/desktop/tests/command-installation.spec.ts apps/desktop/tests/runtime-preparation.spec.ts apps/desktop/tests/main-startup.spec.ts apps/desktop/tests/desktop-package-environment.spec.ts
+```
 
 ## 桌面与平台验收
 
