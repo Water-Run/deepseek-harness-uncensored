@@ -3435,16 +3435,17 @@ index 0000000000000000000000000000000000000000..124210d8ee71c134dd81f6ec0bdea25a
 +  } finally { await scaffold.close() }
 +}, 120_000)
 diff --git a/apps/web/tsconfig.json b/apps/web/tsconfig.json
-index 62e0f201c21a9d9bbc1c833e68ae821105b8a6d7..6ab4312c60babf7b5db92fd0ace6da6069a5d1c9 100644
+index 62e0f201c21a9d9bbc1c833e68ae821105b8a6d7..8db4f156a6d93f3f934ee7bf04c3a84d7ccbfa46 100644
 --- a/apps/web/tsconfig.json
 +++ b/apps/web/tsconfig.json
-@@ -23,6 +23,15 @@
+@@ -23,6 +23,16 @@
    // this client-registered project must not also hold them (one program
    // cannot see both sides of the cordis Context merges).
    "exclude": [
 +    "tests/about-dialog-fit.e2e.ts",
 +    "tests/input-prediction.e2e.ts",
 +    "tests/quick-question.e2e.ts",
++    "tests/persistent-side.e2e.ts",
 +    "tests/mcp-schema-recovery.e2e.ts",
 +    "tests/balance-cleanup.e2e.ts",
 +    "tests/balance-history-layout.e2e.ts",
@@ -12394,7 +12395,7 @@ index 75a00397a784ea9f7d35f9d753e7d3a604aed09d..0397ca30c0cd3ff7c489115e7fb52687
    }
  }
 diff --git a/packages/api/session-controller/src/index.ts b/packages/api/session-controller/src/index.ts
-index 3fb061e5851996ba7147127f388e211ad5eb080d..420af603cca15a8e5b2b7f05907c31d0177fa40d 100644
+index 3fb061e5851996ba7147127f388e211ad5eb080d..4775133bf9b248bcba05ded22566f645e4212ddf 100644
 --- a/packages/api/session-controller/src/index.ts
 +++ b/packages/api/session-controller/src/index.ts
 @@ -4,7 +4,7 @@ import { hostname } from 'node:os'
@@ -12556,7 +12557,7 @@ index 3fb061e5851996ba7147127f388e211ad5eb080d..420af603cca15a8e5b2b7f05907c31d0
      this.stateController = new StateController(ctx, this.historyController)
      this.webController = new WebController(ctx, this.historyController, (observation) => { this.promote(observation) })
      this.listState = new ApiSessionList(ctx, this.listWorkSliceMs)
-@@ -194,6 +251,37 @@ export class SessionController extends TypertRemoteService {
+@@ -194,11 +251,44 @@ export class SessionController extends TypertRemoteService {
      // answer the Workspace registry's archive-admission events.
      ctx.plugin(ArchivedSessionGate)
  
@@ -12594,7 +12595,15 @@ index 3fb061e5851996ba7147127f388e211ad5eb080d..420af603cca15a8e5b2b7f05907c31d0
      ctx.on('session/created', (session) => {
        ctx.emit('api-session/added', this.listState.summaryFor(session))
      })
-@@ -432,6 +520,62 @@ export class SessionController extends TypertRemoteService {
+     ctx.on('session/disposed', (session) => {
+-      ctx.emit('api-session/removed', session.id)
++      if (this.asides.isReleasingSaved(session)) {
++        ctx.emit('api-session/added', { ...this.listState.summaryFor(session), agentAvailable: false, running: false })
++      } else ctx.emit('api-session/removed', session.id)
+     })
+     const publishAgentAvailability = ({ agent }: { agent: Agent }): undefined => {
+       if (ctx.sessions.get(agent.id) === agent.session) {
+@@ -432,6 +522,62 @@ export class SessionController extends TypertRemoteService {
      return this.commands.fork(request)
    }
  
@@ -17105,7 +17114,7 @@ index 1242197b3b92c42f21e2096e0fdb724fdafaa883..f5d78465b0115532eb81bc85578bc6cc
    'account/getBalance': 'owner-only', // owner account and sign-in; the served page never reads it
    'account/getProfile': 'owner-only', // owner account and sign-in; the served page never reads it
 diff --git a/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts b/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
-index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..fba7cdc505d2fce4ef6f15704d5c66bed6c9a228 100644
+index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..1693153f88ca252308177acf25be3cffb666a1a4 100644
 --- a/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
 +++ b/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
 @@ -256,7 +256,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
@@ -17284,7 +17293,15 @@ index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..fba7cdc505d2fce4ef6f15704d5c66be
        'experimental-client-ui-claude-code-mods Band id \'claude-code-mods\'',
        'experimental-client-ui-forge WorktreeProgress id \'forge-panel.worktree\'',
        'timeline TaskDock id \'timeline\'',
-@@ -4057,6 +4101,58 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+@@ -2389,6 +2433,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     slotInject: '',
+     declaredBy: 'an entry in \'conversation.session.header\' (client-ui-conversation), so it exists while that entry is mounted',
+     occupants: [
++      'client-ui-commands SideLauncher id \'side-question\'',
+       'client-ui-schedule ScheduleCatalogAction id \'schedule-catalog\'',
+       'client-ui-session-panel SessionPanelToggle id \'session-panel\'',
+       'experimental-liveshare LiveshareShareAction id \'liveshare-share\'',
+@@ -4057,6 +4102,58 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
      example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.action\', () => ctx.slots.register(\n      { name: \'settings.action\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
      source: 'packages/client/ui-settings/src/client/contract/slots.ts:60',
    },
@@ -17343,7 +17360,7 @@ index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..fba7cdc505d2fce4ef6f15704d5c66be
    {
      key: 'settings.close',
      kind: 'single',
-@@ -4143,11 +4239,13 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+@@ -4143,11 +4240,13 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
        'client-ui-chat LinkOpeningRow id \'link-opening\'',
        'client-ui-chat PerformanceUsageRow id \'performance-usage\'',
        'client-ui-chat TranscriptViewRow id \'transcript-view\'',
@@ -17358,7 +17375,7 @@ index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..fba7cdc505d2fce4ef6f15704d5c66be
        'client-ui-settings-session-log UploadRow',
        'client-ui-shortcuts ShortcutsRow id \'shortcuts\'',
        'client-ui-theme AppearanceRow id \'appearance\'',
-@@ -4605,7 +4703,9 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+@@ -4605,7 +4704,9 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
      occupants: [
        'client-remote-connection RemoteConnectionSettings id \'remote-connection\'',
        'client-ui-agent-preset AgentPresetSection id \'agent-presets\'',
@@ -17368,7 +17385,7 @@ index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..fba7cdc505d2fce4ef6f15704d5c66be
        'client-ui-settings-account AccountSection id \'account\'',
        'client-ui-settings-general GeneralSection id \'general\'',
        'client-ui-settings-models ModelsSection id \'models\'',
-@@ -4818,10 +4918,13 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+@@ -4818,10 +4919,13 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
        'client-ui-open-in-app OpenInAppToast id \'open-in-app.toast\'',
        'client-ui-plugin-manager PluginRefreshToast id \'plugin-manager.refresh-toast\'',
        'client-ui-schedule ScheduleDeleteToast id \'schedule.delete-toast\'',
@@ -17383,7 +17400,7 @@ index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..fba7cdc505d2fce4ef6f15704d5c66be
        'client-ui-settings-session-log UploadToast id \'session-log-upload-toast\'',
        'client-ui-shortcuts ShortcutReference id \'shortcuts\'',
        'client-ui-subagent SessionDropZone id \'subagent.session-drop\'',
-@@ -4878,7 +4981,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+@@ -4878,7 +4982,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
      ],
      replaceRisk: 'none',
      example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'shell.quota-notice\', () => ctx.slots.register(\n      { name: \'shell.quota-notice\', select: owner => null },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
@@ -17392,7 +17409,55 @@ index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..fba7cdc505d2fce4ef6f15704d5c66be
    },
    {
      key: 'sidebar',
-@@ -5072,12 +5175,64 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+@@ -4914,6 +5018,47 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar\', () => ctx.slots.register(\n      { name: \'sidebar\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+     source: 'packages/client/ui-layout/src/client/index.ts:70',
+   },
++  {
++    key: 'sidebar.aside.conversation',
++    kind: 'single',
++    scope: 'session',
++    summary: 'Right-sidebar transcript and composer provided with the persistent child Session.',
++    doc: 'Right-sidebar transcript and composer provided with the persistent child Session.',
++    registerOptions: [],
++    ownerProps: [],
++    ownerPropsReferences: [],
++    standardProps: [
++      'useRemoteAccess: (action: RemoteEndpoint) => boolean',
++      'useResource: UseResource',
++      'useContextMenu: UseContextMenu',
++      'useWorkspaces: SnapshotSelectorHook<WorkspaceSnapshot>',
++      'usePanelInfo: UsePanelInfo',
++      'useSessionStatus: UseSessionStatus',
++      'useSessions: UseSessions',
++      'useSessionRetainInfo: UseSessionRetainInfo',
++      'useSessionAccess: (sessionId: SessionId, action: RemoteEndpoint) => boolean',
++      'useWorkspaceAccess: (workspaceId: WorkspaceId, action: RemoteEndpoint) => boolean',
++      'useChat: UseChat',
++      'useConversation: UseConversation',
++      'useInput: SnapshotSelectorHook<InputState>',
++      'inputActions: InputActions',
++      'useSession: SessionSnapshotSelector',
++      'sessionId: SessionId',
++      'useProjection: UseProjection',
++      'useAccess: (action: RemoteEndpoint) => boolean',
++      'useTrajectory: UseTrajectory',
++    ],
++    keyDomain: '',
++    hookContext: '',
++    slotInject: '',
++    declaredBy: 'an entry in \'sidebar.right.pane.tab\' (client-ui-commands), so it exists while that entry is mounted',
++    occupants: [
++      'client-ui-commands SideConversation',
++    ],
++    replaceRisk: 'shadows-shipped-ui',
++    example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar.aside.conversation\', () => ctx.slots.register(\n      { name: \'sidebar.aside.conversation\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
++    source: 'packages/client/ui-commands/src/client/asides/side.ts:18',
++  },
+   {
+     key: 'sidebar.brand.mark',
+     kind: 'single',
+@@ -5072,12 +5217,64 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
      slotInject: '',
      declaredBy: 'an entry in \'sidebar\' (client-ui-sidebar), so it exists while that entry is mounted',
      occupants: [
@@ -17457,7 +17522,7 @@ index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..fba7cdc505d2fce4ef6f15704d5c66be
    {
      key: 'sidebar.panellist',
      kind: 'list',
-@@ -5181,9 +5336,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+@@ -5181,9 +5378,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
      hookContext: '',
      slotInject: '',
      declaredBy: 'an entry in \'sidebar\' (client-ui-sidebar), so it exists while that entry is mounted',
@@ -17468,6 +17533,22 @@ index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..fba7cdc505d2fce4ef6f15704d5c66be
      replaceRisk: 'none',
      example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar.panellist.actions\', () => ctx.slots.register(\n      { name: \'sidebar.panellist.actions\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
      source: 'packages/client/ui-sidebar/src/client/contract/slots.ts:63',
+@@ -5283,6 +5478,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     slotInject: 'SidebarRightTabInjected',
+     declaredBy: 'an entry in \'rightbar.session\' (client-ui-sidebar-right), so it exists while that entry is mounted',
+     occupants: [
++      'client-ui-commands SidePanel',
+       'client-ui-deliverables ReviewTab',
+       'client-ui-plan PlanPreview',
+       'client-ui-schedule ScheduleTaskTab',
+@@ -5343,6 +5539,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     slotInject: 'SidebarRightTabInjected',
+     declaredBy: 'an entry in \'rightbar.session\' (client-ui-sidebar-right), so it exists while that entry is mounted',
+     occupants: [
++      'client-ui-commands SideTitle',
+       'client-ui-plan PlanTitle',
+       'client-ui-schedule ScheduleTaskTabTitle',
+       'client-ui-sidebar-browser BrowserTitle',
 diff --git a/packages/extensions/tool-cordis/src/api-catalog.ts b/packages/extensions/tool-cordis/src/api-catalog.ts
 index 84bf84164a56fd17f6575eeec815ef47f3a55bfb..2cec3b006914bc7cb85aa7678580a29c89901fd3 100644
 --- a/packages/extensions/tool-cordis/src/api-catalog.ts
@@ -21091,7 +21172,7 @@ index 68e7f032cb3b63ef1c4f09d592321a9144400141..13d56812ef0ea53bbcf605f7ad1e58af
               this._inSocket.destroy();
               this._ptyNative.kill(this._pty, this._useConptyDll);
 diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
-index 774164ab6d006ce397a2f47f6ba84592519d80d6..5333e47c944948fe46bc9964358a33c479f0fe95 100644
+index 774164ab6d006ce397a2f47f6ba84592519d80d6..fb69194ac2bcf9784d040f881b95833285012b32 100644
 --- a/pnpm-lock.yaml
 +++ b/pnpm-lock.yaml
 @@ -24,7 +24,7 @@ patchedDependencies:
@@ -21339,7 +21420,16 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..5333e47c944948fe46bc9964358a33c4
        '@deepseek-ai/dsh-message-feedback':
          specifier: workspace:*
          version: link:../../feedback/message-feedback
-@@ -4647,6 +4775,9 @@ importers:
+@@ -4641,12 +4769,18 @@ importers:
+       '@deepseek-ai/dsh-client-locale':
+         specifier: workspace:*
+         version: link:../locale
++      '@deepseek-ai/dsh-client-resources':
++        specifier: workspace:*
++        version: link:../resources
+       '@deepseek-ai/dsh-client-store':
+         specifier: workspace:*
+         version: link:../store
        '@deepseek-ai/dsh-client-test-runtime':
          specifier: workspace:*
          version: link:../../test-support/client-runtime
@@ -21349,7 +21439,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..5333e47c944948fe46bc9964358a33c4
        '@deepseek-ai/dsh-client-ui-conversation':
          specifier: workspace:*
          version: link:../ui-conversation
-@@ -4662,6 +4793,12 @@ importers:
+@@ -4662,6 +4796,12 @@ importers:
        '@deepseek-ai/dsh-client-ui-session':
          specifier: workspace:*
          version: link:../ui-session
@@ -21362,17 +21452,20 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..5333e47c944948fe46bc9964358a33c4
        '@deepseek-ai/dsh-client-ui-slots':
          specifier: workspace:*
          version: link:../ui-slots
-@@ -4671,6 +4808,9 @@ importers:
+@@ -4671,6 +4811,12 @@ importers:
        '@deepseek-ai/dsh-session':
          specifier: workspace:*
          version: link:../../core/session
 +      '@deepseek-ai/dsh-settings':
 +        specifier: workspace:*
 +        version: link:../../settings/settings
++      '@deepseek-ai/dsh-typert-protocol':
++        specifier: workspace:*
++        version: link:../../typert/protocol
        '@deepseek-ai/dsh-util-text-search':
          specifier: workspace:*
          version: link:../../util/text-search
-@@ -5582,6 +5722,57 @@ importers:
+@@ -5582,6 +5728,57 @@ importers:
          specifier: ^18.2.0
          version: 18.3.1(react@18.3.1)
  
@@ -21430,7 +21523,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..5333e47c944948fe46bc9964358a33c4
    packages/client/ui-model-selection:
      devDependencies:
        '@deepseek-ai/cordis':
-@@ -6563,12 +6754,21 @@ importers:
+@@ -6563,12 +6760,21 @@ importers:
        '@deepseek-ai/dsh-api-remotes':
          specifier: workspace:*
          version: link:../../api/remotes
@@ -21452,7 +21545,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..5333e47c944948fe46bc9964358a33c4
        '@deepseek-ai/dsh-client-store':
          specifier: workspace:*
          version: link:../store
-@@ -6578,6 +6778,9 @@ importers:
+@@ -6578,6 +6784,9 @@ importers:
        '@deepseek-ai/dsh-client-ui-chat':
          specifier: workspace:*
          version: link:../ui-chat
@@ -21462,7 +21555,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..5333e47c944948fe46bc9964358a33c4
        '@deepseek-ai/dsh-client-ui-layout':
          specifier: workspace:*
          version: link:../ui-layout
-@@ -6593,6 +6796,9 @@ importers:
+@@ -6593,6 +6802,9 @@ importers:
        '@deepseek-ai/dsh-client-ui-settings-models':
          specifier: workspace:*
          version: link:../ui-settings-models
@@ -21472,7 +21565,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..5333e47c944948fe46bc9964358a33c4
        '@deepseek-ai/dsh-client-ui-slots':
          specifier: workspace:*
          version: link:../ui-slots
-@@ -6605,15 +6811,33 @@ importers:
+@@ -6605,15 +6817,33 @@ importers:
        '@deepseek-ai/dsh-host-webserver':
          specifier: workspace:*
          version: link:../../host/webserver
@@ -21506,7 +21599,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..5333e47c944948fe46bc9964358a33c4
        big.js:
          specifier: ^7.0.1
          version: 7.0.1
-@@ -6623,6 +6847,9 @@ importers:
+@@ -6623,6 +6853,9 @@ importers:
        react-dom:
          specifier: ^18.2.0
          version: 18.3.1(react@18.3.1)
@@ -21516,7 +21609,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..5333e47c944948fe46bc9964358a33c4
  
    packages/client/ui-settings-agent-loop:
      devDependencies:
-@@ -6736,6 +6963,51 @@ importers:
+@@ -6736,6 +6969,51 @@ importers:
          specifier: ^18.2.0
          version: 18.3.1(react@18.3.1)
  
@@ -21568,7 +21661,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..5333e47c944948fe46bc9964358a33c4
    packages/client/ui-settings-models:
      dependencies:
        '@deepseek-ai/schemastery':
-@@ -9402,6 +9674,40 @@ importers:
+@@ -9402,6 +9680,40 @@ importers:
          specifier: workspace:*
          version: link:../../util/error
  
@@ -21609,7 +21702,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..5333e47c944948fe46bc9964358a33c4
    packages/credentials/credentials:
      dependencies:
        '@deepseek-ai/dsh-brand':
-@@ -14340,6 +14646,52 @@ importers:
+@@ -14340,6 +14652,52 @@ importers:
          specifier: workspace:*
          version: link:../../core/tools
  
@@ -21662,7 +21755,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..5333e47c944948fe46bc9964358a33c4
    packages/guard/timeout-policy:
      devDependencies:
        '@deepseek-ai/cordis':
-@@ -15796,6 +16148,64 @@ importers:
+@@ -15796,6 +16154,64 @@ importers:
          specifier: workspace:*
          version: link:../../core/tools
  
@@ -21727,7 +21820,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..5333e47c944948fe46bc9964358a33c4
    packages/plan/plan-mode:
      dependencies:
        '@deepseek-ai/dsh-brand':
-@@ -19182,7 +19592,7 @@ importers:
+@@ -19182,7 +19598,7 @@ importers:
          version: 3.1.1
        node-pty:
          specifier: 1.2.0-beta.15
@@ -21736,7 +21829,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..5333e47c944948fe46bc9964358a33c4
      devDependencies:
        '@deepseek-ai/cordis':
          specifier: workspace:~
-@@ -20083,6 +20493,12 @@ importers:
+@@ -20083,6 +20499,12 @@ importers:
          specifier: ^7.8.0
          version: 7.8.0
  
@@ -21749,7 +21842,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..5333e47c944948fe46bc9964358a33c4
    packages/util/ripgrep:
      dependencies:
        '@vscode/ripgrep':
-@@ -20753,6 +21169,9 @@ importers:
+@@ -20753,6 +21175,9 @@ importers:
        '@deepseek-ai/dsh-mcp-client':
          specifier: workspace:*
          version: link:../../packages/mcp/mcp-client
@@ -21759,7 +21852,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..5333e47c944948fe46bc9964358a33c4
        '@deepseek-ai/dsh-message-feedback':
          specifier: workspace:*
          version: link:../../packages/feedback/message-feedback
-@@ -35270,7 +35689,7 @@ snapshots:
+@@ -35270,7 +35695,7 @@ snapshots:
  
    node-int64@0.4.0: {}
  
@@ -22014,10 +22107,10 @@ index d6a347c5aa4b45367dcb616971d4cd4f90543f4e..7b5f5791535b79789ba8deb36f564a1a
      { "path": "./packages/client/ui-account-notifications" },
      // Shared leaf: web e2e boots the real host webserver (fixture + real-host
 diff --git a/tsconfig.host.json b/tsconfig.host.json
-index f2046d341293cb0adb504e754b87f31918b2e424..26e3e07efb846186f208a1c77e251f5ecdbe90c3 100644
+index f2046d341293cb0adb504e754b87f31918b2e424..a94f77b2f630e64abab3f7dce6e1d9f05a569e08 100644
 --- a/tsconfig.host.json
 +++ b/tsconfig.host.json
-@@ -7,7 +7,17 @@
+@@ -7,7 +7,18 @@
      "noEmit": true,
      "rewriteRelativeImportExtensions": false
    },
@@ -22026,6 +22119,7 @@ index f2046d341293cb0adb504e754b87f31918b2e424..26e3e07efb846186f208a1c77e251f5e
 +    "apps/web/tests/about-dialog-fit.e2e.ts",
 +    "apps/web/tests/input-prediction.e2e.ts",
 +    "apps/web/tests/quick-question.e2e.ts",
++    "apps/web/tests/persistent-side.e2e.ts",
 +    "apps/web/tests/mcp-schema-recovery.e2e.ts",
 +    "apps/web/tests/balance-cleanup.e2e.ts",
 +    "apps/web/tests/balance-history-layout.e2e.ts",
@@ -22035,7 +22129,7 @@ index f2046d341293cb0adb504e754b87f31918b2e424..26e3e07efb846186f208a1c77e251f5e
      "apps/web/tests/device-pairing.e2e.ts",
      "apps/web/tests/pairing-completion.e2e.ts",
      "apps/web/tests/pairing-recovery.e2e.ts",
-@@ -359,6 +369,7 @@
+@@ -359,6 +370,7 @@
      { "path": "./packages/experimental/browser-use-playwright-mcp" },
      { "path": "./packages/experimental/browser-use-chrome-devtools-mcp" },
      { "path": "./packages/experimental/browser-use-stagehand-native" },
@@ -22043,7 +22137,7 @@ index f2046d341293cb0adb504e754b87f31918b2e424..26e3e07efb846186f208a1c77e251f5e
      { "path": "./packages/api/terminal-controller/tsconfig.host.json" },
      { "path": "./packages/computer-use/computer-use" },
      { "path": "./packages/experimental/computer-use-cua-driver-mcp" },
-@@ -389,6 +400,7 @@
+@@ -389,6 +401,7 @@
      { "path": "./packages/boot/hmr" },
      { "path": "./vendor/logger-console" },
      { "path": "./packages/util/brand" },
@@ -22051,7 +22145,7 @@ index f2046d341293cb0adb504e754b87f31918b2e424..26e3e07efb846186f208a1c77e251f5e
      { "path": "./packages/util/error" },
      { "path": "./packages/util/package-manifest" },
      { "path": "./packages/util/plugin-detail" },
-@@ -576,6 +588,10 @@
+@@ -576,6 +589,10 @@
      { "path": "./packages/spill/spill" },
      { "path": "./packages/spill/spill-local" },
      { "path": "./packages/spill/spill-policy" },
@@ -47040,7 +47134,7 @@ index 0000000000000000000000000000000000000000..f520323700d0e0421d4e277fd034d137
 +  } finally { await requests.close() }
 +})
 diff --git a/packages/client/ui-conversation/README.i18n.yaml b/packages/client/ui-conversation/README.i18n.yaml
-index d8b36381cf566e21554e9083da35b833c9ba7749..d2c82c7e4bbb289ebbeffc3a2d61cf42662d1742 100644
+index d8b36381cf566e21554e9083da35b833c9ba7749..149a8dd0b846c2872e00d40fde4c06b3b9c474ee 100644
 --- a/packages/client/ui-conversation/README.i18n.yaml
 +++ b/packages/client/ui-conversation/README.i18n.yaml
 @@ -21,8 +21,8 @@
@@ -47049,13 +47143,13 @@ index d8b36381cf566e21554e9083da35b833c9ba7749..d2c82c7e4bbb289ebbeffc3a2d61cf42
  /deepseek-ai-dsh-client-ui-conversation/shell-and-standard-props:
 -  en: 793a61adeee867e0
 -  zh: 732017ffb439a73b
-+  en: 0b868b9706080de0
-+  zh: be1aaf509d5ffb19
++  en: 796bec693bb1d879
++  zh: c9f36b6a0eaa9249
  /deepseek-ai-dsh-client-ui-conversation/shell-and-standard-props/control-geometry:
    en: 876be274c65b56d9
    zh: c3adbf5a16e0e38e
 diff --git a/packages/client/ui-conversation/README.md b/packages/client/ui-conversation/README.md
-index b0d9d42936d18674e68cfc2f6610505a540d446f..33f700369dd7b54fbef942c4b77e17d478418bc1 100644
+index b0d9d42936d18674e68cfc2f6610505a540d446f..8601fa578b14ae3a9034d7e6f51061a5e039cc90 100644
 --- a/packages/client/ui-conversation/README.md
 +++ b/packages/client/ui-conversation/README.md
 @@ -70,6 +70,8 @@ The existing semantic `DraftSnapshot` retains quote text and clipboard-coordinat
@@ -47067,8 +47161,17 @@ index b0d9d42936d18674e68cfc2f6610505a540d446f..33f700369dd7b54fbef942c4b77e17d4
  The root-scoped `conversation.hero.frame` hoc Slot wraps the scroll body in every phase, so its layers never remount the composer when the home ends. Its owner props carry `hero`, true only for the blank home of a standalone Conversation. Layers keep the scroll body a direct flex item of the body, for example with `display: contents`. On the home, the Conversation root, which paints the background, isolates stacking: a layer decoration at negative `z-index` paints above that background and below all Conversation content, including composer takeovers. Other phases leave the root out of the stacking order, so unportaled Conversation popovers can still rise above AppFrame chrome that floats over the column. Layers own their own input handling. With no occupant, the body is unchanged.
  
  Below 768px, Web view tabs align with the header's 20px left inset. Desktop and wider Web windows retain the additional 8px tab inset.
+@@ -110,7 +112,7 @@ A claimed command is one atomic chip at the start of the draft, and the claim la
+ 
+ Workspace selection uses `uiWorkspace.openWorkspace` to prepare the target and commit navigation. Draft content, including structured references, and attachments move in its synchronous preparation callback only while that request is current and no submission is in flight; later navigation, owner disposal, or a submission in flight leaves the original draft in its Session.
+ 
+-The package occupies the root-scoped `main` key `conversation`. Its `main.conversation` shell keeps the resident `conversation.header` outside the optional-Session `conversation.content` Component Factory. The header hosts root-scoped navigation without a selected Session; titles, actions, and View tabs remain in its strict Session child. The Factory owns the shared body and Composer, reads the current Session through its standard Hook, and exposes strict-Session `views` plus root-scoped `widthControls` local positions. Its default adapter renders the existing `conversation.session` entry, while the main occurrence selects the width handles; an embedded occurrence can replace `views` and omit those handles without rendering the main Header. Every occurrence passes `onWorkspaceSelected`, which decides what a Workspace picked in the Hero does. It receives the Workspace and an `adopt` function, resolves that Workspace's blank Session, shows it in place of the Session shown before, and calls `adopt` with it in the same step while it retains both Sessions; `adopt` moves the draft. The main occurrence opens the blank as the main Session, and an embedded owner may show it itself. A pick the owner no longer wants resolves without calling `adopt`; a failed pick rejects, its owner reports the failure, and the Hero returns to the Workspace it showed. An embedded occurrence may also pass `headline`, which replaces the Hero headline and preview badge. The shared body and Composer register the queue and Todo docks. The Todo dock uses the shared panel elevation above the composer; its rows use the shared idle, ongoing, and done markers for pending, in-progress, and completed items. `ctx.uiSession.provide()` materializes the Conversation and input sources from the same Session binding and supplies `inputActions` as a stable standard prop.
++The package occupies the root-scoped `main` key `conversation`. Its `main.conversation` shell keeps the resident `conversation.header` outside the optional-Session `conversation.content` Component Factory. The header hosts root-scoped navigation without a selected Session; titles, actions, and View tabs remain in its strict Session child. The Factory owns the shared body and Composer, reads the current Session through its standard Hook, and exposes strict-Session `views` plus root-scoped `widthControls` local positions. Its default adapter renders the existing `conversation.session` entry, while the main occurrence selects the width handles; an embedded occurrence can replace `views` and omit those handles without rendering the main Header. Every occurrence passes `onWorkspaceSelected`, which decides what a Workspace picked in the Hero does. It receives the Workspace and an `adopt` function, resolves that Workspace's blank Session, shows it in place of the Session shown before, and calls `adopt` with it in the same step while it retains both Sessions; `adopt` moves the draft. The main occurrence opens the blank as the main Session, and an embedded owner may show it itself. A pick the owner no longer wants resolves without calling `adopt`; a failed pick rejects, its owner reports the failure, and the Hero returns to the Workspace it showed. An embedded occurrence may also pass `headline`, which replaces the Hero headline and preview badge. The shared body and Composer register the queue and Todo docks. The Todo dock uses the shared panel elevation above the composer; its rows use the shared idle, ongoing, and done markers for pending, in-progress, and completed items. `ctx.uiSession.provide()` materializes the Conversation and input sources from the same Session binding and supplies `inputActions` as a stable standard prop. An embedded conversation can supply a localized `placeholder` for its composer. The workspace picker, blocked model and blank-session greeting each supply their own prompt.
+ 
+ A blank Session retains the header's leading and corner controls, including the right-sidebar opener, while hiding its title, actions, utilities, and View tabs. Selecting a Workspace creates the Session needed by these controls; the first message is not required. Without a selected Session, the strict header is absent; the resident header keeps the blank-Session 40px row on every platform, so the Hero input card sits at the same height before and after a Workspace is bound; on macOS desktop that row is also the window drag row. Sidebar entries retain their own data and execution prerequisites. A started Session header uses one row when fewer than two Views are available; the tab row reserves space only while rendered. When the title and actions do not fit, the title area clips them and fades its trailing edge before the utilities, which stay fully visible and clickable; overlays in the title and actions slots portal to stay outside that clip.
+ 
 diff --git a/packages/client/ui-conversation/README.zh.md b/packages/client/ui-conversation/README.zh.md
-index 11839e19ad2e3f9373f756b2ad740adef882865d..603d1261531caee9cecec1165f0aa26f3740717e 100644
+index 11839e19ad2e3f9373f756b2ad740adef882865d..29e93d966e878030fa25a5cfd0df71d865bf2eef 100644
 --- a/packages/client/ui-conversation/README.zh.md
 +++ b/packages/client/ui-conversation/README.zh.md
 @@ -70,6 +70,8 @@ Queue 预览启用空白折叠和文档边缘 trim，保留 emoji，并使用 CS
@@ -47080,6 +47183,15 @@ index 11839e19ad2e3f9373f756b2ad740adef882865d..603d1261531caee9cecec1165f0aa26f
  root 作用域的 hoc Slot `conversation.hero.frame` 在所有阶段都包裹滚动区，因此首页结束时各层不会让输入框重新挂载。它的所有者 props 提供 `hero`，仅在独立 Conversation 的空白首页时为 true。各层需让滚动区仍是 body 的直接 flex 子项，例如使用 `display: contents`。首页阶段，绘制背景的 Conversation 根元素隔离层叠上下文：层中负 `z-index` 的装饰画在该背景之上、所有 Conversation 内容之下，包括输入区的接管面板。其他阶段根元素不参与层叠隔离，未经 portal 的 Conversation 浮层仍能盖住悬浮在中栏上方的 AppFrame 元素。各层自行处理输入。没有占用者时，body 保持原样。
  
  宽度小于 768px 时，Web 的 View 标签与页头的 20px 左内边距对齐。桌面客户端和较宽的 Web 窗口保留标签额外的 8px 左内边距。
+@@ -110,7 +112,7 @@ root 作用域的 `conversation.session.header.views.actions` list 有注册项
+ 
+ 工作区选择使用 `uiWorkspace.openWorkspace` 准备目标并提交导航。草稿内容（包括结构化引用）和附件仅在该请求仍为当前请求、且没有在途提交时，通过它的同步准备回调搬移；后续导航、所有者释放或在途提交都会把原草稿留在它的 Session 中。
+ 
+-本包占据 root 作用域 `main` 中的 `conversation` key。其 `main.conversation` 外壳将常驻的 `conversation.header` 放在可选 Session 的 `conversation.content` Component Factory 外。未选中 Session 时，头部仍承载根作用域导航；标题、操作和 View 标签保留在严格 Session 子组件中。Factory 拥有共享正文与 Composer，通过其标准 Hook 读取当前 Session，并公开 strict-Session `views` 与 root-scoped `widthControls` 两个局部位置。默认 adapter 渲染现有 `conversation.session` entry，主 occurrence 选择宽度拖拽条；嵌入式 occurrence 可以替换 `views`、省略拖拽条，且不渲染主 Header。每个 occurrence 都传入 `onWorkspaceSelected`，由它决定在 Hero 中选择工作区后做什么。它接收工作区和一个 `adopt` 函数：解析该工作区的空白 Session，用它替换此前显示的 Session，并在同一步、仍保留两个 Session 时以它调用 `adopt`；`adopt` 负责移动草稿。主 occurrence 把这个空白 Session 打开为主 Session，嵌入方可以自己显示它。属主不再需要的选择在不调用 `adopt` 的情况下完成；失败的选择会 reject，由属主报告失败，Hero 回到此前显示的工作区。嵌入式 occurrence 也可以传入 `headline`，用来替换 Hero 的标题与预览徽标。共享正文与 Composer 注册 queue dock 和 Todo dock。Todo dock 在 composer 上方使用共享面板 elevation；其中的行分别以共享 idle、ongoing 与 done 标记表示待处理、进行中与已完成。`ctx.uiSession.provide()` 从同一个 Session binding 物化 Conversation 与 input source，并将 `inputActions` 作为稳定标准 prop 提供。
++本包占据 root 作用域 `main` 中的 `conversation` key。其 `main.conversation` 外壳将常驻的 `conversation.header` 放在可选 Session 的 `conversation.content` Component Factory 外。未选中 Session 时，头部仍承载根作用域导航；标题、操作和 View 标签保留在严格 Session 子组件中。Factory 拥有共享正文与 Composer，通过其标准 Hook 读取当前 Session，并公开 strict-Session `views` 与 root-scoped `widthControls` 两个局部位置。默认 adapter 渲染现有 `conversation.session` entry，主 occurrence 选择宽度拖拽条；嵌入式 occurrence 可以替换 `views`、省略拖拽条，且不渲染主 Header。每个 occurrence 都传入 `onWorkspaceSelected`，由它决定在 Hero 中选择工作区后做什么。它接收工作区和一个 `adopt` 函数：解析该工作区的空白 Session，用它替换此前显示的 Session，并在同一步、仍保留两个 Session 时以它调用 `adopt`；`adopt` 负责移动草稿。主 occurrence 把这个空白 Session 打开为主 Session，嵌入方可以自己显示它。属主不再需要的选择在不调用 `adopt` 的情况下完成；失败的选择会 reject，由属主报告失败，Hero 回到此前显示的工作区。嵌入式 occurrence 也可以传入 `headline`，用来替换 Hero 的标题与预览徽标。共享正文与 Composer 注册 queue dock 和 Todo dock。Todo dock 在 composer 上方使用共享面板 elevation；其中的行分别以共享 idle、ongoing 与 done 标记表示待处理、进行中与已完成。`ctx.uiSession.provide()` 从同一个 Session binding 物化 Conversation 与 input source，并将 `inputActions` 作为稳定标准 prop 提供。 嵌入的会话可以通过 `placeholder` 指定输入框提示。工作区选择、需要切换模型和空会话问候各自使用对应的提示。
+ 
+ blank Session 保留 header 的 leading 与 corner 控件，包括右侧栏展开入口，同时隐藏标题、actions、utilities 和 View tabs。选择 Workspace 会创建这些控件所需的 Session，无需先发送消息。没有选中 Session 时，strict header 不挂载；常驻 header 在所有平台都保留与 blank Session 相同的 40px 行，因此绑定 Workspace 前后 Hero 输入卡片的高度位置不变；在 macOS 桌面上，这一行同时是窗口拖拽行。侧栏各入口仍遵循自身的数据与执行环境要求。 已开始的 Session 在可用 View 少于两个时使用单行标题栏，仅在渲染标签行时保留其高度。标题与 actions 放不下时，标题区域会裁剪它们，并在 utilities 之前渐隐其末端；utilities 始终完整可见且可点击；标题与 actions slot 中的浮层通过 portal 渲染，不受该裁剪影响。
+ 
 diff --git a/packages/client/ui-conversation/src/client/apply.ts b/packages/client/ui-conversation/src/client/apply.ts
 index 76ac04040b6291e8b2e4eca3ed15db664e4e95d4..937b517da369ef5d85cc5c6829be5294e715eb06 100644
 --- a/packages/client/ui-conversation/src/client/apply.ts
@@ -47133,7 +47245,7 @@ index 76ac04040b6291e8b2e4eca3ed15db664e4e95d4..937b517da369ef5d85cc5c6829be5294
            notices: shell.notices,
            lexicon: shell.lexicon,
 diff --git a/packages/client/ui-conversation/src/client/contract/slots.ts b/packages/client/ui-conversation/src/client/contract/slots.ts
-index 0e9ab07b005dee55d5460bb3bebddce7a6fafcb3..003eb0670cc4597e52748e2e36454bc5546d933e 100644
+index 0e9ab07b005dee55d5460bb3bebddce7a6fafcb3..eeb7d4b1ad4753555ee3b4f5daa5c01d4d78c7f1 100644
 --- a/packages/client/ui-conversation/src/client/contract/slots.ts
 +++ b/packages/client/ui-conversation/src/client/contract/slots.ts
 @@ -634,6 +634,8 @@ export interface ComposerBarInjected {
@@ -47154,6 +47266,15 @@ index 0e9ab07b005dee55d5460bb3bebddce7a6fafcb3..003eb0670cc4597e52748e2e36454bc5
      /** Live per-draft upload states for drafts that upload when added. */
      fileUploads: ObservableSnapshot<DraftFileUploads>
      notices: ObservableSnapshot<InputNotice | null>
+@@ -736,6 +740,8 @@ export interface ConversationContentInputProps {
+   hero: boolean
+   /** What a Workspace picked in the Hero does in this occurrence; the main occurrence opens it as the main Session. */
+   onWorkspaceSelected: WorkspaceSelectedHandler
++  /** Localized prompt for the active composer in this occurrence. */
++  placeholder?: string
+   /** Text the blank-session Hero shows instead of its default headline and preview badge. */
+   headline?: string | undefined
+ }
 diff --git a/packages/client/ui-conversation/src/client/input/editor/DraftEditor.tsx b/packages/client/ui-conversation/src/client/input/editor/DraftEditor.tsx
 index 87c8f63df2a9ebe64acae72241a92f775b10835e..f686737a7d15424056ebaa902e1674ed88228101 100644
 --- a/packages/client/ui-conversation/src/client/input/editor/DraftEditor.tsx
@@ -49015,7 +49136,7 @@ index 0000000000000000000000000000000000000000..f8796dfddf1a2f51b01e9ec1e896a481
 +  expect(screen.getByRole('alert').textContent).toBe('连接中断')
 +})
 diff --git a/packages/client/ui-commands/README.i18n.yaml b/packages/client/ui-commands/README.i18n.yaml
-index 6b6e6681ffa6e6c66677b8d6ca9c2bd2085af051..b1b64ca005a17a94cce2d9df30187cf67f593b73 100644
+index 6b6e6681ffa6e6c66677b8d6ca9c2bd2085af051..33d3e452cac1271fef121c293714ff4f930604ef 100644
 --- a/packages/client/ui-commands/README.i18n.yaml
 +++ b/packages/client/ui-commands/README.i18n.yaml
 @@ -3,23 +3,23 @@
@@ -49040,8 +49161,8 @@ index 6b6e6681ffa6e6c66677b8d6ca9c2bd2085af051..b1b64ca005a17a94cce2d9df30187cf6
  /deepseek-ai-dsh-client-ui-commands/use-this-package:
 -  en: c325c9eaca4efe47
 -  zh: dbbc29cc9cec54bc
-+  en: 50edf711df477c14
-+  zh: 883d7a9db3633951
++  en: dacb9b82027fec7c
++  zh: c39350745379d341
  /deepseek-ai-dsh-client-ui-commands/use-this-package/kinds-and-decorations:
 -  en: af1cf6b11bd61331
 -  zh: 9ad85e6dbca1d4ec
@@ -49051,7 +49172,7 @@ index 6b6e6681ffa6e6c66677b8d6ca9c2bd2085af051..b1b64ca005a17a94cce2d9df30187cf6
    en: e96156be95ea87e3
    zh: f5350db26483ec9f
 diff --git a/packages/client/ui-commands/README.md b/packages/client/ui-commands/README.md
-index 06af4c2eda554c948c835a6fb7d878afa2fbbe7f..b97de8531ebe7cd2a21518501dce48c190fb2437 100644
+index 06af4c2eda554c948c835a6fb7d878afa2fbbe7f..1f58c0865309f6b93b9b812cca11c95852be9403 100644
 --- a/packages/client/ui-commands/README.md
 +++ b/packages/client/ui-commands/README.md
 @@ -1,5 +1,5 @@
@@ -49070,10 +49191,12 @@ index 06af4c2eda554c948c835a6fb7d878afa2fbbe7f..b97de8531ebe7cd2a21518501dce48c1
  
  ## Table of Contents
  
-@@ -25,11 +25,13 @@ Typing a `/` command opens a registered popup, a client action, a host command's
+@@ -25,11 +25,15 @@ Typing a `/` command opens a registered popup, a client action, a host command's
  <a id="use-this-package"></a>
  ## Use this package
  
++Open **Side question** in the conversation header or the right sidebar’s **Start** tab, or enter `/side` in the main composer. A question or image sent with `/side` goes to the side conversation. Its composer supports follow-ups while the main task runs. Closing the tab and opening it again returns to the same discussion.
++
 +Enter `/btw <question>` in the main composer to see an independent answer above it. Each question gets its own Session and can run during the main task. General Settings controls the reasoning effort.
 +
  Mount this plugin alongside `ui-input-trigger` and `ui-conversation`; the `/` source then appears in the trigger menu, and business packages register their command surfaces through `ctx.commandUi`. Typing `/model` opens the registered popup; a host command with an argument claim opens its input or executes directly. The popup automatically focuses its search input on desktop. Phones and tablets require tapping the search input, following the shared [text-input focus policy](../ui-primitives/README.md#use-this-package). With search focused, typing filters the loaded rows locally, `↑`/`↓` walk them, Enter and `Tab` accept the highlighted row, and Escape and `Shift+Tab` return to the composer. The highlight opens on the row the options mark as the session's current value, so accepting on a freshly opened panel confirms it. The composer's `+` button and a typed `/` open the same menu: an Add section (File, Goal, Plan, Feedback) and a Commands section (Compact, Permission, Model, Export) in usage order, each row with a glyph, a localized title and description, and the command name as an alias where the localized title differs from it.
@@ -49086,7 +49209,7 @@ index 06af4c2eda554c948c835a6fb7d878afa2fbbe7f..b97de8531ebe7cd2a21518501dce48c1
  A popupSelect spec may supply `searchLabels()` to resolve its placeholder, empty-catalog text, and no-match text for each opening. Omitted labels retain the shell's generic copy; labels from one popup never carry into the next.
  
 diff --git a/packages/client/ui-commands/README.zh.md b/packages/client/ui-commands/README.zh.md
-index 57815c729b07d7d270e002ac9227686134a074fd..e51cf80d3667ef98d747646d432916ec5475bf34 100644
+index 57815c729b07d7d270e002ac9227686134a074fd..1c03b8fb09a98358f7870f09b4275cd319ec67ab 100644
 --- a/packages/client/ui-commands/README.zh.md
 +++ b/packages/client/ui-commands/README.zh.md
 @@ -1,5 +1,5 @@
@@ -49105,10 +49228,12 @@ index 57815c729b07d7d270e002ac9227686134a074fd..e51cf80d3667ef98d747646d432916ec
  
  ## 目录
  
-@@ -25,11 +25,13 @@ kind: "package-reference"
+@@ -25,11 +25,15 @@ kind: "package-reference"
  <a id="use-this-package"></a>
  ## 使用本包
  
++点击会话顶部的**旁问**、右侧**开始**页的旁问入口，或在主输入框中输入 `/side`。随命令提交的文字和图片会进入旁问。主任务运行时可以在右侧继续提问，关掉标签再打开可接着原来的讨论。
++
 +在主对话输入 `/btw 问题`，可在输入框上方查看独立回答。每次随问拥有自己的会话，可在主任务进行中使用。思考等级在通用设置中调整。
 +
  与 `ui-input-trigger` 及 `ui-conversation` 一起挂载本插件；`/` source 随即出现在触发菜单中，业务包经 `ctx.commandUi` 注册自己的命令表面。键入 `/model` 打开已注册的弹窗；带参数声明的宿主命令打开其输入或直接执行。桌面端的弹窗自动聚焦搜索框。手机和平板需要点击搜索框，遵循共享的[文字输入框聚焦策略](../ui-primitives/README.zh.md#use-this-package)。搜索框聚焦后，键入即在已加载的行上本地筛选，`↑`／`↓` 在行间移动，回车与 `Tab` 接受高亮行，Escape 与 `Shift+Tab` 把焦点还给 composer。高亮落在选项标记为会话当前值的行上，因此在刚打开的弹窗上接受即确认当前值。composer 的 `+` 按钮与键入的 `/` 打开同一个菜单：「添加」小节（文件、目标、计划、反馈）与「指令」小节（压缩、权限、模型、下载日志）按使用频次排列，每行带图标、本地化的标题与说明，本地化标题与命令名不同时还显示命令名作为别名。
@@ -49121,7 +49246,7 @@ index 57815c729b07d7d270e002ac9227686134a074fd..e51cf80d3667ef98d747646d432916ec
  popupSelect 规格可提供 `searchLabels()`，在每次打开时解析占位文字、空目录提示和无匹配提示。未提供时保留外壳的通用文案；一个弹窗的文案不会沿用到下一个弹窗。
  
 diff --git a/packages/client/ui-commands/package.json b/packages/client/ui-commands/package.json
-index df15aa58c36fb68e95e703c5b86bc7fb84757b6e..726cdc19c4e7b56f40472c3827a66fd56fabdd9c 100644
+index df15aa58c36fb68e95e703c5b86bc7fb84757b6e..633241eb3470a6ac9f2072de18a81ba821102aed 100644
 --- a/packages/client/ui-commands/package.json
 +++ b/packages/client/ui-commands/package.json
 @@ -43,7 +43,11 @@
@@ -49137,7 +49262,7 @@ index df15aa58c36fb68e95e703c5b86bc7fb84757b6e..726cdc19c4e7b56f40472c3827a66fd5
    },
    "devDependencies": {
      "@deepseek-ai/dsh-brand": "workspace:*",
-@@ -65,7 +69,11 @@
+@@ -65,7 +69,13 @@
      "@deepseek-ai/dsh-client-ui-renderer": "workspace:*",
      "@deepseek-ai/dsh-client-ui-session": "workspace:*",
      "clsx": "^2.0.0",
@@ -49146,7 +49271,9 @@ index df15aa58c36fb68e95e703c5b86bc7fb84757b6e..726cdc19c4e7b56f40472c3827a66fd5
 +    "@deepseek-ai/dsh-client-ui-chat": "workspace:*",
 +    "@deepseek-ai/dsh-client-ui-sidebar-right": "workspace:*",
 +    "@deepseek-ai/dsh-client-ui-settings": "workspace:*",
-+    "@deepseek-ai/dsh-settings": "workspace:*"
++    "@deepseek-ai/dsh-settings": "workspace:*",
++    "@deepseek-ai/dsh-client-resources": "workspace:*",
++    "@deepseek-ai/dsh-typert-protocol": "workspace:*"
    },
    "files": [
      "locale/*.json",
@@ -49655,7 +49782,7 @@ index e0a15c54dcf1692a2d65ec427f656353a0039a87..78c47419ac979182af29a387fe283ff6
     * @param sessionId - session key.
     */
 diff --git a/packages/client/ui-commands/src/client/index.ts b/packages/client/ui-commands/src/client/index.ts
-index 2cadc1328702aabd72e1b685bf67076aa36d5e6e..b1dd30e08486401f6e24c1d793a641b667a4d2a3 100644
+index 2cadc1328702aabd72e1b685bf67076aa36d5e6e..a10a4fd70e911a6a2f0f5830a7dade64596ce0dd 100644
 --- a/packages/client/ui-commands/src/client/index.ts
 +++ b/packages/client/ui-commands/src/client/index.ts
 @@ -27,7 +27,7 @@ export { filterOptions, PopupSelectController } from './popup.ts'
@@ -49667,25 +49794,27 @@ index 2cadc1328702aabd72e1b685bf67076aa36d5e6e..b1dd30e08486401f6e24c1d793a641b6
    SelectConfirmation, SelectOption, SelectOptionGroup,
  } from './contract.ts'
  export type { CommandKey } from './locales.ts'
-@@ -45,6 +45,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
+@@ -45,6 +45,9 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
    }
  }
  
++import { registerSideConversations } from './asides/side.ts'
 +import { registerQuickQuestions } from './asides/index.ts'
 +
  /** Dictionary namespace owned by this plugin. */
  const NS = 'command'
  
-@@ -56,6 +58,7 @@ export const inject = ['inputTriggers', 'sessions', 'remote', 'remote.commands',
+@@ -56,6 +59,8 @@ export const inject = ['inputTriggers', 'sessions', 'remote', 'remote.commands',
   * @param ctx - client root context.
   */
  export function apply(ctx: ClientContext): void {
 +  registerQuickQuestions(ctx)
++  registerSideConversations(ctx)
    ctx.effect(() => ctx.locale.register(NS, { zh, en, ja, es, fr, de, ru, pt }), 'ui-commands: dictionaries')
    ctx.plugin(CommandUiRuntime)
    ctx.inject(['slots', 'commandUi', 'sessions'], (scope: ClientContext) => {
 diff --git a/packages/client/ui-commands/src/client/locales.ts b/packages/client/ui-commands/src/client/locales.ts
-index a0c2f140122024573662fba46e0b0cffea665e56..381e353161505e2dc6428b67407742bc29605290 100644
+index a0c2f140122024573662fba46e0b0cffea665e56..9213f390c7275e82610c753c61f5bbc66577a39e 100644
 --- a/packages/client/ui-commands/src/client/locales.ts
 +++ b/packages/client/ui-commands/src/client/locales.ts
 @@ -9,6 +9,22 @@ import { builtinCommandTokens } from '@deepseek-ai/dsh-commands/builtin'
@@ -49697,7 +49826,7 @@ index a0c2f140122024573662fba46e0b0cffea665e56..381e353161505e2dc6428b67407742bc
 +  'aside.btwHint': '只读地问当前进度或一个小问题',
 +  'aside.btwRequired': '请在 /btw 后输入问题内容',
 +  'aside.close': '关闭随问',
-+  'aside.submitFailed': '未能确认随问已提交。内容已保留，请先检查结果再重试',
++  'aside.submitFailed': '未能确认提问已提交。内容已保留，请先检查结果再重试',
 +  'aside.inlineFailed': '未能创建随问，问题仍保留在输入框中',
 +  'aside.loading': '正在打开问答',
 +  'aside.reasoning.title': '随问思考等级',
@@ -49711,7 +49840,21 @@ index a0c2f140122024573662fba46e0b0cffea665e56..381e353161505e2dc6428b67407742bc
    'section.add': '添加',
    'section.commands': '指令',
    'label.goal': '目标',
-@@ -44,6 +60,22 @@ export type CommandKey = keyof typeof zh
+@@ -37,6 +53,13 @@ export const zh = {
+   'overlay.aria': '/{command} 选项',
+   'listbox.aria': '/{command} 匹配项',
+   'notice.attachmentsUnsupported': '/{command} 不接受附件，请先移除附件',
++  'aside.side': '旁问',
++  'aside.sideDescription': '在右侧接着当前上下文提问；关闭后可继续',
++  'aside.imageOnly': '/side 仅接受图片附件，请移除其他文件后重试',
++  'aside.imageModelUnsupported': '当前旁问模型不支持图片，请切换到支持图片的模型',
++  'aside.placeholder': '旁问：在这里输入你的问题',
++  'aside.inherited': '每次提问同步主线已完成的新进展，旁问内容独立保留',
++  'aside.failed': '未能打开问答，请关闭面板后用 /side 重试',
+ } satisfies Record<string, string>
+ 
+ /** The command namespace key union. */
+@@ -44,6 +67,22 @@ export type CommandKey = keyof typeof zh
  
  /** English dictionary, checked complete against the zh key set. */
  export const en = {
@@ -49734,10 +49877,28 @@ index a0c2f140122024573662fba46e0b0cffea665e56..381e353161505e2dc6428b67407742bc
    'section.add': 'Add',
    'section.commands': 'Commands',
    'label.goal': 'Goal',
-@@ -76,6 +108,22 @@ export const en = {
+@@ -72,10 +111,40 @@ export const en = {
+   'overlay.aria': '/{command} options',
+   'listbox.aria': '/{command} matches',
+   'notice.attachmentsUnsupported': '/{command} does not accept attachments; remove them first',
++  'aside.side': 'Side question',
++  'aside.sideDescription': 'Ask in the right panel with the current context; reopen to continue',
++  'aside.imageOnly': '/side accepts image attachments only. Remove other files and try again.',
++  'aside.imageModelUnsupported': 'Switch the side question to a model that supports images.',
++  'aside.placeholder': 'Side question: ask here',
++  'aside.inherited': 'Each question receives completed main-task updates; side history stays independent',
++  'aside.failed': 'Could not open the question. Close the panel and use /side to retry.',
+ } satisfies Record<CommandKey, string>
  
  /** Japanese copy, checked against the English keys. */
  export const ja = {
++  'aside.side': 'サイド質問',
++  'aside.sideDescription': '右のパネルで質問し、後から同じ会話を続けられます',
++  'aside.imageOnly': '/side に添付できるのは画像だけです。他のファイルを外してください。',
++  'aside.imageModelUnsupported': '画像に対応するモデルに切り替えてください。',
++  'aside.placeholder': 'ここにサイド質問を入力',
++  'aside.inherited': '主会話で完了したやり取りを参照します。サイド質問の履歴は別に保存されます。',
++  'aside.failed': 'サイド質問を開けません。パネルを閉じて /side で再度開いてください。',
 +  'aside.btw': 'クイック質問',
 +  'aside.btwDescription': '進行中の作業について一度だけ質問する',
 +  'aside.btwHint': '進捗や作業の詳細について質問',
@@ -49757,10 +49918,17 @@ index a0c2f140122024573662fba46e0b0cffea665e56..381e353161505e2dc6428b67407742bc
    'section.add': '追加',
    'section.commands': 'コマンド',
    'label.goal': '目標',
-@@ -108,6 +156,22 @@ export const ja = {
+@@ -108,6 +177,29 @@ export const ja = {
  
  /** Spanish dictionary, checked against the English keys. */
  export const es = {
++  'aside.side': 'Pregunta paralela',
++  'aside.sideDescription': 'Pregunta en el panel derecho y retoma la conversación más tarde.',
++  'aside.imageOnly': '/side solo admite imágenes. Quita los demás archivos.',
++  'aside.imageModelUnsupported': 'Cambia a un modelo que admita imágenes.',
++  'aside.placeholder': 'Escribe tu pregunta aquí',
++  'aside.inherited': 'Cada pregunta recibe los turnos terminados de la conversación principal. Su historial se guarda por separado.',
++  'aside.failed': 'No se pudo abrir la pregunta. Cierra el panel y vuelve a usar /side.',
 +  'aside.btw': 'Pregunta rápida',
 +  'aside.btwDescription': 'Haz una pregunta sobre la tarea en curso',
 +  'aside.btwHint': 'Pregunta por el progreso o por un detalle',
@@ -49780,10 +49948,17 @@ index a0c2f140122024573662fba46e0b0cffea665e56..381e353161505e2dc6428b67407742bc
    'section.add': 'Añadir',
    'section.commands': 'Comandos',
    'label.goal': 'Objetivo',
-@@ -140,6 +204,22 @@ export const es = {
+@@ -140,6 +232,29 @@ export const es = {
  
  /** French dictionary, checked against the English keys. */
  export const fr = {
++  'aside.side': 'Question en parallèle',
++  'aside.sideDescription': 'Posez une question dans le volet droit et reprenez la discussion plus tard.',
++  'aside.imageOnly': '/side accepte uniquement les images. Retirez les autres fichiers.',
++  'aside.imageModelUnsupported': 'Choisissez un modèle compatible avec les images.',
++  'aside.placeholder': 'Posez votre question ici',
++  'aside.inherited': 'Chaque question reçoit les échanges terminés de la conversation principale. Son historique est conservé séparément.',
++  'aside.failed': 'Impossible d’ouvrir la discussion. Fermez le volet et réessayez avec /side.',
 +  'aside.btw': 'Question rapide',
 +  'aside.btwDescription': 'Poser une question sur la tâche en cours',
 +  'aside.btwHint': 'Demander où en est la tâche ou préciser un détail',
@@ -49803,10 +49978,17 @@ index a0c2f140122024573662fba46e0b0cffea665e56..381e353161505e2dc6428b67407742bc
    'section.add': 'Ajouter',
    'section.commands': 'Commandes',
    'label.goal': 'Objectif',
-@@ -172,6 +252,22 @@ export const fr = {
+@@ -172,6 +287,29 @@ export const fr = {
  
  /** German dictionary, checked against the English keys. */
  export const de = {
++  'aside.side': 'Nebenfrage',
++  'aside.sideDescription': 'Im rechten Bereich fragen und die Unterhaltung später fortsetzen.',
++  'aside.imageOnly': '/side unterstützt nur Bilder. Entferne andere Anhänge.',
++  'aside.imageModelUnsupported': 'Wähle ein Modell, das Bilder unterstützt.',
++  'aside.placeholder': 'Nebenfrage hier eingeben',
++  'aside.inherited': 'Jede Frage erhält die abgeschlossenen Beiträge des Hauptgesprächs. Der Verlauf der Nebenfrage wird separat gespeichert.',
++  'aside.failed': 'Die Nebenfrage konnte nicht geöffnet werden. Schließe den Bereich und versuche es erneut mit /side.',
 +  'aside.btw': 'Kurzfrage',
 +  'aside.btwDescription': 'Eine Frage zur laufenden Aufgabe stellen',
 +  'aside.btwHint': 'Nach dem Fortschritt oder einem Detail fragen',
@@ -49826,10 +50008,17 @@ index a0c2f140122024573662fba46e0b0cffea665e56..381e353161505e2dc6428b67407742bc
    'section.add': 'Hinzufügen',
    'section.commands': 'Befehle',
    'label.goal': 'Ziel',
-@@ -204,6 +300,22 @@ export const de = {
+@@ -204,6 +342,29 @@ export const de = {
  
  /** Russian dictionary, checked against the English keys. */
  export const ru = {
++  'aside.side': 'Параллельный вопрос',
++  'aside.sideDescription': 'Задайте вопрос справа и вернитесь к обсуждению позже.',
++  'aside.imageOnly': 'К /side можно прикрепить только изображения. Удалите остальные файлы.',
++  'aside.imageModelUnsupported': 'Выберите модель, которая поддерживает изображения.',
++  'aside.placeholder': 'Введите вопрос здесь',
++  'aside.inherited': 'Вопрос учитывает завершённые ответы основного чата. История обсуждения хранится отдельно.',
++  'aside.failed': 'Не удалось открыть обсуждение. Закройте панель и снова введите /side.',
 +  'aside.btw': 'Быстрый вопрос',
 +  'aside.btwDescription': 'Задать вопрос о текущей задаче',
 +  'aside.btwHint': 'Спросите о ходе работы или уточните деталь',
@@ -49849,10 +50038,17 @@ index a0c2f140122024573662fba46e0b0cffea665e56..381e353161505e2dc6428b67407742bc
    'section.add': 'Добавить',
    'section.commands': 'Команды',
    'label.goal': 'Цель',
-@@ -236,6 +348,22 @@ export const ru = {
+@@ -236,6 +397,29 @@ export const ru = {
  
  /** Portuguese dictionary, checked against the English keys. */
  export const pt = {
++  'aside.side': 'Pergunta paralela',
++  'aside.sideDescription': 'Pergunte no painel direito e retome a conversa mais tarde.',
++  'aside.imageOnly': '/side aceita apenas imagens. Remova os outros arquivos.',
++  'aside.imageModelUnsupported': 'Escolha um modelo que aceite imagens.',
++  'aside.placeholder': 'Digite sua pergunta aqui',
++  'aside.inherited': 'Cada pergunta recebe as interações concluídas na conversa principal. O histórico é salvo separadamente.',
++  'aside.failed': 'Não foi possível abrir a conversa. Feche o painel e tente novamente com /side.',
 +  'aside.btw': 'Pergunta rápida',
 +  'aside.btwDescription': 'Faça uma pergunta sobre a tarefa em andamento',
 +  'aside.btwHint': 'Pergunte sobre o progresso ou um detalhe',
@@ -50161,7 +50357,7 @@ index 0000000000000000000000000000000000000000..16da80c5c24a8d2b8244432502feafd8
 +  })
 +})
 diff --git a/packages/client/ui-commands/tsconfig.json b/packages/client/ui-commands/tsconfig.json
-index ce880c6109fbf6c9dd624dd45f72ed6bb300bad7..2e785c095af97970dbfd5bac5f73b439adebfb88 100644
+index ce880c6109fbf6c9dd624dd45f72ed6bb300bad7..7b8fa3e35a87aeadb6387d8c67c64053ab21f9be 100644
 --- a/packages/client/ui-commands/tsconfig.json
 +++ b/packages/client/ui-commands/tsconfig.json
 @@ -8,6 +8,18 @@
@@ -50183,35 +50379,52 @@ index ce880c6109fbf6c9dd624dd45f72ed6bb300bad7..2e785c095af97970dbfd5bac5f73b439
      {
        "path": "../../util/text-search"
      },
+@@ -52,6 +64,12 @@
+     },
+     {
+       "path": "../../util/values"
++    },
++    {
++      "path": "../resources"
++    },
++    {
++      "path": "../../typert/protocol"
+     }
+   ]
+ }
 diff --git a/packages/client/ui-workspace/src/client/tree.ts b/packages/client/ui-workspace/src/client/tree.ts
-index e432390961f9b4b1aff2c69284cccff23fd11c32..1585a69502f96e1ada658a08e4a21fe8878ca67a 100644
+index e432390961f9b4b1aff2c69284cccff23fd11c32..0c59d67e661f052f9dae6bb6dc95a1c5d46788c7 100644
 --- a/packages/client/ui-workspace/src/client/tree.ts
 +++ b/packages/client/ui-workspace/src/client/tree.ts
-@@ -239,6 +239,8 @@ function sessionVisible(
+@@ -239,6 +239,9 @@ function sessionVisible(
    archivedFilter: ArchivedFilter,
  ): boolean {
    if (session.origin === 'subagent') return false
 +  if (session.parentId !== undefined
-+    && /^session-btw-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(session.id)) return false
++    && (/^session-side-[0-9a-f]{64}(?:-[1-9][0-9]*)?$/u.test(session.id)
++      || /^session-btw-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(session.id))) return false
    if (session.blank && session.id !== current) return false
    switch (archivedFilter) {
      case 'default':
 diff --git a/packages/client/ui-workspace/tests/tree.client.spec.ts b/packages/client/ui-workspace/tests/tree.client.spec.ts
-index dae2e1b7ef139fee5963889e9fbacf023d4e79c7..35799f25db9bf60f96ae4355ff67042b33fd21b9 100644
+index dae2e1b7ef139fee5963889e9fbacf023d4e79c7..5f5218a67036ec27cb114ba8e80018f3a9e0baf4 100644
 --- a/packages/client/ui-workspace/tests/tree.client.spec.ts
 +++ b/packages/client/ui-workspace/tests/tree.client.spec.ts
-@@ -320,6 +320,16 @@ describe('deriveGroups', () => {
+@@ -320,6 +320,19 @@ describe('deriveGroups', () => {
      ])
    })
  
-+  it('keeps ordinary forks visible and omits inline questions owned by their parent', () => {
++  it('keeps ordinary forks visible and omits native questions owned by their parent', () => {
 +    const parentId = sid('writing')
 +    const childId = 'session-btw-60000000-0000-4000-8000-000000000001'
 +    const standalone = 'session-btw-60000000-0000-4000-8000-000000000002'
-+    const items = list(summary(parentId, 1), { ...summary('fork', 3), parentId }, { ...summary(childId, 4), parentId }, summary(standalone, 2))
++    const side = `session-side-${'a'.repeat(64)}`
++    const items = list(summary(parentId, 1), { ...summary('fork', 3), parentId }, { ...summary(childId, 4), parentId },
++      { ...summary(side, 5), parentId }, { ...summary(side + '-2', 6), parentId }, summary(standalone, 2))
 +    const groups = deriveGroups(items, [workspace('first', [parentId, 'fork', childId, standalone])], noRows, noAttention, view(['first']))
 +    expect(groups[0]!.sessions.map(session => session.id)).toEqual(expect.arrayContaining([parentId, sid('fork'), sid(standalone)]))
 +    expect(groups[0]!.sessions).toHaveLength(3)
++    expect(groups).toHaveLength(1)
 +  })
 +
    it('shows only the current blank session in its Workspace count and tree', () => {
@@ -50267,10 +50480,10 @@ index 0000000000000000000000000000000000000000..cb140921f3d3b7954264b9337f8c5e81
 +}
 diff --git a/packages/api/session-controller/src/aside-sessions.ts b/packages/api/session-controller/src/aside-sessions.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..687f0c733a6852fddb9c212e62b181d19967751f
+index 0000000000000000000000000000000000000000..f8dba5c400b84cb3658087f0a8c3a622fb82641e
 --- /dev/null
 +++ b/packages/api/session-controller/src/aside-sessions.ts
-@@ -0,0 +1,168 @@
+@@ -0,0 +1,184 @@
 +/** Publication and lifetime of native side conversations and one-shot questions. */
 +import { randomUUID } from 'node:crypto'
 +import type { Context } from '@deepseek-ai/cordis'
@@ -50279,7 +50492,7 @@ index 0000000000000000000000000000000000000000..687f0c733a6852fddb9c212e62b181d1
 +import { errorChain, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 +import { setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy'
 +import { setApprovalPolicy } from '@deepseek-ai/dsh-user-approval'
-+import type { SessionId } from '@deepseek-ai/dsh-session'
++import type { Session, SessionId } from '@deepseek-ai/dsh-session'
 +import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 +import type { ApiSessionAgentController } from './agent.ts'
 +import { currentSide, sideIdentity } from './aside-identity.ts'
@@ -50287,6 +50500,7 @@ index 0000000000000000000000000000000000000000..687f0c733a6852fddb9c212e62b181d1
 +
 +/** Owns independent aside Agents and drains admissions when the Host stops. */
 +export class AsideSessions {
++  private readonly releasingSaved = new WeakSet<Session>()
 +  private readonly handles = new Map<SessionId, AgentHandle>()
 +  private readonly pending = new Set<Promise<SessionForkValue>>()
 +  private readonly retiring = new Set<Promise<void>>()
@@ -50326,12 +50540,27 @@ index 0000000000000000000000000000000000000000..687f0c733a6852fddb9c212e62b181d1
 +    this.handles.set(handle.agent.id, handle)
 +  }
 +
++  /** Whether this disposal releases only the writer of a successfully flushed aside.
++   * @param session - Exact Session being detached from this Host.
++   * @returns Whether its saved conversation remains available for follow-ups.
++   */
++  isReleasingSaved(session: Session): boolean {
++    return this.releasingSaved.has(session)
++  }
++
++  private async releaseSaved(handle: AgentHandle): Promise<void> {
++    const { session } = handle.agent
++    this.releasingSaved.add(session)
++    try { await handle.dispose() }
++    finally { this.releasingSaved.delete(session) }
++  }
++
 +  private async releaseWhenDurable(handle: AgentHandle): Promise<void> {
 +    const { agent } = handle
 +    await agent.whenIdle()
 +    if (this.closed || this.handles.get(agent.id) !== handle || !this.ctx.get('sessionPersistence')) return
 +    if (await this.ctx.sessions.flush(agent.session) && agent.status === 'idle' && this.handles.get(agent.id) === handle) {
-+      await handle.dispose()
++      await this.releaseSaved(handle)
 +    }
 +  }
 +
@@ -50410,7 +50639,7 @@ index 0000000000000000000000000000000000000000..687f0c733a6852fddb9c212e62b181d1
 +      handle.agent.model.select(selection)
 +      this.retain(handle)
 +      if (await this.ctx.sessions.flush(handle.agent.session) && this.ctx.get('sessionPersistence')) {
-+        await handle.dispose()
++        await this.releaseSaved(handle)
 +      }
 +      return { sessionId: child }
 +    } catch (error) {
@@ -50497,3 +50726,433 @@ index 0000000000000000000000000000000000000000..8b52b7a00fb404db1023772fd0580476
 +    await expect(open()).rejects.toMatchObject({ code: 'session/fork-unavailable' })
 +  } finally { await ctx.fiber.dispose() }
 +})
+diff --git a/apps/web/tests/persistent-side.e2e.ts b/apps/web/tests/persistent-side.e2e.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..9b5a44a82adfd4f820f3503cfbac02d9ae79c269
+--- /dev/null
++++ b/apps/web/tests/persistent-side.e2e.ts
+@@ -0,0 +1,99 @@
++/** Run the three persistent side-discussion entry points against the Web profile. */
++import { readFile } from 'node:fs/promises'
++import { fileURLToPath } from 'node:url'
++import { chromium } from 'playwright'
++import { expect, it } from 'vitest'
++import { createUserMessage } from '@deepseek-ai/dsh-llm'
++import type { SessionId } from '@deepseek-ai/dsh-session'
++import { MockAdapter, textResponse } from '../../../packages/core/agent-loop/tests/mock-adapter.ts'
++import { launchWebScaffold } from './scaffold.ts'
++import { newEnglishPage } from './support.ts'
++
++class SideAdapter extends MockAdapter {
++  override listModels(provider: string) {
++    return Promise.resolve([{ provider, id: 'mock', name: 'Writing fixture', contextWindow: 128000, inputModalities: ['text', 'image'] as const }])
++  }
++}
++
++it('opens, sends an image and continues one side discussion without interrupting the main conversation', async () => {
++  const scaffold = await launchWebScaffold({ extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
++  try {
++    const adapter = new SideAdapter([textResponse('The market opens at dawn.'), 'hang',
++      textResponse('The cover is red.'), textResponse('Keep the red cover.')])
++    scaffold.ctx.llm.registerAdapter(['side-fixture'], adapter)
++    const ctx = scaffold.ctx
++    const api = ctx.sessionController
++    const { sessionId } = await api.create({ cwd: scaffold.workspaceCwd })
++    const workspace = await ctx.workspaceRegistry.create(scaffold.workspaceCwd)
++    await workspace.setTitle('Writing workspace')
++    await workspace.attachSession(sessionId)
++    await api.rename({ sessionId, title: 'Market notebook' })
++    await api.selectModel({ sessionId, provider: 'side-fixture', model: 'mock' })
++    const main = ctx.agents.get(sessionId)!
++    const prompt = (text: string) => createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text }] })
++    main.followup(prompt('Draft the opening.'))
++    await main.whenIdle()
++    main.followup(prompt('UNFINISHED CHAPTER'))
++    await expect.poll(() => adapter.requests.length).toBe(2)
++    const childIds = new Set<SessionId>()
++    ctx.on('session/event', (session, event) => {
++      if (session.header.parentSession === sessionId && event.type === 'user/message' && event.data.source.kind === 'user') childIds.add(session.id)
++    })
++    const png = await readFile(new URL('../../../snapshots/session/read-image/workspace/red.png', import.meta.url))
++    const browser = await chromium.launch()
++    try {
++      const page = await newEnglishPage(browser)
++      page.setDefaultTimeout(12_000)
++      await page.goto(scaffold.authenticatedUrl)
++      const group = page.getByRole('treeitem').filter({ has: page.getByText('Writing workspace', { exact: true }) })
++      await group.waitFor()
++      if (await group.getAttribute('aria-expanded') === 'false') await group.press('ArrowRight')
++      await page.getByRole('treeitem').filter({ hasText: 'Market notebook' }).click()
++      const header = page.getByRole('button', { name: 'Side question', exact: true }).first()
++      const panel = page.locator('[data-aside="side"]:visible')
++      const composer = '[data-composer-input][contenteditable="true"]'
++      const closeTab = page.getByRole('tab').filter({ hasText: 'Side question' }).locator('[data-dockkit-tab-close]')
++      await header.focus()
++      await header.press('Enter')
++      await panel.locator(composer).waitFor()
++      expect(adapter.requests).toHaveLength(2)
++      await closeTab.click()
++      await panel.waitFor({ state: 'hidden' })
++      const mainInput = page.locator(composer + ':visible').first()
++      await mainInput.fill('/side Which color is on the notebook cover?')
++      await page.locator('[data-composer-card] input[type=file]').first().setInputFiles({ name: 'cover.png', mimeType: 'image/png', buffer: png })
++      await page.locator('button[aria-busy="false"]', { has: page.getByRole('img', { name: 'cover.png' }) }).waitFor()
++      await mainInput.press('Enter')
++      await panel.getByText('The cover is red.', { exact: true }).waitFor()
++      const sent = adapter.requests[2]?.messages
++      expect(JSON.stringify(sent)).toContain('The market opens at dawn.')
++      expect(JSON.stringify(sent)).not.toContain('UNFINISHED CHAPTER')
++      const image = sent?.flatMap(message => message.content).find(block => block.type === 'image')
++      if (image?.type !== 'image') throw new Error('The side request did not contain the attached image')
++      expect(image.attachment.name).toBe('cover.png')
++      expect(Buffer.from((await ctx.attachments.readImage(image.attachment)).data)).toEqual(png)
++      await closeTab.click()
++      await panel.waitFor({ state: 'hidden' })
++      const guide = page.locator('[data-sidebar-right-guide-entry="aside"]:visible')
++      const expand = page.getByRole('button', { name: 'Open right sidebar', exact: true })
++      if (await expand.isVisible()) await expand.click()
++      if (!await guide.isVisible()) await page.getByRole('button', { name: 'New tab', exact: true }).first().click()
++      await guide.click()
++      await panel.getByText('The cover is red.', { exact: true }).waitFor()
++      await expect.poll(() => panel.locator(composer).getAttribute('aria-label')).toBe('Side question: ask here')
++      expect(await page.getByRole('treeitem').filter({ hasText: 'Ungrouped' }).count()).toBe(0)
++      await page.setViewportSize({ width: 390, height: 844 })
++      if (!await panel.isVisible()) await header.click()
++      await panel.locator(composer).fill('Should we keep it?')
++      await panel.locator(composer).press('Enter')
++      await panel.getByText('Keep the red cover.', { exact: true }).waitFor()
++      await expect.poll(() => [...childIds].every(id => ctx.agents.get(id) === undefined)).toBe(true)
++      await panel.locator(composer).waitFor()
++      expect(await panel.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
++      expect(JSON.stringify(adapter.requests[3]?.messages)).toContain('Which color is on the notebook cover?')
++      expect(childIds.size).toBe(1)
++      expect(main.status).toBe('running')
++      expect(main.session.deriveMessages().filter(message => message.role === 'user' && message.source.kind === 'user')).toHaveLength(2)
++    } finally { await browser.close(); main.cancel({ kind: 'user' }); await main.whenIdle() }
++  } finally { await scaffold.close() }
++}, 90_000)
+diff --git a/packages/client/ui-commands/src/client/asides/AsideIcon.tsx b/packages/client/ui-commands/src/client/asides/AsideIcon.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..e8b0b01089c05cebb4215776143048d3041f5b64
+--- /dev/null
++++ b/packages/client/ui-commands/src/client/asides/AsideIcon.tsx
+@@ -0,0 +1,21 @@
++/** Original two-bubble glyph for the native side-question tab and launcher. */
++import type { IconProps } from '@deepseek-ai/dsh-client-ui-primitives'
++import css from './SidePanel.module.css'
++
++/** Draw the side-question tab and launcher icon.
++ * @param props - Shared icon sizing and theme class.
++ * @returns Decorative side-question artwork.
++ */
++export function AsideIcon({ size = 16, className }: IconProps) {
++  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
++    <path d="M5 4.5h10a2.5 2.5 0 0 1 2.5 2.5v5a2.5 2.5 0 0 1-2.5 2.5H8l-3.5 3v-3.1A2.5 2.5 0 0 1 2.5 12V7A2.5 2.5 0 0 1 5 4.5Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
++    <path d="M11 18h6l3.5 2.5V11a2.5 2.5 0 0 0-1-2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
++    <path d="M6.5 8h7M6.5 11h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
++  </svg>
++}
++
++/** Draw the side-question entry in the Start tab.
++ * @param props - Guide icon dimensions.
++ * @returns The side-question icon in its guide color.
++ */
++export function AsideGuideIcon(props: IconProps) { return <span className={css.guideIcon}><AsideIcon {...props} /></span> }
+diff --git a/packages/client/ui-commands/src/client/asides/SidePanel.module.css b/packages/client/ui-commands/src/client/asides/SidePanel.module.css
+new file mode 100644
+index 0000000000000000000000000000000000000000..0a1a89552e1312ad84c01aa9b1144ef5260a1cec
+--- /dev/null
++++ b/packages/client/ui-commands/src/client/asides/SidePanel.module.css
+@@ -0,0 +1,7 @@
++.sidebar { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; min-width: 0; }
++.context { padding: 12px 16px; font-size: 13px; color: var(--dsw-alias-label-secondary); border-bottom: 0.5px solid var(--dsw-alias-border-l3); }
++.state { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; padding: 20px; font-size: 13px; }
++.launcher { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--dsw-radius-sm); background: transparent; color: var(--dsw-alias-label-secondary); cursor: pointer; }
++.launcher:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 2px; }
++.guideIcon { display: inline-flex; color: var(--dsw-alias-state-business-primary); }
++@media (hover: hover) { .launcher:hover { color: var(--dsw-alias-state-business-primary); background: var(--dsw-alias-interactive-bg-hover); } }
+diff --git a/packages/client/ui-commands/src/client/asides/SidePanel.tsx b/packages/client/ui-commands/src/client/asides/SidePanel.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..5279452a3f81b306c23be7a5fb884382b7c905b0
+--- /dev/null
++++ b/packages/client/ui-commands/src/client/asides/SidePanel.tsx
+@@ -0,0 +1,57 @@
++/** Native side discussion inside the right sidebar. */
++import type { ConversationViewsProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
++import { Tooltip, IconLoadingOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
++import type { PropsLocale, PropsRenderFactories, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
++import { asideAddress, asideParent } from './address.ts'
++import { AsideIcon } from './AsideIcon.tsx'
++import css from './SidePanel.module.css'
++
++function ChatView({ renderSlot }: ConversationViewsProps) {
++  return <>{renderSlot('conversation.session', { view: 'chat' })}</>
++}
++
++/** Render the child's transcript and composer inside its own Session provider.
++ * @param props - Factories scoped to the side Session.
++ * @returns The active conversation, including a composer before the first turn.
++ */
++export function SideConversation({ renderFactorySlot, t }: PropsRuntime<'sidebar.aside.conversation'> & PropsRenderFactories & PropsLocale<'command'>) {
++  return renderFactorySlot('conversation.content', {
++    variant: 'embedded', phase: 'active', hero: false, placeholder: t('aside.placeholder'), onWorkspaceSelected: () => Promise.resolve(),
++  }, { slots: { views: ChatView } })
++}
++
++/** Bind the child Session to the tab belonging to this parent.
++ * @param props - Parent Session, resource subscription, locale and nested conversation slot.
++ * @returns The current discussion or its opening state.
++ */
++export function SidePanel({ sessionId, useTabInfo, useResource, SessionProvider, renderSlot, t }:
++  PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<'command'> & PropsRenderSlots<'sidebar.aside.conversation'>) {
++  const { tab } = useTabInfo()
++  const resource = useResource<'aside'>(asideParent(tab.contentId) === undefined ? asideAddress(sessionId) : tab.contentId)
++  return <section className={css.sidebar} aria-label={t('aside.side')} data-aside="side">
++    <div className={css.context}>{t('aside.inherited')}</div>
++    {resource.status === 'failed'
++      ? <div role="alert" className={css.state}>{t('aside.failed')}</div>
++      : resource.value === undefined
++        ? <div role="status" aria-label={t('aside.loading')} className={css.state}><IconLoadingOutlineRegular size={20} /></div>
++        : <SessionProvider session={resource.value}>{renderSlot('sidebar.aside.conversation', {})}</SessionProvider>}
++  </section>
++}
++
++/** Render the title of the persistent side tab.
++ * @param props - Current locale.
++ * @returns Localized tab title with its icon.
++ */
++export function SideTitle({ t }: PropsRuntime<'sidebar.right.pane.tab.title'> & PropsLocale<'command'>) {
++  return <><AsideIcon />{t('aside.side')}</>
++}
++
++/** Open the persistent discussion from the main conversation header.
++ * @param props - Parent conversation launch action and locale.
++ * @returns The header shortcut.
++ */
++export function SideLauncher({ open, t }: PropsRuntime<'conversation.session.header.utilities'> & PropsLocale<'command'> & { open: () => void }) {
++  return <Tooltip label={t('aside.side')} side="bottom" portal>
++    <button type="button" className={css.launcher} aria-label={t('aside.side')} onClick={open}><AsideIcon /></button>
++  </Tooltip>
++}
+diff --git a/packages/client/ui-commands/src/client/asides/address.ts b/packages/client/ui-commands/src/client/asides/address.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..df880029ad2b2c9e7ce544b22559063f91e4d2f4
+--- /dev/null
++++ b/packages/client/ui-commands/src/client/asides/address.ts
+@@ -0,0 +1,25 @@
++/** Address helpers shared by the side-question provider and tab body. */
++import type { SessionId } from '@deepseek-ai/dsh-session/types'
++
++/** Resource namespace reserved for native side conversations. */
++export const ASIDE_PREFIX = 'dsh-resource://aside/session/'
++
++/**
++ * Address a main conversation's persistent side question.
++ * @param parent - Main conversation.
++ * @returns Stable resource URI for its side question.
++ */
++export function asideAddress(parent: SessionId): string { return `${ASIDE_PREFIX}${encodeURIComponent(parent)}` }
++
++/**
++ * Read the main conversation identity from an aside URI.
++ * @param address - Resource URI.
++ * @returns Valid source identity, or undefined.
++ */
++export function asideParent(address: string): SessionId | undefined {
++  if (!address.startsWith(ASIDE_PREFIX)) return undefined
++  try {
++    const id = decodeURIComponent(address.slice(ASIDE_PREFIX.length))
++    return id.length > 0 && id.length <= 256 && !/[/?#\u0000-\u001f]/u.test(id) ? id as SessionId : undefined
++  } catch (_invalidEncoding) { return undefined }
++}
+diff --git a/packages/client/ui-commands/src/client/asides/side.ts b/packages/client/ui-commands/src/client/asides/side.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..3207e178ba03291deced6783a869aed3cbe884d7
+--- /dev/null
++++ b/packages/client/ui-commands/src/client/asides/side.ts
+@@ -0,0 +1,132 @@
++/** Client entry points and subscriptions for a main conversation's persistent side discussion. */
++import type { Context } from '@deepseek-ai/cordis'
++import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
++import type { ResourceProvider } from '@deepseek-ai/dsh-client-resources/client'
++import type { SessionId } from '@deepseek-ai/dsh-session/types'
++import { remoteErrorOf, RemoteError } from '@deepseek-ai/dsh-typert-protocol'
++import { ASIDE_PREFIX, asideParent } from './address.ts'
++import { AsideGuideIcon, AsideIcon } from './AsideIcon.tsx'
++import { SideConversation, SideLauncher, SidePanel, SideTitle } from './SidePanel.tsx'
++
++declare module '@deepseek-ai/dsh-client-ui-slots' {
++  interface ResourceProtocolMap {
++    /** Current child Session of the main conversation named in the resource address. */
++    aside: SessionReference
++  }
++  interface SlotMap {
++    /** Right-sidebar transcript and composer provided with the persistent child Session. */
++    'sidebar.aside.conversation': { kind: 'single'; scope: 'session' }
++  }
++}
++
++const tabType = '@deepseek-ai/dsh-client-ui-commands/aside'
++
++/** Register the sidebar tab, main header shortcut and slash command.
++ * @param ctx - Command plugin's Client context.
++ */
++export function registerSideConversations(ctx: Context): void {
++  ctx.inject(['slots', 'locale', 'sessions', 'commandUi', 'resources', 'sidebarRight', 'sidebarRightTabs', 'remote.session'], (scope) => {
++    const t = scope.locale.bind('command')
++    const bindings = new Map<SessionId, { ready: Promise<SessionReference>; lifetime: AbortController; holders: number }>()
++    const connect = async (parent: SessionId, signal: AbortSignal): Promise<SessionReference> => {
++      const result = await scope.remote.session.aside({ sessionId: parent, kind: 'side' })
++      signal.throwIfAborted()
++      if (!result.ok) throw result.error
++      const reference = scope.sessions.retain(result.value.sessionId, { source: 'aside', publishedByHost: true, facets: { conversation: true }, signal })
++      signal.addEventListener('abort', () => { reference.release() }, { once: true })
++      await reference.ready
++      return reference
++    }
++    const acquire = (parent: SessionId, signal?: AbortSignal) => {
++      let binding = bindings.get(parent)
++      if (!binding) {
++        const lifetime = new AbortController()
++        binding = { ready: connect(parent, lifetime.signal), lifetime, holders: 0 }
++        bindings.set(parent, binding)
++      }
++      const current = binding
++      current.holders++
++      let held = true
++      const release = () => {
++        if (!held) return
++        held = false
++        signal?.removeEventListener('abort', release)
++        if (--current.holders === 0) {
++          if (bindings.get(parent) === current) bindings.delete(parent)
++          current.lifetime.abort()
++        }
++      }
++      signal?.addEventListener('abort', release, { once: true })
++      return { ready: current.ready, [Symbol.dispose]: release }
++    }
++    scope.effect(() => () => {
++      for (const binding of bindings.values()) binding.lifetime.abort()
++      bindings.clear()
++    }, 'side conversation: release Sessions')
++    const provider: ResourceProvider<'aside'> = {
++      protocol: 'aside',
++      async *open(address, { signal }) {
++        const parent = asideParent(address)
++        if (parent === undefined) {
++          yield { ok: false, error: new RemoteError('gateway/bad-request', t('aside.failed'), {}) }
++          return
++        }
++        try {
++          signal.throwIfAborted()
++          using lease = acquire(parent, signal)
++          const reference = await lease.ready
++          signal.throwIfAborted()
++          yield { ok: true, value: reference }
++          signal.throwIfAborted()
++          await new Promise<void>((resolve) => {
++            signal.addEventListener('abort', () => { resolve() }, { once: true })
++          })
++        } catch (error) {
++          if (!signal.aborted) yield { ok: false, error: remoteErrorOf(error) ?? new RemoteError('gateway/internal', t('aside.failed'), {}) }
++        }
++      },
++    }
++    scope.effect(() => scope.resources.register(provider), 'side conversation: resource')
++    const open = () => { scope.sidebarRight.openTab('aside') }
++    scope.effect(() => scope.sidebarRightTabs.register({
++      id: tabType, kind: 'aside', priority: 'builtin', patterns: [`${ASIDE_PREFIX}**`],
++      title: () => t('aside.side'), canOpen: address => asideParent(address) !== undefined,
++      guide: [{ id: 'aside', order: 30, title: () => t('aside.side'), description: () => t('aside.sideDescription'), icon: AsideGuideIcon }],
++    }), 'side conversation: tab')
++    scope.slots.inject('conversation.session.header.utilities', () => scope.slots.register({
++      name: 'conversation.session.header.utilities', id: 'side-question', order: 100, locale: 'command', inject: () => ({ open }),
++    }, SideLauncher))
++    scope.slots.inject('sidebar.right.pane.tab', () => scope.slots.register({
++      name: 'sidebar.right.pane.tab', key: tabType, locale: 'command',
++      children: { 'sidebar.aside.conversation': { kind: 'single', scope: 'session' } },
++    }, SidePanel))
++    scope.slots.inject('sidebar.aside.conversation', () => scope.slots.register({ name: 'sidebar.aside.conversation', locale: 'command' }, SideConversation))
++    scope.slots.inject('sidebar.right.pane.tab.title', () => scope.slots.register({
++      name: 'sidebar.right.pane.tab.title', key: tabType, locale: 'command',
++    }, SideTitle))
++    scope.effect(() => scope.commandUi.register({
++      name: 'side', label: () => t('aside.side'), description: () => t('aside.sideDescription'), icon: AsideIcon,
++      available: session => session.sessionId === scope.sidebarRight.mounted.getSnapshot(),
++      ui: { kind: 'input', attachments: true, runEmpty: open, hint: () => t('aside.placeholder'),
++        submit: async (session, question, attachments = []) => {
++          const images = attachments.filter(part => part.type === 'image')
++          if (images.length !== attachments.length) return { kind: 'error', text: t('aside.imageOnly') }
++          open()
++          using lease = acquire(session.sessionId)
++          try {
++            const side = await lease.ready
++            const content = question.trim() ? [...images, { type: 'text' as const, text: question }] : images
++            if (content.length === 0) return { kind: 'success' }
++            const result = await side.binding.session.prompt(content, 'queue')
++            if (!result.ok) throw result.error
++            return { kind: 'success' }
++          } catch (error) {
++            const failure = remoteErrorOf(error)
++            const unsupported = failure?.code === 'session/attachment-invalid' && failure.details.reason === 'MODEL_DOES_NOT_SUPPORT_IMAGES'
++            return { kind: 'error', text: t(unsupported ? 'aside.imageModelUnsupported' : 'aside.submitFailed') }
++          }
++        },
++      },
++    }), 'side conversation: /side')
++  })
++}
+diff --git a/packages/client/ui-conversation/src/client/skeleton/ConversationContent.tsx b/packages/client/ui-conversation/src/client/skeleton/ConversationContent.tsx
+index d0cde177fd9cb8071c7f365adc6074e0c5988feb..9fb3a4b8ef024d9579505614b8cf3ba6698e2bb3 100644
+--- a/packages/client/ui-conversation/src/client/skeleton/ConversationContent.tsx
++++ b/packages/client/ui-conversation/src/client/skeleton/ConversationContent.tsx
+@@ -160,6 +160,7 @@ export function ConversationContent(props: ConversationContentProps) {
+   const inputBar = renderSlot('conversation.composer.bar', {
+     variant: hero ? 'hero' : 'composer',
+     occurrence: props.variant,
++    ...(props.placeholder === undefined ? {} : { placeholder: props.placeholder }),
+     ...(inert
+       ? {
+         disabled: true,
+diff --git a/packages/client/ui-workspace/README.md b/packages/client/ui-workspace/README.md
+index bdab6499f2c7f49b171d380bc5f36038458ecc9e..c385f2f8dc6ec22223344e0bcafd21362e552953 100644
+--- a/packages/client/ui-workspace/README.md
++++ b/packages/client/ui-workspace/README.md
+@@ -27,7 +27,7 @@ This package lets users browse grouped or flat Session lists, choose a Workspace
+ <a id="use-this-package"></a>
+ ## Use this package
+ 
+-Use the sidebar to browse Workspaces and their Sessions, reorder them, and start new ones. Use the picker in the Session Intent hero to choose a Workspace for a new Session. **Search workspaces** appears above the list when the picker has at least two Workspaces. Opening with a mouse or keyboard focuses the field. On touch, tap the field to search. Every search term must match the displayed name or directory path. Names also match fuzzily from word starts. Search ignores case, character width, and diacritics. Results rank name prefixes, name substrings, fuzzy names, then path substrings. Press Enter in the field to choose the first available result. Delete the search text to restore the full list. Escape closes the picker even when the field has text. The next opening starts with an empty query. The list shows up to six rows at once and scrolls to show the rest. **Add workspace** stays below the list when available. Picker entries that share a name also show the shortest trailing path that tells each apart, and hovering one shows its full path.
++Use the sidebar to browse Workspaces and their Sessions, reorder them, and start new ones. Use the picker in the Session Intent hero to choose a Workspace for a new Session. **Search workspaces** appears above the list when the picker has at least two Workspaces. Opening with a mouse or keyboard focuses the field. On touch, tap the field to search. Every search term must match the displayed name or directory path. Names also match fuzzily from word starts. Search ignores case, character width, and diacritics. Results rank name prefixes, name substrings, fuzzy names, then path substrings. Press Enter in the field to choose the first available result. Delete the search text to restore the full list. Escape closes the picker even when the field has text. The next opening starts with an empty query. The list shows up to six rows at once and scrolls to show the rest. **Add workspace** stays below the list when available. Picker entries that share a name also show the shortest trailing path that tells each apart, and hovering one shows its full path. Side conversations and quick questions stay in the parent conversation. They have no separate Workspace or Ungrouped row.
+ 
+ An open Workspace shows its first non-blank Sessions in list order up to a per-Workspace watermark, initially five. The watermark rises to cover the last Session within the first 50 that is running, has a running child, awaits the user, has an unread completion, or is open in the main view; a Session opened from search raises it to that Session at any position. The watermark is a row count that never falls on its own, so the rows stay visible after a run or notification ends; a reorder that moves a Session past the watermark hides it. Each **Show more** click raises it by five, without the 50-row limit, and reveals the rest when five or fewer remain; after the final batch, **Show less** resets it. Folding a Workspace resets its watermark and those of its nested Workspaces; a reset watermark still covers the qualifying Sessions. The selected blank **New Session** is an extra row outside the watermark until its first prompt. Watermarks are not persisted; any unmount of the grouped tree resets them.
+ 
+diff --git a/packages/client/ui-workspace/README.zh.md b/packages/client/ui-workspace/README.zh.md
+index 8267968bc7b614b4bc62d12ff270446f18c6c11c..82189151fa2e29841d517f3d2843555ea5e8354a 100644
+--- a/packages/client/ui-workspace/README.zh.md
++++ b/packages/client/ui-workspace/README.zh.md
+@@ -27,7 +27,7 @@ kind: "package-reference"
+ <a id="use-this-package"></a>
+ ## 使用本包
+ 
+-用侧边栏浏览 Workspace 及其 Session、重排它们并新建会话。在 Session Intent 主视觉区用选择器为新会话选择 Workspace。选择器至少有两个 Workspace 时，列表上方显示**搜索工作区**输入框。用鼠标或键盘打开时，焦点会落在输入框。用触摸打开时，点按输入框即可搜索。每个搜索词都必须匹配显示名称或目录路径。名称也支持从词首开始的模糊匹配。搜索忽略大小写、全角半角和变音符。结果按名称前缀、名称子串、名称模糊匹配、路径子串排序。在输入框内按 Enter 可选中首个可用结果。删除搜索文字即可恢复完整列表。即使输入框有文字，按 Escape 也会关闭选择器。重新打开时搜索词为空。列表最多同时显示六行，滚动可查看其余条目。若有**添加工作区**操作，它固定在列表下方。同名选择器条目还会显示能区分彼此的最短路径后缀，悬停可查看完整路径。
++用侧边栏浏览 Workspace 及其 Session、重排它们并新建会话。在 Session Intent 主视觉区用选择器为新会话选择 Workspace。选择器至少有两个 Workspace 时，列表上方显示**搜索工作区**输入框。用鼠标或键盘打开时，焦点会落在输入框。用触摸打开时，点按输入框即可搜索。每个搜索词都必须匹配显示名称或目录路径。名称也支持从词首开始的模糊匹配。搜索忽略大小写、全角半角和变音符。结果按名称前缀、名称子串、名称模糊匹配、路径子串排序。在输入框内按 Enter 可选中首个可用结果。删除搜索文字即可恢复完整列表。即使输入框有文字，按 Escape 也会关闭选择器。重新打开时搜索词为空。列表最多同时显示六行，滚动可查看其余条目。若有**添加工作区**操作，它固定在列表下方。同名选择器条目还会显示能区分彼此的最短路径后缀，悬停可查看完整路径。 旁问和随问都从父会话打开，在工作区和未分组列表中不单独占一行。
+ 
+ 打开的 Workspace 按列表顺序显示前面的非空白 Session，直到该 Workspace 自己的水位线，水位线初始为五。水位线会升高，以覆盖前 50 条中最后一条正在运行、有子会话正在运行、等待用户、有未读完成提醒或在主视图中打开的 Session；从搜索打开的 Session 会把水位线升高到该 Session，无论其位置。水位线是一个行数，不会自行回落，因此运行或通知结束后这些行仍保持可见；重排若把某个 Session 移到水位线之后，该 Session 会被隐藏。每次点击**展开其余**将水位线升高五条，不受 50 行限制；剩余五条或更少时显示全部；最后一批显示后，**收起**重置水位线。折叠 Workspace 会重置其水位线及其嵌套 Workspace 的水位线；重置后的水位线仍覆盖符合条件的 Session。当前选中的空白**新会话**在首条提示词落地前是水位线之外的额外行。水位线不持久化；分组树的任何卸载都会重置水位线。
+ 
+diff --git a/packages/client/ui-workspace/README.i18n.yaml b/packages/client/ui-workspace/README.i18n.yaml
+index 32b26be6d18f18a0f9ed59ef09d2b5621e722392..c7b67b056f966dc338b851ee9707191adf71b9d5 100644
+--- a/packages/client/ui-workspace/README.i18n.yaml
++++ b/packages/client/ui-workspace/README.i18n.yaml
+@@ -15,8 +15,8 @@
+   en: d152484eb41ac6b4
+   zh: 09388d293f9be9cb
+ /deepseek-ai-dsh-client-ui-workspace/use-this-package:
+-  en: 2e435d7c20a9e549
+-  zh: 7eb26bbdacdc5b54
++  en: d4f9c66ffa6a165a
++  zh: d057c9fe175f84ae
+ /deepseek-ai-dsh-client-ui-workspace/use-this-package/reordering-and-view-options:
+   en: a77f25e9153d6782
+   zh: 7f60489e53305d20

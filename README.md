@@ -187,7 +187,7 @@ https://github.com/user-attachments/assets/69f74147-3377-461c-8ec2-17169bd3ba71
 
 想从头开始，在旁问里发 `/clear`；也可以在 *设置 → 通用* 打开“旁问关闭后自动清除上下文”，关掉标签就清空。
 
-新版内核候选的 Host 已可找回旧版旁问，接着最近一次清理后的讨论继续提问。右侧面板、清理开关及安装包的验收进度见[新版接手文档](.agents/requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表)。
+新版内核候选已支持从会话顶部、右侧开始页或主输入框的 `/side` 打开同一段旁问。可以附图提问，关闭面板后在窄屏上重开续聊，也能找回旧正式版最近一次清理后的讨论。候选版的清理功能、主线主动读取旁问及最终安装包仍待验收。[新版接手文档](.agents/requirements/2026-11-25-release-handoff.md#旁问随问与输入预测的功能回归)
 
 <img src="docs/assets/dshu/side-question.webp" alt="旁问：主线写好发布说明草案，右侧旁问讨论第二条怎样写得更易懂">
 <p align="center"><sub>主线写好草案，旁问里讨论其中一条的写法</sub></p>
@@ -325,7 +325,7 @@ Windows x64 正式版 `2026.11.24.3` 有启动后静置卡死的用户报告，�
 | DSHU | 最新正式版 `2026.11.24.3` |
 | DeepSeek Harness | 源码基于 [0.2.2-rc.5](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5) |
 | 新内核候选 | DSHU `2026.11.25.0` 使用 DSH `0.2.3-alpha.2`，目前只含缺省与写作。跨对话记忆、余额历史和模式设置已接入。关于页左侧显示 DSHU 日期版本，右侧列出内核、源码与组件信息。[桌面](docs/assets/dshu/about-candidate-updates.webp) · [窄屏](docs/assets/dshu/about-candidate-updates-mobile.webp) |
-| 与正式版的差异 | 新内核源码已恢复日出日落、城市选择和关于页内的检查更新，工作区标题与侧栏也已恢复 DSHU 标识。打开关于页会按产品日期版本查询正式发行。已验收的 Windows 包早于工作区名称修正，Linux 包也早于主题和更新检查的修复。新内核的主输入框已支持生成、忽略和采纳建议，关闭预测后重新加载仍然生效。旁问和随问的完整入口及最终安装包仍待验收。[逐项对照与现有证据](.agents/requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表) |
+| 与正式版的差异 | 新内核源码已恢复日出日落、城市选择和关于页内的检查更新，工作区标题与侧栏也已恢复 DSHU 标识。打开关于页会按产品日期版本查询正式发行。已验收的 Windows 包早于工作区名称修正，Linux 包也早于主题和更新检查的修复。候选 Web 版可生成、忽略、采纳及关闭主输入框预测，可从三个入口打开旁问，也可在主输入框发起随问。旁问的清理操作和最终安装包仍待验收。[逐项对照与现有证据](.agents/requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表) |
 | Windows x64 候选 | 未签名安装器已从首发版和上一正式版完成静默升级，已验证降级保护、无效登记拦截和旧写作会话保留。[版本身份](.agents/requirements/2026-11-25-release-handoff.md#windows-安装器与版本身份) · [安装包摘要与升级结果](.agents/requirements/2026-11-25-release-handoff.md#issue-24-的首发版静默升级) |
 | Linux 候选 | x64 的 deb、RPM、tar.gz 已逐包核验。Debian 13 和 Fedora 44 已验证安装、同版重装和两代旧会话，Fedora 45 已启动桌面和便携 CLI。arm64 已接入打包，待原生验收。[安装包摘要与实测范围](.agents/requirements/2026-11-25-release-handoff.md#linux-x64-未签名安装包与回执) |
 | 破甲提示词 | dsh-purge Community [v1.7.20](https://github.com/kingcharleslzy-ai/dsh-purge/releases/tag/v1.7.20) |
