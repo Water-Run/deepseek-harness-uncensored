@@ -8,6 +8,19 @@
 2. **验收最终安装文件。** 对同一源码树，从首发版和上一正式版分别升级，核对含输入建议与保护审计的旧对话、旁问计费、签名和实际在线更新。两版均有可复用的普通及压缩会话样本。Windows 静置问题保留独立结论。[五件套实测](requirements/2026-11-25-release-handoff.md#同一源码树的五件套演练) · [旧会话复验](requirements/2026-11-25-release-handoff.md#含保护审计的旧会话) · [平台矩阵](requirements/2026-11-25-release-handoff.md#桌面与平台验收) · [Windows 静置](requirements/2026-11-25-release-handoff.md#issue-26-的-windows-静置卡死)
 3. **准备发行正文。** 编辑[下一版 Release 说明](../发布稿/Release-下一版.md)。在候选根目录用 `deliver:github --notes-file` 传入定稿，生成含下载表和五个安装包校验值的 `release-notes.md`。首发版用户需要手动覆盖安装，`2026.11.24.3` 可在应用内检查更新。[完整命令](requirements/2026-11-25-release-handoff.md#发布前最后一次核对) · [两个旧版的更新路径](requirements/2026-11-25-release-handoff.md#两个已发布版本如何发现新安装包)
 
+### 关联 Issue
+
+以下状态核对至 2026-11-26。关闭评论注明修复所在提交、实际复验的版本和公开安装包是否已包含修复。
+
+| Issue | GitHub 状态 | 已验证的结果与余项 |
+| --- | --- | --- |
+| [#20 旧工作区无法启动](https://github.com/Water-Run/deepseek-harness-uncensored/issues/20#issuecomment-7188254129) | 已评论并关闭 | 两个正式旧版的资料均已在 Mac 覆盖安装后打开。冷启动仍能读取原会话，用户插件保留。 |
+| [#24 Windows 安装器拒绝末段为零的版本](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24#issuecomment-7188257670) | 已评论并关闭 | 首发版和上一版分别静默升级并同版重装成功。修复已入主线，现有正式下载仍是旧版。 |
+| [#25 工具声明导致原会话持续返回 400](https://github.com/Water-Run/deepseek-harness-uncensored/issues/25) | 开放，优先处理 | 已验证停用整项服务后能继续原会话。仍需在桌面账号中验证只停用被点名的工具、保留同一服务的其他工具。[实测与验收条件](requirements/2026-11-25-release-handoff.md#issue-25-的工具声明与会话恢复) |
+| [#22 工具发现](https://github.com/Water-Run/deepseek-harness-uncensored/issues/22) | 开放 | 已验证文件头识别样例。完整发行配置下的报告场景仍待专项维护者确认。 |
+| [#23 动态工具与第三方 API 缓存](https://github.com/Water-Run/deepseek-harness-uncensored/issues/23) | 开放 | 已修复仅字段顺序变化引起的声明重建。报告未指定服务商或模型，实际缓存读写量未知。报告另提到的注册选项仍待处理。 |
+| [#26 Windows 静置卡死](https://github.com/Water-Run/deepseek-harness-uncensored/issues/26) | 报告者已关闭 | 现有对照未复现报告中的连接数和内存增长，根因未确认。[复验环境与采样](requirements/2026-11-25-release-handoff.md#issue-26-的-windows-静置卡死) |
+
 下列为 2026-11-18 至 19 日的历史交付记录。
 
 [Windows x64 首发交接与缺口清单](requirements/2026-11-19-first-release-handoff.md)记录当前源码和实装的对应关系、剩余任务、Release 核验与资料回退。

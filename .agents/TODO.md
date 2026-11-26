@@ -46,7 +46,7 @@
 
 Windows x64 已从 `c048b2e78877` 重建未签名 EXE。两个正式版到新包的覆盖升级、同版重装、两种格式旧会话续写与重开，以及具名拒绝恢复均通过。342 个运行时 npm 依赖版本的发布时间和完整性已核对。[重建与实装回执](requirements/2026-11-25-release-handoff.md#回放修正后的-windows-x64-重建)
 
-Linux 候选已接入 x64（deb、rpm、tar.gz）与 arm64（deb、tar.gz）的原生打包。Debian 13 已从 `c048b2e78877` 重建 x64 三种未签名包。DEB 与 RPM 均从两个正式版覆盖升级，普通用户启动及旧会话续写、同版重装后重开全部通过。Debian 实机的独立 X11 会话已通过 GTK 目录选择门户测试。DGX Spark 同树通过 ARM64 打包及两个正式版的 DEB 覆盖升级与重装，Mac Studio 同树通过 DMG 与会话复验。Linux x64 的两种包和 Mac DMG 都已在登录图形桌面复验。Linux ARM64 登录桌面与正式四模式包仍待验。[桌面实测](requirements/2026-11-25-release-handoff.md#已登录桌面的实机验收)[Linux x64 回执](requirements/2026-11-25-release-handoff.md#回放修正后的-linux-x64-重建) · [原生 ARM64 回执](requirements/2026-11-25-release-handoff.md#原生-arm64-候选)
+Linux 候选已接入 x64（deb、rpm、tar.gz）与 arm64（deb、tar.gz）的原生打包。Debian 13 已从 `c048b2e78877` 重建 x64 三种未签名包。DEB 与 RPM 均从两个正式版覆盖升级，普通用户启动及旧会话续写、同版重装后重开全部通过。Debian 实机的独立 X11 会话已通过 GTK 目录选择门户测试。DGX Spark 同树通过 ARM64 打包及两个正式版的 DEB 覆盖升级与重装，Mac Studio 同树通过 DMG 与会话复验。Linux x64 的两种包和 Mac DMG 都已在登录图形桌面复验。Linux ARM64 的候选已在 Ubuntu 虚拟机登录桌面打开工作区。物理控制台及最终四模式包仍待验。[桌面实测](requirements/2026-11-25-release-handoff.md#已登录桌面的实机验收) · [Linux x64 回执](requirements/2026-11-25-release-handoff.md#回放修正后的-linux-x64-重建) · [原生 ARM64 回执](requirements/2026-11-25-release-handoff.md#原生-arm64-候选)
 
 当前交付为[Windows x64 首发打包交接](requirements/windows-x64-first-release.md)。应交付功能须在同一候选逐项验证，缺项或待验均使首发保持待交付。
 

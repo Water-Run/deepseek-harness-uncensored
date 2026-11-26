@@ -1,0 +1,198 @@
+{
+  "date": "2026-11-26",
+  "sourceTree": "0eb8ef6e8e17196ff01d680c4a76f512af5b96ef",
+  "productVersion": "2026.11.25.0",
+  "kernelVersion": "0.2.3-alpha.2",
+  "modes": [
+    "default",
+    "writing"
+  ],
+  "published": false,
+  "host": "DGX Spark ARM64",
+  "virtualization": "QEMU 8.2.2 TCG",
+  "guest": "Ubuntu 24.04.5 LTS",
+  "architecture": "aarch64",
+  "kernel": "6.8.0-147-generic",
+  "displayManager": "LightDM",
+  "windowManager": "Openbox",
+  "display": "Xorg dummy driver",
+  "graphicalSession": {
+    "Name": "qa",
+    "Seat": "seat0",
+    "Remote": "no",
+    "Service": "lightdm-autologin",
+    "Type": "x11",
+    "Class": "user",
+    "Active": "yes"
+  },
+  "artifacts": {
+    "candidate.deb": "70aac0a3d16483609c84607e93fcaf97b5c42a9c1be08f238efdfd5a08d45168",
+    "first.deb": "5b645318ad9c41e28d918be1cddcce982066e27d1b3f14535546b8e0190cefa4",
+    "previous.deb": "75e288aa37e376cce828dd84979fce975093f7e1aa8f34fc5a44a9fa2ffcadb0"
+  },
+  "appArmor": {
+    "kernelEnabled": "Y",
+    "unprivilegedUsernsRestriction": "1",
+    "installedProfileSha256": "396f470a6af0075160e9d1bc9cd39ba64f69b564965fb538c2357cb37fff46c4",
+    "bundledProfileSha256": "396f470a6af0075160e9d1bc9cd39ba64f69b564965fb538c2357cb37fff46c4"
+  },
+  "scenarios": [
+    {
+      "seedVersion": "fresh",
+      "welcome": true,
+      "workspace": true,
+      "about": {
+        "product": "2026.11.25.0",
+        "kernel": "0.2.3-alpha.2",
+        "brandFlushTopLeft": true
+      },
+      "window": "Xorg mapped candidate window in the LightDM login session",
+      "sandbox": {
+        "browserUid": 1000,
+        "browserAppArmor": "deepseek-harness-uncensored (unconfined)",
+        "rendererSource": "Chromium SystemInfo.getProcessInfo and Linux procfs executable identity",
+        "rendererCount": 1,
+        "rendererUids": [
+          1000
+        ],
+        "rendererSeccomp": [
+          2
+        ],
+        "rendererNoNewPrivs": [
+          1
+        ],
+        "rendererAppArmor": [
+          "deepseek-harness-uncensored (unconfined)"
+        ],
+        "rendererNoSandboxFlag": false
+      },
+      "dismissed": true,
+      "freshAppearance": {
+        "selected": "sun",
+        "choices": 4
+      },
+      "workspaceReady": true,
+      "name": "fresh",
+      "screenshotSha256": "4c6592a377232f7c4f081e402f796e83a415587caab9c757c8dd3235f6545a72"
+    },
+    {
+      "seedVersion": "2026.11.23.0",
+      "welcome": true,
+      "workspace": true,
+      "openedSessions": [
+        "retained-second-draft",
+        "retained-first-draft"
+      ],
+      "about": {
+        "product": "2026.11.25.0",
+        "kernel": "0.2.3-alpha.2",
+        "brandFlushTopLeft": true
+      },
+      "window": "Xorg mapped candidate window in the LightDM login session",
+      "sandbox": {
+        "browserUid": 1000,
+        "browserAppArmor": "deepseek-harness-uncensored (unconfined)",
+        "rendererSource": "Chromium SystemInfo.getProcessInfo and Linux procfs executable identity",
+        "rendererCount": 1,
+        "rendererUids": [
+          1000
+        ],
+        "rendererSeccomp": [
+          2
+        ],
+        "rendererNoNewPrivs": [
+          1
+        ],
+        "rendererAppArmor": [
+          "deepseek-harness-uncensored (unconfined)"
+        ],
+        "rendererNoSandboxFlag": false
+      },
+      "dismissed": true,
+      "workspaceReady": true,
+      "installedPackage": "install ok installed arm64 2026.1125.0",
+      "name": "upgrade-first",
+      "screenshotSha256": "1d977e6fbf635af2e44f58054b31fda9114538533a583483b20299f2ccf363ab"
+    },
+    {
+      "seedVersion": "2026.11.24.3",
+      "welcome": true,
+      "workspace": true,
+      "openedSessions": [
+        "retained-second-draft",
+        "retained-first-draft"
+      ],
+      "about": {
+        "product": "2026.11.25.0",
+        "kernel": "0.2.3-alpha.2",
+        "brandFlushTopLeft": true
+      },
+      "window": "Xorg mapped candidate window in the LightDM login session",
+      "sandbox": {
+        "browserUid": 1000,
+        "browserAppArmor": "deepseek-harness-uncensored (unconfined)",
+        "rendererSource": "Chromium SystemInfo.getProcessInfo and Linux procfs executable identity",
+        "rendererCount": 1,
+        "rendererUids": [
+          1000
+        ],
+        "rendererSeccomp": [
+          2
+        ],
+        "rendererNoNewPrivs": [
+          1
+        ],
+        "rendererAppArmor": [
+          "deepseek-harness-uncensored (unconfined)"
+        ],
+        "rendererNoSandboxFlag": false
+      },
+      "dismissed": true,
+      "workspaceReady": true,
+      "installedPackage": "install ok installed arm64 2026.1125.0",
+      "name": "upgrade-previous",
+      "screenshotSha256": "1d977e6fbf635af2e44f58054b31fda9114538533a583483b20299f2ccf363ab"
+    }
+  ],
+  "firstLaunchControl": {
+    "oldVersion": "2026.11.24.3",
+    "oldWriter": "separately extracted official DEB",
+    "candidate": "same installed candidate, new data and Chromium directories",
+    "sessions": [
+      "retained-second-draft",
+      "retained-first-draft"
+    ],
+    "welcome": true,
+    "window": "Xorg mapped candidate window in the LightDM login session",
+    "about": {
+      "product": "2026.11.25.0",
+      "kernel": "0.2.3-alpha.2",
+      "brandFlushTopLeft": true
+    },
+    "sandbox": {
+      "browserUid": 1000,
+      "browserAppArmor": "deepseek-harness-uncensored (unconfined)",
+      "rendererSource": "Chromium SystemInfo.getProcessInfo and Linux procfs executable identity",
+      "rendererCount": 1,
+      "rendererUids": [
+        1000
+      ],
+      "rendererSeccomp": [
+        2
+      ],
+      "rendererNoNewPrivs": [
+        1
+      ],
+      "rendererAppArmor": [
+        "deepseek-harness-uncensored (unconfined)"
+      ],
+      "rendererNoSandboxFlag": false
+    },
+    "screenshotSha256": "1d977e6fbf635af2e44f58054b31fda9114538533a583483b20299f2ccf363ab"
+  },
+  "excluded": [
+    "physical-display console, GPU and input devices",
+    "signed distribution and online update",
+    "specialist modes"
+  ]
+}
