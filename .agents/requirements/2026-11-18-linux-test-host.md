@@ -13,7 +13,7 @@ Windows 是首要桌面平台。Linux x86_64 验收有 Fedora、Debian 和 Rocky
 
 两台机器的预检均能解析 `libcrypt.so.1`。构建和验收在各自账号的专用目录或无特权容器内进行。使用现有工具链前记录实际解析的路径与版本。两台均为 x86_64，Linux arm64 安装验收需另用相应平台。Fedora 跳板仍能登录，跳板到 Fedora 的 SSH 转发在本次预检时拒绝连接。
 
-Debian 实机的 Debian 13 容器已通过 `apt` 安装公开版 `2026.11.24.3`。包管理器登记为 `2026.1124.3`，已安装程序分别写出未压缩 JSONL 和 zstd 两种旧会话。Rocky 实机上的 Rocky 10.3 容器使用默认软件源时，同一版的 RPM 因缺少依赖 `libXScrnSaver` 停在安装阶段。RPM 的 Fedora 容器验收和新候选覆盖升级另行登记。
+Debian 实机的 Debian 13 容器通过 apt 验证了从两个正式版覆盖升级。Rocky 实机上的 Rocky 10.3 容器使用默认软件源时，公开版 `2026.11.24.3` 的 RPM 因缺少 `libXScrnSaver` 停在安装阶段。在同一实机的 Fedora 44 容器中，RPM 从两个正式版覆盖升级均通过。四组都核对了普通用户运行、未压缩 JSONL 和 zstd 会话的续写与重开。[当前 Linux x64 候选的实装升级](2026-11-25-release-handoff.md#当前-linux-x64-候选的实装升级)
 
 ## Fedora 测试入口
 

@@ -877,6 +877,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows-installer-upgr
 
 11 月 26 日实测可从维护机直接登录 Debian 13 和 Rocky Linux 10.2 两台 x86_64 实机。Debian 可承担 x64 构建、DEB 和隔离桌面验收，Rocky Linux 可承担 RPM 升级回归。[设备、工具链及连接记录](2026-11-18-linux-test-host.md#11-月-26-日新增实机)
 
+Linux 构建使用私有作业目录，并在展开源码、依赖和发行载荷之前把构建进程的 `umask` 设为 `022`。一次试验使用 `077`，同一账户直接从展开目录启动成功。DEB 和 RPM 由包管理器安装后，Host 文件和目录归 root 所有，普通用户启动 CLI 失败。DEB 中的 Host 目录权限为 `0700`，其 `package.json` 和 `lib/cli.js` 均在包内，权限为 `0600`。失败包与回执归档于 `%USERPROFILE%/DSHU-Deliveries/20261126/linux-x64/39dc7d95a408-umask077-failed/`。换用正常发行权限后，从同一固定源码树重新构建。验收 DEB 和 RPM 时，包管理器执行安装或升级，再用普通用户启动 CLI、续写旧会话并重开。同一构建账户在解包目录的启动结果仅覆盖便携使用路径。
+
 使用仓库根目录的 `node scripts/prepare-kernel-candidate.mjs <新目录>` 还原缺省与写作候选。命令最后一行应与 `kernel/0.2.3-alpha.2/source.json` 的 `tree` 字段一致。以下命令在还原后的目录执行。Fedora 45 x86_64 实机使用 Node 24.22.3、pnpm 11.28.5 和安装在用户构建目录的 musl 1.2.6。
 
 | 步骤 | 操作与结果判定 |
@@ -917,7 +919,30 @@ Fedora 45 上，electron-builder 下载的 FPM 1.17.0 使用 Ruby 3.4.3，需要
 
 本轮首次对最终组装目录做运行时检查时，临时构建目录的符号链接与进程报告的物理路径不同，导致路径核对失败。将同一批文件按字节和权限核对后放回标准物理输出目录，重新执行三种归档检查和原有的完整运行时检查，均通过。复测包括离线安装与移除插件、PNG、PTY、后台启动，以及 Office 转换和重算。
 
-维护机交付目录为 `%USERPROFILE%/DSHU-Deliveries/20261125/linux-x64-candidate/48ba9a1a86/upstream-4b399c39/`。其中 `result.json` 对应归档与启动结果，`deb-manager.json` 和 `rpm-manager.json` 记录包登记和两代会话，`workspace.json`、`about-zh.json` 和中英文 PNG 记录实际界面。以上均为缺省与写作的未签名候选。两种包已验证首次安装及同版重装，旧版 Linux 安装包直接覆盖升级、实体桌面门户、Linux arm64 及 macOS arm64 的发行验收仍待完成。
+维护机交付目录为 `%USERPROFILE%/DSHU-Deliveries/20261125/linux-x64-candidate/48ba9a1a86/upstream-4b399c39/`。其中 `result.json` 对应归档与启动结果，`deb-manager.json` 和 `rpm-manager.json` 记录包登记和两代会话，`workspace.json`、`about-zh.json` 和中英文 PNG 记录实际界面。以上均为缺省与写作的未签名候选。两种包已验证首次安装及同版重装。当前候选的原版安装包覆盖升级见下节。
+
+### 当前 Linux x64 候选的实装升级
+
+Debian 13 x86_64 实机从固定源码树 `39dc7d95a408e1e043110916d08d3d4647c3be01` 用 Node.js `24.22.3`、pnpm `11.28.5` 和 `umask 022` 生成 DEB、RPM 与 tar.gz。组装目录逐项核对普通用户可读和必要的执行权限。已在该机的独立 X11 会话创建默认工作区，核对左侧 DSHU `2026.11.25.0`、右侧 DSH `0.2.3-alpha.2` 及源码树。通用设置提供四种外观并默认选中日出日落，关于页提供检查更新入口。
+
+| 格式与环境 | 从 `2026.11.23.0` 升级 | 从 `2026.11.24.3` 升级 |
+| --- | --- | --- |
+| DEB，Debian 13 实机上的 Debian 13 容器 | 通过，使用已校验的 APT 依赖缓存 | 通过 |
+| RPM，Rocky Linux 10.2 实机上的 Fedora 44 容器 | 通过 | 通过 |
+
+四组均升级到包管理器版本 `2026.1125.0`。以 UID `1001` 检查到 Host 的 `package.json` 权限为 `0644`，随包 CLI 可启动。同版重装后，四组共八条旧会话均成功重新打开。tar.gz 已独立解压，CLI 返回产品版本 `2026.11.25.0`，随包 Node 返回 `v24.22.3`。三个文件的字节数、SHA-256、实际容器镜像及每组执行结果均已记录。[Linux x64 实装回执](../../kernel/0.2.3-alpha.2/verification/linux-x64-upgrades-39dc7d95.json)
+
+维护机交付目录为 `%USERPROFILE%/DSHU-Deliveries/20261126/linux-x64/39dc7d95a408/`，内含三种未签名产物、关于页与外观截图、逐组原始日志、复验脚本和输入清单。首发版 DEB 的线上尝试在安装旧版所需系统依赖时超时。成功的一组在同一 Debian 实机的独立容器中装入 APT 已验证的签名索引及按 SHA-256 核验的 136 个普通系统依赖，再执行同样的包管理器事务。该组将两条会话放在默认资料目录下，覆盖升级及同版重装后校验文件摘要保持一致。
+
+重新验收时，从同一候选交付目录取安装包及 `verification/reproduction/`。把两个 GitHub 正式版的原始安装包放进 `reproduction/previous/`，按其中的 `assets.json` 核对摘要和容器镜像。用 Debian 13 独立容器验证 DEB，在 Rocky Linux 实机上的 Fedora 44 独立容器验证 RPM。对每个起始版本执行一次以下命令，将格式、版本、候选包路径和摘要替换为该次记录的值。
+
+```sh
+python3 upgrade.py deb 2026.11.23.0 --candidate "$candidate" --candidate-sha256 "$sha256"
+```
+
+每组先通过包管理器安装原版，用原版程序写出未压缩 JSONL 与 zstd 会话。再在同一容器原位安装候选，用普通用户检查随包 CLI、续写两条旧会话。同版重装后启动新进程，核对原文、续写内容和原有输入建议事件。容器中的安装事务由包管理器以 root 身份执行，CLI 和资料检查由 UID `1001` 执行。
+
+复现首发版 DEB 的缓存场景时，在 `reproduction/` 中保留 `apt-signed-lists.tar`，将 `qualified-apt-cache.tar` 解到 `packages/`。核对 `apt-verified-inputs.json` 中的包名、字节数和 SHA-256，再用 `upgrade-debian-cached.py` 执行同一命令并加上 `--apt-cache packages`。脚本在独立容器中使用这组 APT 输入。
 
 ### 在 Linux 安装目录复验旧会话
 
@@ -939,7 +964,7 @@ node_bin="$runtime/primary-runtime/dependencies/node/bin/node"
 | 目标 | 对照安装形式 | 本轮发行候选验收 |
 | --- | --- | --- |
 | Windows x64 | exe | 缺省与写作的未签名安装器、保留资料及冷启动结果见上表。四模式包、正式签名与真实在线更新仍待验收。 |
-| Linux x64 | deb、rpm 分别验证 | Debian 13 和 Fedora 44 已分别验证首次安装、同版重装及两代会话。Fedora 45 已验证解包后的桌面和便携 CLI。旧系统覆盖升级与实体桌面门户待验。[逐包摘要与回执](#linux-x64-未签名安装包与回执)。 |
+| Linux x64 | deb、rpm 分别验证 | 当前候选已从两个正式版分别覆盖升级，验过同版重装和两种格式的旧会话。Debian 实机已在独立 X11 会话启动桌面。实体桌面门户和正式四模式包仍待验。[逐包摘要与回执](#当前-linux-x64-候选的实装升级) |
 | Linux arm64 | deb | 已接入 deb 和 tar.gz 打包入口。待原生构建、在包管理器中安装并验证启动与已有资料。 |
 | macOS arm64 | DMG 手动安装，按旧版实际更新索引验证应用内升级 | 记录签名、公证及 Gatekeeper 结果，再做 Issue #20 的保留资料场景。过渡版本的旧更新器仍可能下载 ZIP。 |
 
