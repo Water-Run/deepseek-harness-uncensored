@@ -69,7 +69,7 @@
 
 **窗口切换期间的回归。** 在 Windows 原生 Web 配置中分别运行缺省与写作模式的旁问用例。清理请求尚未返回时，旁问面板应显示加载提示，输入框仅在新会话可用时出现。测试会主动延迟清理响应，在恢复后的输入框发送新问题，再从主会话读取答案。另用 `apps/web/tests/subagent-fork-schedule.snapshot.ts` 回放主会话委派任务及子会话冷启动。子会话历史中的父会话工具清单仍可查，子会话自己发起请求时应移除 `read_side_context`。两项委派用例已在 Windows 用原生 PowerShell 工具清单复验。合并后的 Linux 或 macOS 验收应在该系统上运行同一文件，核对相应的 Bash 清单和会话记录。
 
-候选树 `f605a70b2917266e07b751cc99de8992aa133695` 已从交付补丁独立还原。分别由 `v2026.11.23.0` 和 `v2026.11.24.3` 的原版控制器创建主会话与旁问。候选首次启动后，读取旧旁问的工具声明与旧版一致，答案仅在工具返回后进入主会话。再次冷启动时无需模型调用即可找到同一条工具结果，旧旁问事件逐项相同。每组 40 个原始文件均通过 SHA-256 对照。Windows 上六个 Web 用例及三项会话快照资料检查通过。Linux 验证机本次连接被拒，原生 POSIX 回放待复验。
+候选树 `f605a70b2917266e07b751cc99de8992aa133695` 已从交付补丁独立还原。分别由 `v2026.11.23.0` 和 `v2026.11.24.3` 的原版控制器创建主会话与旁问。候选首次启动后，读取旧旁问的工具声明与旧版一致，答案仅在工具返回后进入主会话。再次冷启动时无需模型调用即可找到同一条工具结果，旧旁问事件逐项相同。每组 40 个原始文件均通过 SHA-256 对照。Windows 上六个 Web 用例及三项会话快照资料检查通过。该次运行使用 Windows。随后在 Debian 13 实机上用候选 `c048b2e78877` 完成五份 Web 回放，包含上述分支冷恢复检查。[Debian 回放与回执](#debian-的新版-web-回放)
 
 旁问读取沿用正式版工具名称、说明和空参数声明。用 DeepSeek-V3 分词器对 Web 工具清单的紧凑 JSON 单独计数，加入这条声明后从 7,108 增到 7,143 个 token。这一数字只度量工具清单；判断第三方 API 的缓存命中仍需服务商实际返回的用量。
 
@@ -142,19 +142,21 @@ Windows 安装包 `fc81c3d7…` 的关于页信息正确，但工作区标题仍
 
 [可编辑的 Release 说明](../../发布稿/Release-下一版.md)只含面向用户的文字。逐条对照最终安装文件，核实 #22 的文件头识别及实际随包组件后再补写对应变更。保留 #23、#26 的已知问题，除非有对应服务或系统上的新证据。
 
-在 DSHU 仓库或已还原的候选根目录执行下列命令。三个路径均可用绝对路径。草稿位于 DSHU 仓库的 `发布稿/Release-下一版.md`。工具在定稿后追加下载表和唯一的 `dshu-installers-v1` 校验清单。发布时整份使用新目录中的 `release-notes.md`，附件按同目录的 `upload-files.txt` 选择。再次修改文字或替换安装包时，传入新目录重新生成。
+在 DSHU 仓库或已还原的候选根目录执行下列命令。三个路径均可用绝对路径。草稿位于 DSHU 仓库的 `发布稿/Release-下一版.md`。工具在定稿后追加下载表、可展开的 SHA-256 校验值和唯一的 `dshu-installers-v1` 清单。修改正文后，对照五个实际文件复查可见的摘要和更新器读取的清单。发布时整份使用新目录中的 `release-notes.md`，附件按同目录的 `upload-files.txt` 选择。再次修改文字或替换安装包时，传入新目录重新生成。
 
 ```sh
 pnpm --dir apps/desktop run deliver:github --from "<收集目录>" --out "<新目录>" --notes-file "<定稿的绝对路径>"
 ```
 
-正式版标为 Latest 后，在 DSHU 仓库根目录执行下列只读检查，把最后一个参数换成刚才生成的上传目录。它使用桌面更新器解析 GitHub 的实际响应，逐个核对公开附件名、大小、GitHub 的 SHA-256、正文中的 SHA-512 与本地文件。成功时输出五行。之后可以修改 Release 中的说明文字，保留校验清单并再次运行。[公开附件核对脚本](../../kernel/0.2.3-alpha.2/verification/public-release-installers.mjs)
+正式版标为 Latest 后，在 DSHU 仓库根目录执行下列只读检查，把最后一个参数换成刚才生成的上传目录。它使用桌面更新器解析 GitHub 的实际响应，逐个核对公开附件名、大小、GitHub 和可见正文中的 SHA-256、更新器清单中的 SHA-512 与本地文件。成功时输出五行。之后可以修改 Release 中的说明文字，保留校验清单并再次运行。[公开附件核对脚本](../../kernel/0.2.3-alpha.2/verification/public-release-installers.mjs)
 
 ```sh
 gh api repos/Water-Run/deepseek-harness-uncensored/releases/latest | node --import tsx/esm kernel/0.2.3-alpha.2/verification/public-release-installers.mjs "<上传目录>"
 ```
 
-五个本地候选安装包共 1,434,684,672 字节。用上面的命令读入中文草稿后，主线和固定树 `3727e1fb510f` 的更新器都从生成的正文中读回全部五个下载目标，文件名、字节数与 SHA-512 均匹配。两种更新器均能读取 LF 和 CRLF 换行的正文，并拒绝缺失或重复的校验清单。此项验证的是 Release 正文和安装文件的一致性。真实在线升级另见[平台验收](#桌面与平台验收)。
+候选树 `4082f6f7b4d2` 用下文 `0eb8ef6e8e17` 的五个安装包实测了新版发布说明，文件合计 1,434,761,046 字节。Windows PowerShell 的 `Get-FileHash`、Mac Studio 的 `shasum -a 256`、Debian 与 DGX Spark 的 `sha256sum` 均得到同名文件的可见摘要。390 像素宽的 Chromium 本地预览默认折叠校验区，按 Enter 展开后可读到五行摘要，再按可收起。使用模拟的 GitHub 发布响应分别删掉、改错或重复可见摘要时，发布核对脚本均返回失败。真实公开发布后仍须执行上面的命令。
+
+较早的 `3727e1fb510f` 阶段另使用了一组共 1,434,684,672 字节的安装包。用上面的命令读入中文草稿后，主线和固定树 `3727e1fb510f` 的更新器都从生成的正文中读回全部五个下载目标，文件名、字节数与 SHA-512 均匹配。两种更新器均能读取 LF 和 CRLF 换行的正文，并拒绝缺失或重复的校验清单。此项验证的是 Release 正文和安装文件的一致性。真实在线升级另见[平台验收](#桌面与平台验收)。
 
 若最终安装包通过下文的[文件头识别验收](#issue-22-的首轮文件头识别)，可把这条加入用户说明：“在启用 REA 的逆向对话中，直接贴入 ELF、PE 或单架构 Mach-O 文件头即可询问格式与 CPU 架构，也支持从偏移零开始的 xxd 输出。”组件版本号从最终安装包的清单读取。
 
@@ -1132,7 +1134,7 @@ python3 upgrade.py deb 2026.11.23.0 --candidate "$candidate" --candidate-sha256 
 
 ### Linux x64 的 GTK 目录选择门户
 
-Debian 13 实机用独立 Xvfb 和 D-Bus 会话启动候选。Electron 可执行文件及 `app.asar` 的 SHA-256 均与 DEB 内的对应文件一致。第一次点侧栏的“添加工作区”后按 Esc，原生窗口关闭。再次点击并选定测试目录，新工作区显示在侧栏，重载后仍可见。D-Bus 记录有两次 `FileChooser.OpenFile` 调用，均带 `directory=true`。两次响应码依序为 `2` 和 `0`，后者返回所选目录的 URI。实机使用 GTK 后端，`FileChooser` 接口版本为 4。直接登录图形桌面的验证仍待完成。[运行结果及摘要](../../kernel/0.2.3-alpha.2/verification/linux-x64-upgrades-39dc7d95.json)
+Debian 13 实机用独立 Xvfb 和 D-Bus 会话启动候选。Electron 可执行文件及 `app.asar` 的 SHA-256 均与 DEB 内的对应文件一致。第一次点侧栏的“添加工作区”后按 Esc，原生窗口关闭。再次点击并选定测试目录，新工作区显示在侧栏，重载后仍可见。D-Bus 记录有两次 `FileChooser.OpenFile` 调用，均带 `directory=true`。两次响应码依序为 `2` 和 `0`，后者返回所选目录的 URI。实机使用 GTK 后端，`FileChooser` 接口版本为 4。此处记录 Xvfb 与 GTK 门户的结果。后续 KDE Wayland 登录桌面的 DEB 和 RPM 结果见[实机验收](#已登录桌面的实机验收)。[运行结果及摘要](../../kernel/0.2.3-alpha.2/verification/linux-x64-upgrades-39dc7d95.json)
 
 同一交付归档的 `verification/portal-x11/` 保存运行日志、D-Bus 记录、截图和三个复验脚本。把脚本放到 Debian 构建作业目录，`run-portal.sh` 中的 `job_dir` 指向保有原候选 `source/` 和构建身份文件的目录。作业依赖 Xvfb、D-Bus、GTK 门户、XTest 和候选工作区依赖中的 Playwright。运行 `bash run-portal.sh` 后，命令输出本次隔离目录。核对其中 `result.json` 的 `passed`、两次响应及重载结果。测试用独立 D-Bus 和应用资料目录，不接入当前图形桌面会话。
 
@@ -1189,7 +1191,7 @@ node_bin="$runtime/primary-runtime/dependencies/node/bin/node"
 | 内核与通用功能 | 固定候选已接入记忆、账户余额、额度设置与左侧导航。关于页、模式设置和桌面菜单已在源码候选接入。Windows 缺省与写作安装器已核对产品日期版本、内核版本和许可。其余平台须核对各自的实际产物。按正常 Web/桌面入口检验，不同账户和工作区分别使用测试资料。 | 可还原的补丁和树、冻结安装、构建、定向测试、页面实拍、旧资料复验结果。 |
 | 四模式与已有会话 | 产品维护者接手专项执行链。逐项核对四种模式的产品入口、选中状态、既有会话标识和用户资料。历史会话须保留原模式，异常应能定位。 | 各模式对应的负责人、源码或构建标识、保留资料测试结果、剩余缺口。专项执行链的实现和验证由其维护者负责。 |
 | 安装升级 | 各平台维护者使用同一源码提交生成候选，完成上表对应操作。 | 安装器清单、摘要、系统版本、签名状态、旧版到候选的升级记录及恢复验证。 |
-| 文档与发布 | 发行维护者核对 README 的默认值、截图和真实附件名，确认关于页与应用报告的版本一致，并检查 Release 更新索引。 | 已核对的正式标签、附件清单、升级指南和各平台结果。验收缺项记录在[交付清单](../TODO.md)。 |
+| 文档与发布 | 发行维护者核对 README 的默认值、截图和真实附件名，确认关于页与应用报告的版本一致，并核对 Release 正文中可见的 SHA-256 和更新器读取的五项校验清单。 | 已核对的正式标签、附件清单、升级指南和各平台结果。验收缺项记录在[交付清单](../TODO.md)。 |
 
 每个可验收节点由实施者自行推送一次，连续的局部修正合并到同一节点。推送前核对变更范围、相关测试和暂存内容。正常推送后比较 `git rev-parse HEAD` 与 `git ls-remote origin refs/heads/main`，将提交号和验证结果交给下一个接手人。[仓库推送检查](../skills/dsh-pre-push-checks/SKILL.md)
 
@@ -1208,6 +1210,8 @@ Windows 构建前先读 D 盘的实际可用字节，区分当前候选工作区
 2026-11-26 在 Windows x64 候选构建期间清理了 52 份旧 Electron 解压目录、20 份安装载荷展开副本、4 个能从已推送源码还原的旧核对目录，以及 4 个空安装检查目录。20 份载荷全部通过归档完整性和逐条目校验，清理后再次确认 20 份压缩包均在。D 盘实际可用空间从 41.0 GiB 增至 90.1 GiB，期间净增 49.1 GiB。各目录、归档摘要、源码树与测量字节数保存在本机 `%USERPROFILE%/DSHU-Deliveries/20261125/verification/development-storage-20261126/`。
 
 本机另保留 `%USERPROFILE%/DSHU-Deliveries/20261126/schema-ui-catalog/clean-source`。它是用公开补丁还原的 `d21c5fff46b8` 校验副本。24,600 个常规文件合计 229,700,499 字节，位于 C 盘。自动审批以 `blocked by policy` 拒绝递归清理，目录仍在。
+
+维护机的 `%USERPROFILE%/DSHU-Deliveries/20261126/release-download-verification/upload/` 保存了本次发布正文预览和五份校验副本，共 1,434,761,046 字节安装文件。自动审批拒绝了对本次临时副本的清理，返回 `blocked by policy`。文件仍在 C 盘。原始收集目录是同级项目 `schema-preflight/two-mode-collection/`。
 
 ### Release 维护记录
 

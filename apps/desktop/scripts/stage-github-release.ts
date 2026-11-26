@@ -132,6 +132,12 @@ export async function stageGithubRelease(from: string, out: string, bridge = fal
     const checksums = manifest.artifacts.map(file => ({
       name: file.name, size: file.bytes, sha256: file.sha256.toLowerCase(), sha512: files.get(file.name)!.sha512,
     }))
+    notes.push('<details>', '<summary>校验下载（SHA-256）</summary>', '',
+      '在下载目录计算所选文件的 SHA-256，与同名文件的摘要对照。', '',
+      '- 在 Windows PowerShell 中运行 `Get-FileHash -Algorithm SHA256 文件名`',
+      '- 在 macOS 终端运行 `shasum -a 256 文件名`',
+      '- 在 Linux 终端运行 `sha256sum 文件名`', '',
+      '```text', ...checksums.map(file => file.sha256 + '  ' + file.name), '```', '', '</details>', '')
     notes.push('<!-- dshu-installers-v1 ' + JSON.stringify(checksums) + ' -->', '')
     await writeFile(join(staging, 'release-notes.md'), notes.join('\n'))
     await writeFile(join(staging, 'upload-files.txt'), uploads.join('\n') + '\n')

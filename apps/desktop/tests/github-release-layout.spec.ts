@@ -72,14 +72,22 @@ it('reads the latest release metadata and verifies each platform installer from 
   const release = { tag_name: 'v' + version, published_at: '2026-11-24T00:00:00Z', draft: false, prerelease: false,
     body: await readFile(join(out, 'release-notes.md'), 'utf8'), assets }
   expect(release.body).toMatch(/^## 从旧版升级/u)
+  const visible = release.body.replace(/<!--[\s\S]*?-->/gu, '')
+  expect(visible).toContain('<summary>校验下载（SHA-256）</summary>')
+  const checksumRows = [...visible.matchAll(/^([a-f0-9]{64})  (DSHU-\S+)$/gmu)].map(([, digest, filename]) => [filename, digest])
+  expect(checksumRows).toHaveLength(5)
+  for (const { name: filename } of manifest.artifacts) {
+    const copied = await readFile(join(out, 'installers', filename))
+    expect(checksumRows).toContainEqual([filename, createHash('sha256').update(copied).digest('hex')])
+  }
   expect(release.body).not.toContain('首发版 `2026.11.23.0`')
   expect(release.body).toContain(draft.replaceAll('\r\n', '\n') + '\n\n## 安装包')
   expect(release.body.match(/^<!-- dshu-installers-v1 /gmu)).toHaveLength(1)
-  const verifyPublicFiles = () => {
+  const verifyPublicFiles = (body = release.body) => {
     const cwd = fileURLToPath(new URL('../../../', import.meta.url))
     const script = fileURLToPath(new URL('../../../kernel/0.2.3-alpha.2/verification/public-release-installers.mjs', import.meta.url))
     const result = spawnSync(process.execPath, ['--import', 'tsx/esm', script, out], {
-      cwd, input: JSON.stringify({ ...release, body: 'Edited release notes\n\n' + release.body }), encoding: 'utf8', timeout: 30_000,
+      cwd, input: JSON.stringify({ ...release, body: 'Edited release notes\n\n' + body }), encoding: 'utf8', timeout: 30_000,
     })
     if (result.error) throw result.error
     expect(result.signal, result.stderr).toBeNull()
@@ -88,6 +96,16 @@ it('reads the latest release metadata and verifies each platform installer from 
   const verified = verifyPublicFiles()
   expect(verified.status, verified.stderr).toBe(0)
   expect(verified.stdout.trim().split('\n')).toHaveLength(5)
+  const firstAsset = manifest.artifacts[0]!
+  const firstRow = firstAsset.sha256 + '  ' + firstAsset.name
+  for (const [replacement, message] of [
+    ['', 'Missing or incorrect public SHA-256'], ['0'.repeat(64) + '  ' + firstAsset.name, 'Missing or incorrect public SHA-256'],
+    [firstRow + '\n' + firstRow, 'Repeated public SHA-256'],
+  ] as const) {
+    const invalid = verifyPublicFiles(release.body.replace(firstRow, replacement))
+    expect(invalid.status).toBe(1)
+    expect(invalid.stderr).toContain(message)
+  }
   for (const [platform, arch, expected] of [
     ['win32', 'x64', ['win-x64.exe']], ['darwin', 'arm64', ['mac-arm64.dmg']],
     ['linux', 'x64', ['linux-x64.deb', 'linux-x64.rpm']], ['linux', 'arm64', ['linux-arm64.deb']],

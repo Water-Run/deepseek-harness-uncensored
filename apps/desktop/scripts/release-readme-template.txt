@@ -21,7 +21,7 @@
   █████  ███▄▄▄       ▄▄      ████████     平台   Windows · Linux · macOS
   █████  ███████▄      ██     ████████     架构   x64 · arm64
   █████  ▀████████▄     ▀    ▄████████     内置   Node · Python · pnpm
-  █████▄  ▀█████████        ▄█████████     模式   缺省 · 网安 · 逆向 · 写作
+  █████▄  ▀█████████        ▄█████████
   ██████▄   ▀███  ▀██▄     ███████████     基于   DeepSeek Harness
   ████████▄          ▀▀ ▄    █████████     许可   GPL-3.0-or-later
   ███████████▄▄▄▄ ▄▄▄▄████████████████
@@ -30,7 +30,7 @@
      ▀▀██████████████████████████▀▀
 
 
-   本目录是同一版本的全部安装包，按系统任选其一。
+   按操作系统和 CPU 架构选择安装包。Linux 升级时沿用原安装格式。
    每个安装包都自带 Node、Python 与 pnpm，开箱即用，无需预装任何运行时。
 
 
@@ -47,23 +47,27 @@
 
    首次运行  /  FIRST LAUNCH
 
-   安装包未做代码签名，首次打开时系统可能拦截：
+   ► Windows   运行 EXE 安装后，从开始菜单打开 DSHU。
+   ► macOS     打开 DMG，把应用拖入「应用程序」，从那里启动。
+   ► Linux     用系统包管理器安装后，从应用菜单启动。
 
-   ► Windows   SmartScreen 提示时，点「更多信息」→「仍要运行」
-   ► macOS     右键点击应用 →「打开」；或在终端执行：
-
-     $ xattr -dr com.apple.quarantine \
-         "/Applications/DeepSeek Harness Uncensored.app"
+   在「关于」左侧核对 DSHU 版本 {{VERSION}}。
 
 
  ═══╡ 03 ╞════════════════════════════════════════════════════════════════════
 
    校验下载  /  VERIFY
 
-   ► Linux / macOS
-     $ sha256sum -c SHA256SUMS.txt
+   在下载目录运行对应命令，按实际架构和格式替换文件名。将输出的摘要
+   与 SHA256SUMS.txt 或本版本发布页「校验下载」中的同名文件对照。
 
-   ► Windows (PowerShell)，输出与 SHA256SUMS.txt 对照
+   ► Linux
+     $ sha256sum DSHU-{{VERSION}}-linux-x64.deb
+
+   ► macOS
+     $ shasum -a 256 DSHU-{{VERSION}}-mac-arm64.dmg
+
+   ► Windows (PowerShell)
      > Get-FileHash -Algorithm SHA256 .\DSHU-{{VERSION}}-win-x64.exe
 
 

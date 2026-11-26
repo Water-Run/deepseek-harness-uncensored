@@ -300,7 +300,7 @@ Windows 卸载默认保留用户资料与更新缓存，静默卸载也适用。
 
 ## 更新
 
-用 `pnpm --dir apps/desktop run deliver` 收集五个平台安装包。在 DSHU 仓库中运行 `pnpm --dir apps/desktop run deliver:github --from <收集目录> --out <新目录>`。发布说明写在 UTF-8 Markdown 文件中，通过 `--notes-file <草稿绝对路径>` 传入。生成的 `release-notes.md` 包含定稿文字、下载表和本批安装包的校验值，可直接作为发行正文。省略草稿时只生成安装说明与校验值。`upload-files.txt` 列出全部上传附件。新客户端查询 GitHub 最新正式版，比较日期版本并校验对应的安装包。macOS 从 DMG 中取出已签名的应用，交给 Squirrel.Mac 更新。重试下载时会按发行版的 SHA-512 核对缓存的 DMG，校验值不符时会重新下载。
+用 `pnpm --dir apps/desktop run deliver` 收集五个平台安装包。在 DSHU 仓库中运行 `pnpm --dir apps/desktop run deliver:github --from <收集目录> --out <新目录>`。发布说明写在 UTF-8 Markdown 文件中，通过 `--notes-file <草稿绝对路径>` 传入。生成的 `release-notes.md` 包含定稿文字、下载表和可展开的 SHA-256 文件清单，可直接作为发行正文。用户可核对单个下载文件，更新器从同一正文读取校验清单。省略草稿时只生成安装说明与校验值。`upload-files.txt` 列出全部上传附件。新客户端查询 GitHub 最新正式版，比较日期版本并校验对应的安装包。macOS 从 DMG 中取出已签名的应用，交给 Squirrel.Mac 更新。重试下载时会按发行版的 SHA-512 核对缓存的 DMG，校验值不符时会重新下载。
 
 下一正式版使用五个安装包。从首发版 `2026.11.23.0` 升级，需要从 Release 页面下载对应安装包，手动覆盖安装一次。`2026.11.24.3` 可在应用菜单中选择「检查更新」，从最新正式版正文读取安装包校验清单。复现旧分发格式时使用 `--bridge`，它额外收集四个 `latest*.yml` 索引和 macOS 更新 ZIP。
 

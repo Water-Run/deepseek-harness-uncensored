@@ -66915,3 +66915,156 @@ index 290088f9d47cdd005f3a6ff53a6330da1fbcb0d3..615bab1be2cc683d2e204535c96cabcb
    BalanceCleanupRequest: 'packages/credentials/balance/README.md',
    BalanceSidebarRange: 'packages/credentials/balance/README.md',
    BalanceSnapshot: 'packages/credentials/balance/README.md',
+diff --git a/apps/desktop/README.i18n.yaml b/apps/desktop/README.i18n.yaml
+index f016efe8c0ebf62680268ab737873d46bee0b6aa..ae9edfb67664dadfe0464e28403e474240caeced 100644
+--- a/apps/desktop/README.i18n.yaml
++++ b/apps/desktop/README.i18n.yaml
+@@ -57,8 +57,8 @@
+   en: ccfa977f1d7eaeb0
+   zh: dd5116b4054ad64a
+ /deepseek-harness-desktop/updates:
+-  en: d89a5f06f668073a
+-  zh: 351daaf854e80d0b
++  en: 110c577cfb29ff7a
++  zh: 0cd2f74abf01a984
+ /deepseek-harness-desktop/updates/local-desktop-settings:
+   en: c4384915bee9209f
+   zh: eef9ac69d1e3e2cf
+diff --git a/apps/desktop/README.md b/apps/desktop/README.md
+index c40135fc7b8c41cd120913c1864c25dc6e98388d..b77165a15ad1953584cc40a7ea04f38d3ccfc589 100644
+--- a/apps/desktop/README.md
++++ b/apps/desktop/README.md
+@@ -279,7 +279,7 @@ Use `node apps/desktop/scripts/test-windows-installer.mjs --uninstall-only --com
+ 
+ DSHU production installers check the latest public GitHub release and download the matching installer from its immutable tag. On macOS, the updater prepares the signed app from the DMG for the system update service. Test packages keep their configured test feed.
+ 
+-Collect the five installers with `pnpm --dir apps/desktop run deliver` and stage the GitHub attachment list and release body with `pnpm --dir apps/desktop run deliver:github --from <collected> --out <new-directory>`. Use `--notes-file <draft.md>` to include your edited UTF-8 release notes before the download table. Publish the generated release body with its installer checksums. Users of `2026.11.23.0` need to download the matching installer from the release page and install it over their existing copy once. In `2026.11.24.3`, choose **Check for Updates** in the application menu. This version reads the installer checksums from the latest release body. On macOS, retrying a download verifies the cached DMG against the published SHA-512 and downloads it again if the checksum differs.
++Collect the five installers with `pnpm --dir apps/desktop run deliver` and stage the GitHub attachment list and release body with `pnpm --dir apps/desktop run deliver:github --from <collected> --out <new-directory>`. Use `--notes-file <draft.md>` to include your edited UTF-8 release notes before the download table. The generated release body includes an expandable SHA-256 list for verifying individual downloads and the checksum list for the updater. Users of `2026.11.23.0` need to download the matching installer from the release page and install it over their existing copy once. In `2026.11.24.3`, choose **Check for Updates** in the application menu. This version reads the installer checksums from the latest release body. On macOS, retrying a download verifies the cached DMG against the published SHA-512 and downloads it again if the checksum differs.
+ 
+ On Windows, the downloaded-update confirmation explains that the application closes during installation, reopens automatically, and should not be launched again while updating. An installer restart carrying `--updated` raises and focuses the main window once when startup opens the workspace directly, without enabling always-on-top. Startup into the welcome page discards that request so a later login keeps its normal activation behavior. Ordinary launches and other platforms do not use this foregrounding step.
+ 
+diff --git a/apps/desktop/README.zh.md b/apps/desktop/README.zh.md
+index aca798dbceec0486671fa4652f71b6c6ba640d1a..6c742e1676135f3234503b4bcee8115622f5f775 100644
+--- a/apps/desktop/README.zh.md
++++ b/apps/desktop/README.zh.md
+@@ -279,7 +279,7 @@ Windows 卸载程序会随应用一起删除 Electron 用户数据目录（`%APP
+ 
+ DSHU 正式安装包读取 GitHub 的最新公开正式版，并从固定标签下载对应安装包。macOS 更新器将 DMG 内的签名应用交给系统更新服务。测试包继续使用配置的测试更新源。
+ 
+-使用 `pnpm --dir apps/desktop run deliver` 收集五个安装包，再运行 `pnpm --dir apps/desktop run deliver:github --from <收集目录> --out <新目录>` 生成 GitHub 附件清单和发行正文。用 `--notes-file <草稿.md>` 在下载表前加入已编辑的 UTF-8 发行说明，发布时保留生成的安装包校验清单。从首发版 `2026.11.23.0` 升级，需要从 Release 页面下载对应安装包，手动覆盖安装一次。`2026.11.24.3` 可在应用菜单中选择「检查更新」，从最新正式版正文读取安装包校验清单。macOS 重试下载时会按发行版的 SHA-512 核对缓存的 DMG，校验值不符时会重新下载。
++使用 `pnpm --dir apps/desktop run deliver` 收集五个安装包，再运行 `pnpm --dir apps/desktop run deliver:github --from <收集目录> --out <新目录>` 生成 GitHub 附件清单和发行正文。用 `--notes-file <草稿.md>` 在下载表前加入已编辑的 UTF-8 发行说明，生成的发行正文含可展开的 SHA-256 文件清单，用户可核对单个下载文件，更新器从同一正文读取校验清单。从首发版 `2026.11.23.0` 升级，需要从 Release 页面下载对应安装包，手动覆盖安装一次。`2026.11.24.3` 可在应用菜单中选择「检查更新」，从最新正式版正文读取安装包校验清单。macOS 重试下载时会按发行版的 SHA-512 核对缓存的 DMG，校验值不符时会重新下载。
+ 
+ Windows 下载完成后的更新确认说明应用会在安装期间关闭、完成后自动打开，并提示期间不要重复启动。安装器携带 `--updated` 重启应用并直接打开工作区时，壳会将主窗口前置并聚焦一次，不启用永久置顶。启动进入欢迎页时会清除此请求，使后续登录保留正常的激活行为。普通启动和其他平台不执行此前置步骤。
+ 
+diff --git a/apps/desktop/scripts/release-readme-template.txt b/apps/desktop/scripts/release-readme-template.txt
+index a8ec774fb2c7c978641c13082d3f1db7c59796f3..ae1029a0d772ace684f3e275f6f806a0e3a99ae8 100644
+--- a/apps/desktop/scripts/release-readme-template.txt
++++ b/apps/desktop/scripts/release-readme-template.txt
+@@ -21,7 +21,7 @@
+   █████  ███▄▄▄       ▄▄      ████████     平台   Windows · Linux · macOS
+   █████  ███████▄      ██     ████████     架构   x64 · arm64
+   █████  ▀████████▄     ▀    ▄████████     内置   Node · Python · pnpm
+-  █████▄  ▀█████████        ▄█████████     模式   缺省 · 网安 · 逆向 · 写作
++  █████▄  ▀█████████        ▄█████████
+   ██████▄   ▀███  ▀██▄     ███████████     基于   DeepSeek Harness
+   ████████▄          ▀▀ ▄    █████████     许可   GPL-3.0-or-later
+   ███████████▄▄▄▄ ▄▄▄▄████████████████
+@@ -30,7 +30,7 @@
+      ▀▀██████████████████████████▀▀
+ 
+ 
+-   本目录是同一版本的全部安装包，按系统任选其一。
++   按操作系统和 CPU 架构选择安装包。Linux 升级时沿用原安装格式。
+    每个安装包都自带 Node、Python 与 pnpm，开箱即用，无需预装任何运行时。
+ 
+ 
+@@ -47,23 +47,27 @@
+ 
+    首次运行  /  FIRST LAUNCH
+ 
+-   安装包未做代码签名，首次打开时系统可能拦截：
++   ► Windows   运行 EXE 安装后，从开始菜单打开 DSHU。
++   ► macOS     打开 DMG，把应用拖入「应用程序」，从那里启动。
++   ► Linux     用系统包管理器安装后，从应用菜单启动。
+ 
+-   ► Windows   SmartScreen 提示时，点「更多信息」→「仍要运行」
+-   ► macOS     右键点击应用 →「打开」；或在终端执行：
+-
+-     $ xattr -dr com.apple.quarantine \
+-         "/Applications/DeepSeek Harness Uncensored.app"
++   在「关于」左侧核对 DSHU 版本 {{VERSION}}。
+ 
+ 
+  ═══╡ 03 ╞════════════════════════════════════════════════════════════════════
+ 
+    校验下载  /  VERIFY
+ 
+-   ► Linux / macOS
+-     $ sha256sum -c SHA256SUMS.txt
++   在下载目录运行对应命令，按实际架构和格式替换文件名。将输出的摘要
++   与 SHA256SUMS.txt 或本版本发布页「校验下载」中的同名文件对照。
++
++   ► Linux
++     $ sha256sum DSHU-{{VERSION}}-linux-x64.deb
++
++   ► macOS
++     $ shasum -a 256 DSHU-{{VERSION}}-mac-arm64.dmg
+ 
+-   ► Windows (PowerShell)，输出与 SHA256SUMS.txt 对照
++   ► Windows (PowerShell)
+      > Get-FileHash -Algorithm SHA256 .\DSHU-{{VERSION}}-win-x64.exe
+ 
+ 
+diff --git a/apps/desktop/scripts/stage-github-release.ts b/apps/desktop/scripts/stage-github-release.ts
+index 91f9d7c7d090b5b2e302f7ab69f640a1e1a28581..d857b605ea3ea75b9884c68f3b5a6e5bc6e0531c 100644
+--- a/apps/desktop/scripts/stage-github-release.ts
++++ b/apps/desktop/scripts/stage-github-release.ts
+@@ -133,6 +133,12 @@ export async function stageGithubRelease(from: string, out: string, bridge = fal
+     const checksums = manifest.artifacts.map(file => ({
+       name: file.name, size: file.bytes, sha256: file.sha256.toLowerCase(), sha512: files.get(file.name)!.sha512,
+     }))
++    notes.push('<details>', '<summary>校验下载（SHA-256）</summary>', '',
++      '在下载目录计算所选文件的 SHA-256，与同名文件的摘要对照。', '',
++      '- 在 Windows PowerShell 中运行 `Get-FileHash -Algorithm SHA256 文件名`',
++      '- 在 macOS 终端运行 `shasum -a 256 文件名`',
++      '- 在 Linux 终端运行 `sha256sum 文件名`', '',
++      '```text', ...checksums.map(file => file.sha256 + '  ' + file.name), '```', '', '</details>', '')
+     notes.push('<!-- dshu-installers-v1 ' + JSON.stringify(checksums) + ' -->', '')
+     await writeFile(join(staging, 'release-notes.md'), notes.join('\n'))
+     await writeFile(join(staging, 'upload-files.txt'), uploads.join('\n') + '\n')
+diff --git a/apps/desktop/tests/collect-release.spec.ts b/apps/desktop/tests/collect-release.spec.ts
+index 2c2ab1141fdb1b3164d5df7ff20fbec742a5bb6b..3a57747a0e00906fbf515cbf1e7ca76751f9bc2c 100644
+--- a/apps/desktop/tests/collect-release.spec.ts
++++ b/apps/desktop/tests/collect-release.spec.ts
+@@ -84,7 +84,11 @@ it('collects one verified file per target under a uniform name', async () => {
+   const readme = await readFile(join(out, 'README.txt'), 'utf8')
+   expect(readme).toContain(`DSHU-${VERSION}-linux-x64.deb`)
+   expect(readme).toContain('sudo apt install ./')
+-  expect(readme).toContain('sha256sum -c SHA256SUMS.txt')
++  expect(readme).toContain('sha256sum ')
++  expect(readme).toContain('shasum -a 256 ')
++  expect(readme).toContain('Get-FileHash -Algorithm SHA256')
++  expect(readme).not.toContain('安装包未做代码签名')
++  expect(readme).not.toContain('com.apple.quarantine')
+   expect(readme).toContain('https://github.com/Water-Run/deepseek-harness-uncensored')
+   expect(readme).toContain(`/releases/tag/v${VERSION}`)
+   expect(readme).toContain('/issues')
+diff --git a/apps/desktop/tests/github-release-layout.spec.ts b/apps/desktop/tests/github-release-layout.spec.ts
+index 449fab9e1805bc26e232d33dce3e1fcb0f4bb965..3ed6cc780e584c517c6eea04c06fcd2966f45f96 100644
+--- a/apps/desktop/tests/github-release-layout.spec.ts
++++ b/apps/desktop/tests/github-release-layout.spec.ts
+@@ -70,6 +70,14 @@ it('reads the latest release metadata and verifies each platform installer from
+   const release = { tag_name: 'v' + version, published_at: '2026-11-24T00:00:00Z', draft: false, prerelease: false,
+     body: await readFile(join(out, 'release-notes.md'), 'utf8'), assets }
+   expect(release.body).toMatch(/^## 从旧版升级/u)
++  const visible = release.body.replace(/<!--[\s\S]*?-->/gu, '')
++  expect(visible).toContain('<summary>校验下载（SHA-256）</summary>')
++  const checksumRows = [...visible.matchAll(/^([a-f0-9]{64})  (DSHU-\S+)$/gmu)].map(([, digest, filename]) => [filename, digest])
++  expect(checksumRows).toHaveLength(5)
++  for (const { name: filename } of manifest.artifacts) {
++    const copied = await readFile(join(out, 'installers', filename))
++    expect(checksumRows).toContainEqual([filename, createHash('sha256').update(copied).digest('hex')])
++  }
+   expect(release.body).not.toContain('首发版 `2026.11.23.0`')
+   expect(release.body).toContain(draft.replaceAll('\r\n', '\n') + '\n\n## 安装包')
+   expect(release.body.match(/^<!-- dshu-installers-v1 /gmu)).toHaveLength(1)

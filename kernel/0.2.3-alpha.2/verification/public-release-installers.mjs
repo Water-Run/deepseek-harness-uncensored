@@ -17,6 +17,14 @@ for (const [platform, arch] of [['win32', 'x64'], ['darwin', 'arm64'], ['linux',
 }
 if (files.size !== 5 || release.assets.length !== 5) throw new Error('Expected exactly five public installers for ' + release.tag_name)
 
+const publishedHashes = new Map()
+const visible = release.body.replace(/<!--[\s\S]*?-->/gu, '')
+for (const [, digest, name] of visible.matchAll(/^([a-f0-9]{64})  (DSHU-[\w.-]+)\r?$/gimu)) {
+  if (!files.has(name)) continue
+  if (publishedHashes.has(name)) throw new Error('Repeated public SHA-256 for ' + name)
+  publishedHashes.set(name, digest.toLowerCase())
+}
+
 const installers = join(directory, 'installers')
 const local = await readdir(installers, { withFileTypes: true })
 if (local.length !== files.size || local.some(entry => !entry.isFile() || !files.has(entry.name))) {
@@ -31,8 +39,10 @@ for (const [name, file] of files) {
     size += chunk.length
   }
   const asset = release.assets.find(entry => entry.name === name)
-  if (size !== file.size || 'sha256:' + sha256.digest('hex') !== asset.digest || sha512.digest('base64') !== file.sha512) {
+  const digest = sha256.digest('hex')
+  if (size !== file.size || 'sha256:' + digest !== asset.digest || sha512.digest('base64') !== file.sha512) {
     throw new Error('Local installer bytes differ from GitHub metadata for ' + name)
   }
+  if (digest !== publishedHashes.get(name)) throw new Error('Missing or incorrect public SHA-256 for ' + name)
   console.log('%s  %d  %s', release.tag_name, size, name)
 }
