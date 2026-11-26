@@ -34,13 +34,13 @@
 
 [#25 会话恢复](requirements/2026-11-25-release-handoff.md#issue-25-的工具声明与会话恢复)列为下一版优先项。主线关闭 REA 后会停止声明及调用已选外部工具。缺省与写作 Windows 候选 `ccf4f669…` 已从两个正式版升级，安装后通过三种普通投影和具名拒绝恢复。[安装器摘要与回执](requirements/2026-11-25-release-handoff.md#具名工具拒绝修复的-windows-实装验收)。还已核对官方 API 响应、账号路由的回环 HTTP 请求及两个正式版写出的 v4 会话。主线和内核候选已验证[连续具名拒绝、保留无关声明与原会话的恢复提示](requirements/2026-11-25-release-handoff.md#点名拒绝后的恢复与缓存排查)。新版候选在 Fedora 45 通过 Headless 与 SDK 的两条动态工具回放。旧主线的标准环境回放、桌面账号真实登录和单会话单工具停用仍待验收。[#23 缓存报告](https://github.com/Water-Run/deepseek-harness-uncensored/issues/23)未核定第三方服务的实际命中率。
 
-下一版源码已完成关于页与设置调整、跨对话记忆总开关和余额历史范围选择。Windows x64 上已验收桌面与窄屏布局、余额双端拖动和开关持久化。四组旧版 Web 会话回放在 Windows 上仍有差异，涉及 Unix Shell、平台技能目录和既有系统提示词断言，需在支持的平台复验。[默认值升级说明](../docs/upgrade-guide/v0.2.2-rc.5/memory-and-balance-defaults/guide.zh.md)
+下一版源码已完成关于页与设置调整、跨对话记忆总开关和余额历史范围选择。Windows x64 上已验收桌面与窄屏布局、余额双端拖动和开关持久化。新版内核已纳入代码预览及最小模式回放修正，`c048b2e78877` 在 Debian 实机通过 19 项 Web 回放。[默认值升级说明](../docs/upgrade-guide/v0.2.2-rc.5/memory-and-balance-defaults/guide.zh.md) · [Web 回放复验](requirements/2026-11-25-release-handoff.md#debian-的新版-web-回放)
 
 ## Windows 首发缺口
 
 旧会话升级已补测输入建议。两个正式版分别调用原版输入建议写入器生成压缩 v4 会话，候选 `6283464b` 续写后冷重开，两组各 30 个原文件的 SHA-256 均一致。缺省与写作的 Windows 安装器 `ad437c3b…` 也已从两个正式版实装升级，用安装后的应用续写旧会话并在同版重装后重新读取。[漏检原因、安装器摘要与复验步骤](requirements/2026-11-25-release-handoff.md#含输入建议的旧会话)
 
-Linux 候选已接入 x64（deb、rpm、tar.gz）与 arm64（deb、tar.gz）的原生打包。Debian 13 已从当前源码树生成 x64 三种未签名包并核对显示和 CLI。DEB 与 RPM 均从两个正式版覆盖升级，普通用户启动及旧会话续写、同版重装后重开全部通过。Debian 实机的独立 X11 会话已通过 GTK 目录选择门户测试。直接登录图形桌面的验证、arm64 原生安装及正式四模式包仍待完成。[当前 Linux x64 候选回执](requirements/2026-11-25-release-handoff.md#当前-linux-x64-候选的实装升级)
+Linux 候选已接入 x64（deb、rpm、tar.gz）与 arm64（deb、tar.gz）的原生打包。Debian 13 已从 `c048b2e78877` 重建 x64 三种未签名包。DEB 与 RPM 均从两个正式版覆盖升级，普通用户启动及旧会话续写、同版重装后重开全部通过。Debian 实机的独立 X11 会话已通过 GTK 目录选择门户测试。直接登录图形桌面的验证、arm64 原生安装及正式四模式包仍待完成。[Linux x64 候选回执](requirements/2026-11-25-release-handoff.md#回放修正后的-linux-x64-重建)
 
 当前交付为[Windows x64 首发打包交接](requirements/windows-x64-first-release.md)。应交付功能须在同一候选逐项验证，缺项或待验均使首发保持待交付。
 

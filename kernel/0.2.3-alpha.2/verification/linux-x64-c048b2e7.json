@@ -1,0 +1,175 @@
+{
+  "date": "2026-11-26",
+  "sourceTree": "c048b2e788770f0f4068ff96ee50699579c91518",
+  "previousTree": "39dc7d95a408e1e043110916d08d3d4647c3be01",
+  "dshuVersion": "2026.11.25.0",
+  "kernelVersion": "0.2.3-alpha.2",
+  "platform": "Linux x64",
+  "buildHost": "Debian 13 physical host",
+  "buildGatesPassed": 10,
+  "signed": false,
+  "artifacts": [
+    {
+      "name": "deepseek-harness-uncensored-2026.11.25.0-linux-x64-unsigned.tar.gz",
+      "size": 364900878,
+      "sha256": "665bb170368ec67ba348175591664b76abcc720f963310d6bc08fc0d79290e28"
+    },
+    {
+      "name": "deepseek-harness-uncensored-2026.11.25.0-linux-amd64-unsigned.deb",
+      "size": 298843788,
+      "sha256": "0860ae06a3d05cd3c64f5338e6ff4d158079e2dfbcc1d703d7cec284bb7bfe8f"
+    },
+    {
+      "name": "deepseek-harness-uncensored-2026.11.25.0-linux-x86_64-unsigned.rpm",
+      "size": 249308941,
+      "sha256": "b006400371898959bc7686c4dd375175f1694c24281e602aaeb462487880bfce"
+    }
+  ],
+  "webReplay": {
+    "browser": "Chrome for Testing 149.0.7827.55",
+    "webFilesPassed": 5,
+    "testsPassed": 19,
+    "logSha256": "95c78172fd7cab45a360da88a432b77aa1191979b8e3b62d0777f9e51ab95728"
+  },
+  "inPlaceUpgrades": [
+    {
+      "kind": "deb",
+      "imageId": "cf7c9dcedc058a74762f2e1f01f6254e2376f3752452ddb347c1bb2a17618fd7",
+      "startingVersion": "2026.11.23.0",
+      "phase": "passed",
+      "originalSha256": "8e66234129fd0301b15dee21b6c5328e90324697bd08318c64b7169d442e5170",
+      "candidateSha256": "0860ae06a3d05cd3c64f5338e6ff4d158079e2dfbcc1d703d7cec284bb7bfe8f",
+      "kernel": "6.12.118+deb13-amd64",
+      "containerOs": "PRETTY_NAME=\"Debian GNU/Linux 13 (trixie)\"",
+      "originalPackageVersion": "2026.1123.0",
+      "candidatePackageVersion": "2026.1125.0",
+      "runAsUid": 1001,
+      "installedHostManifestMode": "644",
+      "defaultProfileMarkerSha256": "32503b3b915b6789c93a10ef0430ba0216df36cf854a2dfb20b58bdbc734d514",
+      "composer": [
+        "write",
+        "continue",
+        "reopen"
+      ],
+      "compression": [
+        "none",
+        "zstd"
+      ]
+    },
+    {
+      "kind": "deb",
+      "imageId": "cf7c9dcedc058a74762f2e1f01f6254e2376f3752452ddb347c1bb2a17618fd7",
+      "startingVersion": "2026.11.24.3",
+      "phase": "passed",
+      "originalSha256": "871f1e23207b6d3aed717ca175adf5963153f48e54a4fca790d21abba15f5807",
+      "candidateSha256": "0860ae06a3d05cd3c64f5338e6ff4d158079e2dfbcc1d703d7cec284bb7bfe8f",
+      "kernel": "6.12.118+deb13-amd64",
+      "containerOs": "PRETTY_NAME=\"Debian GNU/Linux 13 (trixie)\"",
+      "originalPackageVersion": "2026.1124.3",
+      "candidatePackageVersion": "2026.1125.0",
+      "runAsUid": 1001,
+      "installedHostManifestMode": "644",
+      "composer": [
+        "write",
+        "continue",
+        "reopen"
+      ],
+      "compression": [
+        "none",
+        "zstd"
+      ]
+    },
+    {
+      "kind": "rpm",
+      "imageId": "ab85fc5c265b3bc62847053f5b5829302ee0ab82aa53e0ba8c083b5a882ab449",
+      "startingVersion": "2026.11.23.0",
+      "phase": "passed",
+      "originalSha256": "0cd044e1290d16fe9d7355a6a93477fa69fe88a0ba44370eddeeb49f06723e78",
+      "candidateSha256": "b006400371898959bc7686c4dd375175f1694c24281e602aaeb462487880bfce",
+      "kernel": "6.12.0-264.17.1.el10_3.x86_64",
+      "containerOs": "PRETTY_NAME=\"Fedora Linux 44 (Container Image)\"",
+      "originalPackageVersion": "2026.1123.0",
+      "candidatePackageVersion": "2026.1125.0",
+      "runAsUid": 1001,
+      "installedHostManifestMode": "644",
+      "composer": [
+        "write",
+        "continue",
+        "reopen"
+      ],
+      "compression": [
+        "none",
+        "zstd"
+      ]
+    },
+    {
+      "kind": "rpm",
+      "imageId": "ab85fc5c265b3bc62847053f5b5829302ee0ab82aa53e0ba8c083b5a882ab449",
+      "startingVersion": "2026.11.24.3",
+      "phase": "passed",
+      "originalSha256": "bebd5e958996c18a77cb8bb9d415cda57daae3400da8eb5ae55a833be6537dc1",
+      "candidateSha256": "b006400371898959bc7686c4dd375175f1694c24281e602aaeb462487880bfce",
+      "kernel": "6.12.0-264.17.1.el10_3.x86_64",
+      "containerOs": "PRETTY_NAME=\"Fedora Linux 44 (Container Image)\"",
+      "originalPackageVersion": "2026.1124.3",
+      "candidatePackageVersion": "2026.1125.0",
+      "runAsUid": 1001,
+      "installedHostManifestMode": "644",
+      "composer": [
+        "write",
+        "continue",
+        "reopen"
+      ],
+      "compression": [
+        "none",
+        "zstd"
+      ]
+    }
+  ],
+  "portable": {
+    "tree": "c048b2e788770f0f4068ff96ee50699579c91518",
+    "archive": "deepseek-harness-uncensored-2026.11.25.0-linux-x64-unsigned.tar.gz",
+    "sha256": "665bb170368ec67ba348175591664b76abcc720f963310d6bc08fc0d79290e28",
+    "cli": "2026.11.25.0",
+    "bundledNode": "v24.22.3"
+  },
+  "desktop": {
+    "display": "Xvfb X11 on Debian 13",
+    "defaultWorkspaceCreated": true,
+    "appearance": {
+      "options": 4,
+      "default": "Sunrise & sunset"
+    },
+    "about": {
+      "product": "2026.11.25.0",
+      "kernel": "0.2.3-alpha.2",
+      "left": {
+        "x": 159.5,
+        "y": 120.734375,
+        "width": 398.390625,
+        "height": 529.515625
+      },
+      "dialog": {
+        "x": 159.5,
+        "y": 120.734375,
+        "width": 960,
+        "height": 529.515625
+      },
+      "candidateTree": "c048b2e788770f0f4068ff96ee50699579c91518",
+      "hasUpdateAction": true
+    },
+    "gtkDirectoryPicker": {
+      "tree": "c048b2e788770f0f4068ff96ee50699579c91518",
+      "fileChooserVersion": "(<uint32 4>,)",
+      "portalOpenCalls": 2,
+      "nativeDirectoryFlags": 2,
+      "cancelResponse": 2,
+      "acceptedViaPortal": true,
+      "workspaceVisible": true,
+      "workspaceVisibleAfterReload": true,
+      "passed": true
+    },
+    "executableDebSha256": "25ab04dfd586b5061ff2250fcb5f587764e0327f263e34111e14733f5b4fd149",
+    "appAsarDebSha256": "b2018420a130fa0a48f0eef9dfce9f98220e222f0796db4f82ca4eab94f821c3"
+  }
+}

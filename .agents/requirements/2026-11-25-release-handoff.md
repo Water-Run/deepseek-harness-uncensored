@@ -181,6 +181,16 @@ pnpm run verify-upgrade-guides
 
 上述首个里程碑在 Windows x64 上通过 429 项定向测试、主线构建 10 项以及 Git 推送前类型检查 5 项。浏览器已实际检查关于页布局、两个范围把手和记忆开关。四组旧 Web 录制回放在 Windows 未全绿，差异包括 `bash` 与 `pwsh`、平台技能目录及既有系统提示词断言。应在支持的 Unix 平台独立运行这些场景并检查实际差异。保留原始失败日志与对应提交，避免把一个平台的录制覆盖到所有平台。
 
+### Debian 的新版 Web 回放
+
+新版内核在 Debian 13 实机用 Chrome for Testing `149.0.7827.55` 回放代码预览和最小模式。代码预览多出未录制的输入预测事件，三个最小模式的界面预期缺少旁问、会话费用及额度开关。代码预览改用已有的 `newConversationReplayPage`，三个最小模式仅补齐对应的可访问性输出。两份受影响的测试共 14 项复验通过，已发布的 Session 样本保持原样。这四个文件从已验收的安装包源码 `39dc7d95a408` 推进到候选 `c048b2e78877`，产品和上游版本保持一致。已有安装包回执按各自源码树核对。[候选源码清单](../../kernel/0.2.3-alpha.2/source.json)
+
+使用与构建一致的 Node.js 与 pnpm，在还原并完成构建的候选目录运行下列命令。Chromium 由候选中的 Playwright 版本选择。`DSH_EXAMPLE_MODE=lib` 使 Web 回放走实际构建的运行时。Debian 13 已用重新还原并构建的 `c048b2e78877` 跑完全套五份测试，共 19 项通过，覆盖代码预览、最小模式、分支冷恢复、反馈协议和预设迁移。[重建后的回执](../../kernel/0.2.3-alpha.2/verification/linux-x64-c048b2e7.json)
+
+```sh
+DSH_EXAMPLE_MODE=lib pnpm run test:snapshot apps/web/tests/code-language.snapshot.ts apps/web/tests/minimal-preset.snapshot.ts apps/web/tests/subagent-fork-schedule.snapshot.ts apps/web/tests/message-feedback-protocol.snapshot.ts apps/web/tests/preset-migration.snapshot.ts
+```
+
 ### 固定内核候选
 
 在能创建符号链接的 Windows 文件系统上，还原器会为新目录启用 Git 原生符号链接。检查 `apps/cli/tests/profiles/acp/cordis.yml` 时应能读到它所引用的会话测试配置。若文件只包含一行相对路径，核对检出目录的 `core.symlinks` 和当前 Windows 账号创建符号链接的权限。
@@ -950,6 +960,12 @@ Debian 13 实机用独立 Xvfb 和 D-Bus 会话启动候选。Electron 可执行
 
 同一交付归档的 `verification/portal-x11/` 保存运行日志、D-Bus 记录、截图和三个复验脚本。把脚本放到 Debian 构建作业目录，`run-portal.sh` 中的 `job_dir` 指向保有原候选 `source/` 和构建身份文件的目录。作业依赖 Xvfb、D-Bus、GTK 门户、XTest 和候选工作区依赖中的 Playwright。运行 `bash run-portal.sh` 后，命令输出本次隔离目录。核对其中 `result.json` 的 `passed`、两次响应及重载结果。测试用独立 D-Bus 和应用资料目录，不接入当前图形桌面会话。
 
+### 回放修正后的 Linux x64 重建
+
+Debian 实机对 `c048b2e78877` 重跑构建及安装包验收。三种未签名产物通过构建、Office 文档转换、离线插件安装与移除及摘要校验。DEB、RPM 各从 `2026.11.23.0` 和 `2026.11.24.3` 覆盖升级，四组均通过 UID `1001` 的 CLI 启动和两种格式会话的续写及同版重装后重开。首发版 DEB 复用 `39dc7d95a408` 验收时归档的签名索引和依赖缓存。RPM 仍在 Rocky 实机的 Fedora 44 容器执行。便携包独立解压，通过随包 CLI 和 Node 的版本核对。[逐包摘要、四组升级及回放记录](../../kernel/0.2.3-alpha.2/verification/linux-x64-c048b2e7.json)
+
+GTK 目录选择及关于页也在这个树的组装目录重验。实际二进制和 `app.asar` 均与 DEB 内的文件摘要一致。独立 X11 会话中能创建默认工作区，默认选中日出日落。关于页左侧显示 DSHU `2026.11.25.0`，右侧显示 DSH `0.2.3-alpha.2` 和新源码树。维护机交付目录为 `%USERPROFILE%/DSHU-Deliveries/20261126/linux-x64/c048b2e78877/`，含三种归档、19 项回放日志、实装步骤日志及截图。
+
 ### 在 Linux 安装目录复验旧会话
 
 从两个正式版的受控测试资料各取一份压缩 v4 会话及其 `prediction-events.json`，每个版本使用独立副本。原始写入提交为 `95325688c913` 和 `7eaeddc6050e`。测试会话保存了用户的第一句话、输入建议的请求与结果。先记录两个原件的 SHA-256。安装后以普通用户操作副本，从应用安装目录启动[会话检查](../../kernel/0.2.3-alpha.2/verification/installed-composer-session.mjs)。
@@ -970,7 +986,7 @@ node_bin="$runtime/primary-runtime/dependencies/node/bin/node"
 | 目标 | 对照安装形式 | 本轮发行候选验收 |
 | --- | --- | --- |
 | Windows x64 | exe | 缺省与写作的未签名安装器、保留资料及冷启动结果见上表。四模式包、正式签名与真实在线更新仍待验收。 |
-| Linux x64 | deb、rpm 分别验证 | 当前候选已从两个正式版分别覆盖升级，验过同版重装和两种格式的旧会话。Debian 实机已在独立 X11 会话验证 GTK 目录选择门户。直接登录图形桌面的验证及正式四模式包仍待完成。[逐包摘要与回执](#当前-linux-x64-候选的实装升级) |
+| Linux x64 | deb、rpm 分别验证 | `c048b2e78877` 已从两个正式版分别覆盖升级，验过同版重装和两种格式的旧会话。Debian 实机已在独立 X11 会话验证 GTK 目录选择门户。直接登录图形桌面的验证及正式四模式包仍待完成。[逐包摘要与回执](#回放修正后的-linux-x64-重建) |
 | Linux arm64 | deb | 已接入 deb 和 tar.gz 打包入口。待原生构建、在包管理器中安装并验证启动与已有资料。 |
 | macOS arm64 | DMG 手动安装，按旧版实际更新索引验证应用内升级 | 记录签名、公证及 Gatekeeper 结果，再做 Issue #20 的保留资料场景。过渡版本的旧更新器仍可能下载 ZIP。 |
 

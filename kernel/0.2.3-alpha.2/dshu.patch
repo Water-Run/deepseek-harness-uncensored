@@ -59961,3 +59961,82 @@ index 7c2c5aedcfd9437c7a654981e451f48762c6c950..052fee9de1c72d0c83792597ec66ebc8
  declare module '@deepseek-ai/dsh-client-ui-slots' {
    interface SlotFactoryMap {
      /**
+diff --git a/apps/web/tests/code-language.snapshot.ts b/apps/web/tests/code-language.snapshot.ts
+index 038608a011bc7efed56bbe2d91fab2ef7e14f943..444e38d4284be12e9f5d7e5258396899a92f4652 100644
+--- a/apps/web/tests/code-language.snapshot.ts
++++ b/apps/web/tests/code-language.snapshot.ts
+@@ -8,7 +8,7 @@ import {
+   captureStableAria, compareOrRefreshGolden, fixtureUserPrompts, launchWebScaffold,
+   recordFixture, watchConsole, webSnapshotMode,
+ } from './scaffold.ts'
+-import { connectFreshWorkspace, expandTurnProcesses, newEnglishPage } from './support.ts'
++import { connectFreshWorkspace, expandTurnProcesses, newConversationReplayPage } from './support.ts'
+ 
+ const DIR = fileURLToPath(new URL('../../../snapshots/web/code-language', import.meta.url))
+ const FIXTURE = join(DIR, 'session.v4.jsonl')
+@@ -33,7 +33,7 @@ it('replays highlighted Python stubs, PowerShell and CSV reads with their docume
+     await mkdir(cwd, { recursive: true })
+     await Promise.all(FILES.map(file => writeFile(join(cwd, file.name), file.text)))
+     browser = await chromium.launch()
+-    const page = await newEnglishPage(browser)
++    const page = await newConversationReplayPage(browser)
+     const tripwire = watchConsole(page)
+     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
+     await connectFreshWorkspace(page, scaffold.workspaceCwd)
+diff --git a/snapshots/web/minimal-compact/ui.expected.md b/snapshots/web/minimal-compact/ui.expected.md
+index 4f3eebd4d9a84ef732ef84bca3f9af8caef161b7..2f76a25bfa069e1406c538cc46fe70977a0c360e 100644
+--- a/snapshots/web/minimal-compact/ui.expected.md
++++ b/snapshots/web/minimal-compact/ui.expected.md
+@@ -2,6 +2,7 @@
+   - navigation "Session hierarchy": "Remember the project requirements: imple"
+   - text: Minimal mode
+   - button "Session panel"
++  - button "Side question"
+   - button "More actions"
+   - tablist:
+     - tab "Chat" [selected]
+@@ -35,4 +36,6 @@
+ - button "Send message" [disabled]
+ - button "2 turns 2 steps"
+ - button "28 tok · Cache hit 0%": 28 tokCache hit 0%
++- 'button "Conversation cost: ￥0.000104"': ￥0.000104
++- 'button "Spending limits: Off"': "Off"
+ - button "0% of context used": 0%
+diff --git a/snapshots/web/minimal-preset/ui.expected.md b/snapshots/web/minimal-preset/ui.expected.md
+index 3dc7e2f314a840037e3d2b384a60da54a2fbc9c0..0ae2fb256b3710c8f76ddb54800768cef27008de 100644
+--- a/snapshots/web/minimal-preset/ui.expected.md
++++ b/snapshots/web/minimal-preset/ui.expected.md
+@@ -2,6 +2,7 @@
+   - navigation "Session hierarchy": Use the bash tool to
+   - text: Minimal mode
+   - button "Session panel"
++  - button "Side question"
+   - button "More actions"
+   - button "Open right sidebar"
+   - tablist:
+@@ -30,4 +31,6 @@
+ - button "Send message" [disabled]
+ - button "1 turns 2 steps · {{throughput}} tok/s": 1 turns 2 steps{{throughput}} tok/s
+ - button "28 tok · Cache hit 0%": 28 tokCache hit 0%
++- 'button "Conversation cost: ￥0.000104"': ￥0.000104
++- 'button "Spending limits: Off"': "Off"
+ - button "0% of context used": 0%
+diff --git a/snapshots/web/minimal-read-image/ui.expected.md b/snapshots/web/minimal-read-image/ui.expected.md
+index 2ae95c7e0db72abe11b600d349701543de9b572a..c95701b298203d4227e6c030231afb13ff43d5fb 100644
+--- a/snapshots/web/minimal-read-image/ui.expected.md
++++ b/snapshots/web/minimal-read-image/ui.expected.md
+@@ -2,6 +2,7 @@
+   - navigation "Session hierarchy": Use read_image to inspect red.png.
+   - text: Minimal mode
+   - button "Session panel"
++  - button "Side question"
+   - button "More actions"
+   - button "Open right sidebar"
+   - tablist:
+@@ -34,4 +35,6 @@
+ - button "Send message" [disabled]
+ - button "1 turns 2 steps · {{throughput}} tok/s": 1 turns 2 steps{{throughput}} tok/s
+ - button "28 tok · Cache hit 0%": 28 tokCache hit 0%
++- 'button "Conversation cost: ￥0.000104"': ￥0.000104
++- 'button "Spending limits: Off"': "Off"
+ - button "0% of context used": 0%
