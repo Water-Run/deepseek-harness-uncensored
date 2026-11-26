@@ -19,7 +19,7 @@
 - 新内核采用 DeepSeek Harness `0.2.3-alpha.2`。修复了旧配置中的同名依赖遮蔽桌面自带服务的问题，也能重新打开、续写含旧版输入建议记录的对话。[#20](https://github.com/Water-Run/deepseek-harness-uncensored/issues/20)
 - 写作模式保留七份写作手册和五份参考资料。升级后可继续使用原有的文风卡与设定集，保留原先的勾选和修订记录。
 - Windows 安装器可以识别以 `.0` 结尾的 DSHU 日期版本，支持从首发版静默覆盖升级，以及同版重装修复。[#24](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24)
-- 修复部分 MCP 工具声明导致原会话持续返回 HTTP 400 的问题。服务商点名拒绝某个工具后，可以在原对话继续，其他工具的声明会保留。[#25](https://github.com/Water-Run/deepseek-harness-uncensored/issues/25)
+- 如果服务商点名拒绝某个 MCP 工具的声明并返回 HTTP 400，可在设置中停用对应工具服务并保存，再回到原对话重发。已有消息、调用结果和其他仍启用的工具声明都会保留。该设置会影响使用此服务的其他对话。[#25](https://github.com/Water-Run/deepseek-harness-uncensored/issues/25)
 - macOS 应用内更新准备失败后，可以直接重试。应用会重新校验缓存的 DMG，损坏时重新下载，完整的安装包可直接复用。
 - 桌面安装包精简为五个，覆盖 Windows x64、Apple 芯片 Mac、Linux x64（DEB 和 RPM）及 Linux ARM64（DEB）。仓库首页可直接播放带中文配音和字幕的功能演示。
 

@@ -3,7 +3,8 @@
 param(
     [Parameter(Mandatory)][ValidateRange(1, 2147483647)][int]$RootProcessId,
     [ValidateRange(1, 120)][int]$SampleCount = 7,
-    [ValidateRange(1, 300)][int]$IntervalSeconds = 15
+    [ValidateRange(1, 300)][int]$IntervalSeconds = 15,
+    [string]$JournalPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -14,15 +15,7 @@ function Get-LoopbackAddress([string]$Address) {
     if ([Net.IPAddress]::IsLoopback($ip)) { return $ip.ToString() }
 }
 
-$root = Get-Process -Id $RootProcessId
-$started = $root.StartTime
-$version = $root.MainModule.FileVersionInfo.ProductVersion
-$timer = [Diagnostics.Stopwatch]::StartNew()
-$samples = for ($index = 0; $index -lt $SampleCount; $index++) {
-    $wait = $index * $IntervalSeconds * 1000 - $timer.ElapsedMilliseconds
-    if ($wait -gt 0) { Start-Sleep -Milliseconds $wait }
-    if ($root.HasExited) { throw "Desktop process $RootProcessId exited before sample $($index + 1)." }
-
+function Get-IdleSample {
     $live = @(Get-CimInstance Win32_Process)
     $family = [System.Collections.Generic.HashSet[int]]::new()
     [void]$family.Add($RootProcessId)
@@ -44,6 +37,7 @@ $samples = for ($index = 0; $index -lt $SampleCount; $index++) {
             parentPid = $row.ParentProcessId
             role = $role
             privateBytes = [long]$row.PrivatePageCount
+            workingSetBytes = [long]$row.WorkingSetSize
             handles = $row.HandleCount
         }
     })
@@ -75,6 +69,7 @@ $samples = for ($index = 0; $index -lt $SampleCount; $index++) {
         observedAtUtc = [datetime]::UtcNow.ToString('o')
         elapsedSeconds = [math]::Round($timer.Elapsed.TotalSeconds, 1)
         privateBytes = ($processes | Measure-Object privateBytes -Sum).Sum
+        workingSetBytes = ($processes | Measure-Object workingSetBytes -Sum).Sum
         handles = ($processes | Measure-Object handles -Sum).Sum
         listenerPorts = $listeners
         establishedClients = $clients
@@ -83,9 +78,48 @@ $samples = for ($index = 0; $index -lt $SampleCount; $index++) {
         processes = $processes
     }
 }
-[pscustomobject]@{
-    rootPid = $RootProcessId
-    productVersion = $version
-    osVersion = [Environment]::OSVersion.VersionString
-    samples = @($samples)
-} | ConvertTo-Json -Depth 5
+
+function Write-JournalRecord($Record) {
+    if ($journal) { $journal.WriteLine(($Record | ConvertTo-Json -Depth 6 -Compress)) }
+}
+
+$root = Get-Process -Id $RootProcessId
+$journal = $null
+$file = $null
+try {
+    $started = $root.StartTime
+    $version = $root.MainModule.FileVersionInfo.ProductVersion
+    $os = [Environment]::OSVersion.VersionString
+    if ($PSBoundParameters.ContainsKey('JournalPath')) {
+        $path = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($JournalPath)
+        $file = [IO.File]::Open($path, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::Read)
+        $journal = [IO.StreamWriter]::new($file, [Text.UTF8Encoding]::new($false))
+        $journal.AutoFlush = $true
+        Write-JournalRecord @{ type = 'start'; observedAtUtc = [datetime]::UtcNow.ToString('o'); rootPid = $RootProcessId; productVersion = $version; osVersion = $os }
+    }
+
+    $reason = 'collector-error'
+    $timer = [Diagnostics.Stopwatch]::StartNew()
+    try {
+        $samples = for ($index = 0; $index -lt $SampleCount; $index++) {
+            $wait = $index * $IntervalSeconds * 1000 - $timer.ElapsedMilliseconds
+            if ($wait -gt 0) { Start-Sleep -Milliseconds $wait }
+            if ($root.HasExited) { throw "Desktop process $RootProcessId exited before sample $($index + 1)." }
+            $sample = Get-IdleSample
+            if ($root.HasExited) { throw "Desktop process $RootProcessId exited during sample $($index + 1)." }
+            Write-JournalRecord @{ type = 'sample'; sample = $sample }
+            $sample
+        }
+        $reason = 'completed'
+    } catch {
+        if ($root.HasExited) { $reason = 'process-exited' }
+        throw
+    } finally {
+        Write-JournalRecord @{ type = 'end'; observedAtUtc = [datetime]::UtcNow.ToString('o'); reason = $reason }
+    }
+    [pscustomobject]@{ rootPid = $RootProcessId; productVersion = $version; osVersion = $os; samples = @($samples) } | ConvertTo-Json -Depth 5
+} finally {
+    if ($journal) { $journal.Dispose() }
+    if ($file) { $file.Dispose() }
+    $root.Dispose()
+}

@@ -723,6 +723,19 @@ EXE 为 325,300,939 字节，SHA-256 `fc81c3d72b4fb8a317a1b8938a99ad512c56794274
 
 此前候选 `b738adb9fcf1` 的安装器另用两个离线账户复验了 #24 和 #25。分别从 `2026.11.23.0` 和 `2026.11.24.3` 静默原位升级，两个起点的安装和同版重装退出码均为 0。模拟降级及无效登记均返回 2，原程序和资源摘要保持一致。每组都用安装后的程序续写并重开带输入建议的旧会话，核对三种历史工具声明以及服务商点名拒绝一个工具后保留的无关声明。两份回执位于该候选交接目录的 `first-upgrade.json`、`previous-upgrade.json`。正式签名安装器的真实线上升级仍待验证。
 
+### Windows Server 已登录桌面对照
+
+在 Windows Server 2025 Standard x64 Build `26100.33822` 的已登录桌面上，直接运行已安装的正式版 `2026.11.24.3`。第一轮使用独立空资料，从启动开始全程无操作。第二轮由该版写入 2,224 条主对话事件和 7 条旁问事件，跳过凭据配置，用界面依次打开旧主对话、打开旁问、关闭旁问。每次都核对可见的原回答，再断开界面自动化连接，静置 90 秒。两轮共 76 次采样。[安装文件摘要、逐阶段读数与界面核验](../../kernel/0.2.3-alpha.2/verification/windows-server-2025-retail-idle.json)
+
+| 阶段 | 去重回环连接 | 进程树专用内存，首末读数 | 进程树句柄范围 |
+| --- | --- | --- | --- |
+| 空资料冷启动 | 0–9，末次 4 | 66.6 → 536.2 MiB | 272–2,864 |
+| 已打开旧主对话 | 4–5 | 798.8 → 599.7 MiB | 2,787–2,803 |
+| 旁问已打开 | 4–5 | 565.6 → 557.7 MiB | 2,397–2,402 |
+| 旁问已关闭 | 4 | 567.5 → 558.3 MiB | 2,370–2,397 |
+
+三段旧资料测试期间，主会话文件的摘要均保持一致。旁问打开时，压缩文件原前缀的 SHA-256 与采样前一致，新增部分恰有一条输入预测失败结果。最后仍可读到主对话原回答。本机没有出现报告中的持续增长。报告者的 Windows 11 家庭版 Build 26300 和故障时完全没有会话写入这两个条件仍待复验。
+
 ### 用上一正式版生成可重复使用的旧资料
 
 在一次性 Windows 测试账户安装 `2026.11.24.3`。从仓库根目录运行以下 PowerShell。脚本调用安装目录里的写作会话、工作区和压缩存储实现，重新读取落盘的两条会话，并核对消息。它会新建输出目录，遇到同名目录立即退出。[写入器](../../kernel/0.2.3-alpha.2/verification/windows-retained-writing.mjs) · [输入建议样本](../../packages/sdk/client/tests/expected/input-prediction-projection.json)
@@ -750,12 +763,14 @@ try {
 
 新版采样器同时给出 `loopbackEstablishedConnections`，将本地和对端的地址、端口规范化，同一 TCP 连接的两个方向只计一次。一端属于进程树即可纳入，两个方向都在树外则排除。即使当前 Windows TCP 快照未列出监听端口，这个指标也可用。原版实测期间有一次 `netstat` 列出了 4 条连接的 8 个端点，同时按监听端口只能识别 0 条客户端连接。早期回执没有独立连接数字段，应保留其原始端点计数。
 
-从任务管理器选取这次启动的 DSHU 主进程 PID，在仓库根目录运行下列命令，将示例 PID 和输出文件名替换为实际值。[Windows 采样脚本](../../kernel/0.2.3-alpha.2/verification/windows-idle-samples.ps1)只读取进程和系统 TCP 表。结果包含每次采样的 UTC 时间、角色、内存、句柄和监听端口。填写工作区结果前先确认应用已加载工作区。
+从任务管理器选取这次启动的 DSHU 主进程 PID，在仓库根目录运行下列命令，将示例 PID 替换为实际值。填写工作区结果前先确认应用已加载工作区。[Windows 采样脚本](../../kernel/0.2.3-alpha.2/verification/windows-idle-samples.ps1)只读取进程和系统 TCP 表，记录每次采样的 UTC 时间、角色、专用字节数、工作集、句柄与本地连接。进程树的工作集之和包含可能被多个进程计入的共享页。
 
 ```powershell
-.\kernel\0.2.3-alpha.2\verification\windows-idle-samples.ps1 -RootProcessId 1234 -SampleCount 13 -IntervalSeconds 15 |
-    Set-Content -Encoding utf8 workspace-idle.json
+$trace = Join-Path $env:TEMP ('dshu-idle-' + [guid]::NewGuid() + '.jsonl')
+.\kernel\0.2.3-alpha.2\verification\windows-idle-samples.ps1 -RootProcessId 1234 -SampleCount 13 -IntervalSeconds 15 -JournalPath $trace
 ```
+
+脚本会在首个样本前新建日志，每次采样后立即写入一行。应用自行退出时，已完成的样本仍可读取，末行的 `reason` 为 `process-exited`。采样器意外终止时可以读取已有完整行，缺少结束记录的轨迹按中断处理。正常结束时仍会在标准输出给出完整 JSON。对外分享时只需提供该日志和测试条件。
 
 - [x] Windows Build 26100 在两个独立账户上对照上一正式版和两模式候选，使用同一份保留资料，分别测量重开旧会话、打开旁问及关闭旁问。
 - [ ] Windows 平台维护者使用最终候选复验欢迎页和上述三个阶段，优先对照报告中的 Build 26300、已有资料、账号和插件配置。保留起止时间、应用版本及同一进程树的内存、句柄、回环端点和独立连接数。
@@ -764,7 +779,7 @@ try {
 
 ## 旧资料与问题 20
 
-用户在 macOS 上报告应用启动后无法使用，涉及 `workspaceController`。保留资料时，旧 profile 中直接声明的包可能遮蔽桌面 Host 自带的 DSH 服务。修复涵盖 ESM、CommonJS 和插件目录解析，同时保留外部插件使用自己依赖的行为。报告目前仍开放。[Issue #20](https://github.com/Water-Run/deepseek-harness-uncensored/issues/20) · [解析实现](../../packages/boot/app-boot/src/profile-resolution/resolver.ts) · [回归用例](../../packages/boot/app-boot/tests/profile-resolution.spec.ts)
+用户在 macOS 上报告应用启动后无法使用，涉及 `workspaceController`。保留资料时，旧 profile 中直接声明的包可能遮蔽桌面 Host 自带的 DSH 服务。修复涵盖 ESM、CommonJS 和插件目录解析，同时保留外部插件使用自己依赖的行为。该问题已按主线修复关闭，修复随下一正式版交付。[处理结论](https://github.com/Water-Run/deepseek-harness-uncensored/issues/20#issuecomment-7188254129) · [解析实现](../../packages/boot/app-boot/src/profile-resolution/resolver.ts) · [回归用例](../../packages/boot/app-boot/tests/profile-resolution.spec.ts)
 
 1. 退出应用，记录安装包版本、操作系统、CPU 架构及应用实际使用的资料路径。默认资料根为 `~/.dsh-uncensored`，配置了 `DSH_UNCENSORED_HOME` 时以实际路径为准。
 2. 保留升级前的安装器和完整资料副本。在另一个目录进行演练。旧 profile 中的插件和锁文件也属于样本，先删掉它们会掩盖问题。
@@ -904,7 +919,7 @@ Windows 同版修复的关键是目录归属。安装登记与卸载登记均由
 
 ### Issue 24 的首发版静默升级
 
-最新 Windows 两模式候选已从首发版和上一正式版分别验证静默升级。[本次安装器摘要及两组回执](#保留旧写作会话的-windows-安装包对照)
+Windows 两模式候选已从首发版和上一正式版分别验证静默升级。安装器版本误判已按主线修复关闭，最终签名包的线上更新仍在发行验收中。[Issue 关闭评论](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24#issuecomment-7188257670) · [安装器摘要及两组回执](#保留旧写作会话的-windows-安装包对照)
 
 首发版 `2026.11.23.0` 与已发布的 `2026.11.24.3` 均取自 GitHub Release。Windows x64 离线沙盒使用独立账户，先以 `/S` 安装首发版，再分别使用 `--updated /S` 运行下表中的安装包。两次升级尝试之间保留原安装登记和文件。[Issue #24](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24)
 

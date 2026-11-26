@@ -302,7 +302,7 @@ https://github.com/user-attachments/assets/69f74147-3377-461c-8ec2-17169bd3ba71
 >
 > Windows x64 用户从 `2026.11.23.0` 静默升级到已发布的 `2026.11.24.3` 会遇到退出码 `2`，旧文件和安装登记保留。新版候选已从两个正式版通过离线升级。下一次正式发布采用五个安装包。若旧客户端无法检查到新版，下载对应的正式安装包，手动覆盖安装一次。[Issue #24](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24)
 
-Windows x64 正式版 `2026.11.24.3` 有启动后静置卡死的用户报告。已修复并发打开同一旁问的重复请求，以及界面重新绑定时对同一草稿重复发起预测的问题。用上一正式版和缺省与写作候选分别打开同一份 2,224 条事件的旧会话，在主会话、旁问打开、旁问关闭三种状态各观察 3 分钟。两版均未复现持续增长，候选的 39 次采样均为 3 至 4 条回环连接。报告所用系统及资料条件仍待复验，此项保留在正式版发行清单中。[Issue #26](https://github.com/Water-Run/deepseek-harness-uncensored/issues/26) · [安装包对照与逐进程数据](.agents/requirements/2026-11-25-release-handoff.md#保留旧写作会话的-windows-安装包对照)
+Windows x64 正式版 `2026.11.24.3` 有启动后静置卡死的用户报告。新版已修复并发打开同一旁问、界面重新绑定同一份输入草稿时的重复请求。Windows 沙盒和 Windows Server 已登录桌面均已用保留旧会话复测。报告所用的 Windows 11 家庭版 Build 26300 上，资源持续增长的根因仍待确认，已列入正式版验收。[Issue #26](https://github.com/Water-Run/deepseek-harness-uncensored/issues/26) · [沙盒安装包对照](.agents/requirements/2026-11-25-release-handoff.md#保留旧写作会话的-windows-安装包对照) · [已登录桌面采样](.agents/requirements/2026-11-25-release-handoff.md#windows-server-已登录桌面对照)
 >
 > 更新前请先关闭 DSHU，备份数据目录和重要的工作区文件。正式签名、在线升级和自动回退还在验收中，进度见[开发清单](.agents/TODO.md)。
 

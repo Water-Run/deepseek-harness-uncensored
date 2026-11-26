@@ -1,0 +1,107 @@
+{
+  "productVersion": "2026.11.24.3",
+  "system": "Microsoft Windows Server 2025 Standard",
+  "systemBuild": "26100.33822",
+  "installedExeSha256": "722e9ace7c31b38cdb9ac7d183b084cb1ca0258a3c79a0f4258bc546ec293d5a",
+  "installedAsarSha256": "9dadc46597d4826c9e2188b6097986fd177bc20bdd449eb44b9e8736b40200bf",
+  "installation": "Existing per-user release in a logged-in Windows desktop session. Separate temporary DSHU and Electron data for each launch.",
+  "conditions": "First launch: fresh data, no interaction or UI automation. Second launch: synthetic writing history, credential setup skipped, no added plugins, network online, desktop owns its Host. UI automation disconnected during each idle interval.",
+  "emptyStartupResponsiveAtEnd": true,
+  "fixture": {
+    "writerVersion": "2026.11.24.3",
+    "mainEvents": 2225,
+    "sideEvents": 8,
+    "mainUserMessages": 45,
+    "predictions": 218,
+    "translatorRecords": 952,
+    "printAnnotations": 782,
+    "parentId": "retained-print-notebook",
+    "sideId": "session-side-b97d2703789f203e0051bea3f6dd891a1be824618392b6483a51aed99dece26d"
+  },
+  "rawStartupReportSha256": "a99b3c7c0b404239e454b885d5e0052e1fc3c5c03028dfeede009a418015e8b3",
+  "rawRetainedArchiveSha256": "f61a078025d021554f2230b0113f801986dc0d96a8bcbdcb5e78f548fc0f6038",
+  "phases": {
+    "startup": {
+      "firstObservedAtUtc": "2026-11-26T09:28:02.5739227Z",
+      "lastObservedAtUtc": "2026-11-26T09:29:31.2470503Z",
+      "elapsedSeconds": [1.7, 5.5, 10.7, 15.4, 20.4, 25.4, 30.4, 35.9, 40.5, 45.4, 50.5, 55.4, 60.4, 65.5, 70.5, 75.5, 80.5, 85.4, 90.4],
+      "privateBytes": [69820416, 363630592, 696958976, 711385088, 704901120, 666910720, 667054080, 643510272, 566812672, 567828480, 568221696, 567500800, 567906304, 562569216, 562593792, 563343360, 563126272, 563216384, 562274304],
+      "handles": [272, 2178, 2864, 2776, 2774, 2774, 2774, 2771, 2781, 2777, 2777, 2777, 2779, 2778, 2774, 2770, 2770, 2770, 2770],
+      "loopbackEstablishedConnections": [0, 0, 9, 5, 4, 4, 4, 4, 4, 4, 4, 4, 5, 4, 4, 4, 4, 4, 4],
+      "loopbackEstablishedEndpoints": [0, 0, 18, 10, 8, 8, 8, 8, 8, 8, 8, 8, 10, 8, 8, 8, 8, 8, 8],
+      "rendererPrivateBytes": [0, 55504896, 149344256, 154648576, 147828736, 147828736, 147832832, 143200256, 142282752, 142360576, 142364672, 142364672, 142364672, 142835712, 142843904, 142815232, 142815232, 142831616, 142831616]
+    },
+    "workspace": {
+      "screen": {
+        "stage": "workspace",
+        "version": "2026.11.24.3",
+        "mainAnswerVisible": true,
+        "sideAnswerVisible": false,
+        "online": true,
+        "ownsHost": true
+      },
+      "mainAndAsideHistoryUnchangedDuringIdle": true,
+      "firstObservedAtUtc": "2026-11-26T09:36:39.5364770Z",
+      "lastObservedAtUtc": "2026-11-26T09:38:08.1267964Z",
+      "elapsedSeconds": [1.8, 5.6, 10.7, 15.5, 20.5, 25.4, 30.3, 35.4, 40.3, 45.3, 50.3, 55.3, 60.9, 65.4, 70.4, 75.4, 80.3, 85.4, 90.3],
+      "privateBytes": [837554176, 792469504, 782106624, 782233600, 637513728, 635404288, 635412480, 635301888, 635977728, 636452864, 628338688, 627953664, 628191232, 628711424, 628498432, 628850688, 628391936, 628269056, 628838400],
+      "handles": [2791, 2791, 2791, 2791, 2787, 2801, 2801, 2802, 2803, 2801, 2801, 2801, 2797, 2797, 2797, 2797, 2797, 2797, 2796],
+      "loopbackEstablishedConnections": [4, 4, 4, 4, 4, 4, 4, 4, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      "loopbackEstablishedEndpoints": [8, 8, 8, 8, 8, 8, 8, 8, 10, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
+      "rendererPrivateBytes": [234192896, 234483712, 224014336, 224014336, 184328192, 181239808, 181239808, 181268480, 181530624, 181530624, 181530624, 181530624, 181764096, 181764096, 181764096, 181772288, 182165504, 182431744, 182431744]
+    },
+    "open": {
+      "screen": {
+        "stage": "open",
+        "version": "2026.11.24.3",
+        "mainAnswerVisible": true,
+        "sideAnswerVisible": true,
+        "online": true,
+        "ownsHost": true
+      },
+      "mainAndAsideHistoryUnchangedDuringIdle": false,
+      "historyChange": {
+        "mainUnchanged": true,
+        "asideBeforeSha256": "fada997f38f86fac23067e90c26c4b359b76a7b07969aeb58452499d4059faf3",
+        "asideAfterSha256": "1503b324cf09ad49587b5a37ebbc72c8c68dc19d3157521e387d9152f50d03b8",
+        "compressedPrefixMatchesBefore": true,
+        "appendedEvents": [{ "type": "input/prediction", "phase": "result", "outcome": "failed" }]
+      },
+      "firstObservedAtUtc": "2026-11-26T09:38:10.5690667Z",
+      "lastObservedAtUtc": "2026-11-26T09:39:40.5500810Z",
+      "elapsedSeconds": [0.4, 5.6, 10.5, 15.4, 20.5, 25.7, 31.2, 35.7, 40.4, 45.4, 50.4, 55.3, 60.3, 65.4, 70.4, 75.6, 80.3, 85.6, 90.4],
+      "privateBytes": [593043456, 585220096, 581009408, 582279168, 581726208, 582250496, 583737344, 582565888, 583118848, 582844416, 582512640, 583401472, 582311936, 583397376, 582475776, 583819264, 583487488, 584503296, 584769536],
+      "handles": [2402, 2400, 2400, 2400, 2398, 2398, 2397, 2397, 2397, 2397, 2397, 2401, 2401, 2401, 2401, 2401, 2397, 2397, 2397],
+      "loopbackEstablishedConnections": [5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      "loopbackEstablishedEndpoints": [10, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
+      "rendererPrivateBytes": [151695360, 146415616, 145162240, 145629184, 145076224, 144998400, 146378752, 145125376, 145854464, 145051648, 144973824, 145457152, 145240064, 145584128, 145375232, 145317888, 145317888, 145616896, 145641472]
+    },
+    "closed": {
+      "screen": {
+        "stage": "closed",
+        "version": "2026.11.24.3",
+        "mainAnswerVisible": true,
+        "sideAnswerVisible": false,
+        "online": true,
+        "ownsHost": true
+      },
+      "mainAndAsideHistoryUnchangedDuringIdle": true,
+      "firstObservedAtUtc": "2026-11-26T09:39:43.0334385Z",
+      "lastObservedAtUtc": "2026-11-26T09:41:13.1296631Z",
+      "elapsedSeconds": [0.5, 5.4, 10.4, 15.4, 20.5, 25.4, 30.4, 35.4, 40.3, 45.3, 50.3, 56.2, 60.4, 65.4, 70.4, 75.4, 80.4, 85.4, 90.6],
+      "privateBytes": [595091456, 592375808, 591183872, 591765504, 591106048, 592162816, 592941056, 592994304, 591130624, 591314944, 593014784, 587780096, 587747328, 588185600, 590467072, 589987840, 585969664, 585318400, 585388032],
+      "handles": [2397, 2390, 2390, 2390, 2390, 2390, 2390, 2390, 2390, 2382, 2382, 2382, 2382, 2382, 2382, 2370, 2378, 2378, 2378],
+      "loopbackEstablishedConnections": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      "loopbackEstablishedEndpoints": [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
+      "rendererPrivateBytes": [151003136, 151040000, 150568960, 150839296, 150839296, 150839296, 150839296, 150839296, 150839296, 150839296, 150843392, 145866752, 145866752, 145874944, 147742720, 147746816, 147750912, 147755008, 147759104]
+    }
+  },
+  "afterClosingAside": {
+    "stage": "verify",
+    "version": "2026.11.24.3",
+    "mainAnswerVisible": true,
+    "sideAnswerVisible": false,
+    "online": true,
+    "ownsHost": true
+  }
+}
