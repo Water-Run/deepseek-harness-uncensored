@@ -31,7 +31,7 @@ import { createPluginProfile } from '../apps/desktop/src/project-manager.ts'
 
 const phase = process.env.DSHU_VERIFY_PHASE
 const directory = process.env.DSHU_VERIFY_DATA
-if (!directory || !['write', 'read', 'reopen'].includes(phase ?? '')) throw new Error('Run with the released-data verifier')
+if (!directory || !['write', 'read', 'reopen', 'audit-readback'].includes(phase ?? '')) throw new Error('Run with the released-data verifier')
 if (process.env.DSHU_VERIFY_ELECTRON === '1') {
   const desktop = JSON.parse(await readFile(new URL('../apps/desktop/node_modules/electron/package.json', import.meta.url), 'utf8'))
   expect(process.versions.electron).toBe(desktop.version)
@@ -200,6 +200,74 @@ it('reopens and continues a released conversation containing an unsent composer 
       expect(session.deriveMessages().map(message => message.content)).toEqual(
         [first, next].map(text => [{ type: 'text', text }]),
       )
+    } finally { await handle.close() }
+  } finally { await ctx.fiber.dispose() }
+})
+
+it.each(['none', 'zstd'] as const)('keeps released protection audit entries when continuing a %s conversation', async compression => {
+  const ctx = new Context()
+  const id = brandString<SessionId>('released-audit-' + compression)
+  const receipt = join(directory, id + '.json')
+  const first = '记录文稿的标题。'
+  const next = '继续校对下一页。'
+  const message = (text: string) => createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text }] })
+  try {
+    await ctx.plugin(jsonl, { root: join(directory, 'audit-sessions-' + compression), compression })
+    if (phase === 'write') {
+      const releaseStore = '../packages/guard/target-protection/src/audit.ts'
+      const { TargetAuditStore } = await import(releaseStore)
+      const store = await TargetAuditStore.open(join(directory, id + '.sqlite'), 5000, 8)
+      const session = Session.create(id)
+      try {
+        session.append('turn/start', { turn: 1 })
+        session.append('user/message', message(first), { surfaceOp: 'append' })
+        session.append('target/admission', store.append(
+          { operation: 'file', effect: 'read', phase: 'execution', identity: ['draft.txt'], peers: ['localhost'] },
+          { revision: 1, decision: 'deny', code: 'TARGET_FULLY_PROTECTED', ruleIds: [] }, { sessionId: id },
+        ))
+        session.append('target/admission', store.append(
+          { operation: 'file', effect: 'metadata', phase: 'preflight' },
+          { revision: null, decision: 'cancelled', code: 'TARGET_CHECK_CANCELLED', ruleIds: [] },
+        ))
+        session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+      } finally { store.close() }
+      const events = session.snapshotEvents()
+      expect(events.filter(event => event.type === 'target/admission').map(event => event.data)).toMatchObject([
+        { decision: 'deny', target: 'draft.txt', peers: 'localhost', source: { sessionId: id } },
+        { decision: 'cancelled', target: null, peers: null },
+      ])
+      await writeFile(receipt, JSON.stringify(events))
+      const handle = await ctx.sessionPersistence.create(session.header)
+      try {
+        await handle.append(events)
+        await handle.flush()
+      } finally { await handle.close() }
+      return
+    }
+    const original = JSON.parse(await readFile(receipt, 'utf8'))
+    const handle = await ctx.sessionPersistence.open(id, phase === 'read' ? 'write' : 'read')
+    try {
+      const { events } = await handle.read()
+      expect(events.slice(0, original.length)).toEqual(original)
+      const session = Session.fromRestore(id, events, handle.header, handle.inheritedEventCount, 'detached')
+      if (phase === 'read') {
+        expect(session.deriveMessages().map(item => item.content)).toEqual([message(first).content])
+        session.append('turn/start', { turn: 2 })
+        session.append('user/message', message(next), { surfaceOp: 'append' })
+        session.append('turn/end', { turn: 2, reason: { kind: 'completed' } })
+        await handle.append(session.snapshotEvents().slice(events.length))
+        await handle.flush()
+      }
+      expect(session.deriveMessages().map(item => item.content)).toEqual([message(first).content, message(next).content])
+      const persisted = (await handle.read()).events
+      expect(persisted.slice(original.length).map(event => event.type))
+        .toEqual(['session/end-seed', 'turn/start', 'user/message', 'turn/end'])
+      const continued = join(directory, id + '-continued.json')
+      if (phase === 'read') await writeFile(continued, JSON.stringify(persisted))
+      else expect(persisted).toEqual(JSON.parse(await readFile(continued, 'utf8')))
+      if (phase === 'audit-readback') {
+        await writeFile(join(directory, id + '-readback.json'), JSON.stringify(persisted), { flag: 'wx' })
+      }
     } finally { await handle.close() }
   } finally { await ctx.fiber.dispose() }
 })
@@ -560,10 +628,19 @@ it('reopens the released workspace index with the same order, membership, pins a
     if (phase === 'write') {
       await mkdir(first, { recursive: true })
       await mkdir(second, { recursive: true })
+      const fixture = new URL('../packages/sdk/client/tests/expected/target-admission-projection.json', import.meta.url)
+      const { auditEvents } = JSON.parse(await readFile(fixture, 'utf8'))
+      expect(auditEvents).toMatchObject([{ data: { decision: 'allow' } }, { data: { decision: 'deny' } }])
       for (const id of [pinned, archived]) {
         const session = Session.create(id)
         session.append('user/message', createUserMessage({ source: { kind: 'user' },
           content: [{ type: 'text', text: 'My writing notes' }] }), { surfaceOp: 'append' })
+        for (const audit of auditEvents) {
+          expect(audit.data).not.toHaveProperty('target')
+          expect(audit.data).not.toHaveProperty('peers')
+          session.append('target/admission', { ...audit.data, source: { sessionId: id } })
+        }
+        await writeFile(join(home, id + '-audit.json'), JSON.stringify(session.snapshotEvents().filter(event => event.type === 'target/admission')))
         const handle = await ctx.sessionPersistence.create({ ...session.header, cwd: first, agentPreset: 'writing' })
         try { await handle.append(session.snapshotEvents()) } finally { await handle.close() }
       }

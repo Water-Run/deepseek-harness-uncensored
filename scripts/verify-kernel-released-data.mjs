@@ -47,8 +47,11 @@ const releasedTypes = knownEventTypes(writer)
 const candidateTypes = knownEventTypes(reader)
 const missing = [...releasedTypes].filter(type => !candidateTypes.has(type)).sort()
 console.log(release + ' event types recognized by the candidate: ' + (releasedTypes.size - missing.length) + '/' + releasedTypes.size)
-if (missing.length) console.log('Missing released event types: ' + missing.join(', '))
-if (checkEventTypes) process.exit(missing.length ? 1 : 0)
+if (missing.length) {
+  console.error('Missing released event types: ' + missing.join(', '))
+  process.exit(1)
+}
+if (checkEventTypes) process.exit(0)
 
 async function probe(root, phase, active) {
   const name = 'released-data-' + randomUUID() + '.spec.ts'
@@ -57,7 +60,7 @@ async function probe(root, phase, active) {
   const fixture = phase === 'desktop' ? 'released-desktop.spec.ts.in' : 'released-data.spec.ts.in'
   await copyFile(join(kernel, 'verification', fixture), destination, constants.COPYFILE_EXCL)
   try {
-    const electron = phase !== 'write' && electronPath ? resolve(electronPath) : undefined
+    const electron = root === reader && electronPath ? resolve(electronPath) : undefined
     const user = join(active, 'user')
     const env = { ...process.env, HOME: user, USERPROFILE: user, DSHU_VERIFY_DATA: active, DSHU_VERIFY_PHASE: phase }
     delete env.DSH_HOME
@@ -68,6 +71,7 @@ async function probe(root, phase, active) {
     }
     const result = spawnSync(electron ?? process.execPath, [
       join(root, 'node_modules/vitest/vitest.mjs'), 'run', '--maxWorkers=1', test,
+      ...(phase === 'audit-readback' ? ['-t', 'keeps released protection audit entries'] : []),
     ], { cwd: root, stdio: phase === 'desktop' ? 'pipe' : 'inherit', encoding: 'utf8', windowsHide: true, env })
     if (phase === 'desktop') {
       for (const output of [result.stdout, result.stderr]) {
@@ -114,6 +118,13 @@ try {
   assert.deepEqual(await fileHashes(active), before)
   await probe(reader, 'read', active)
   await probe(reader, 'reopen', active)
+  await probe(writer, 'audit-readback', active)
+  for (const encoding of ['none', 'zstd']) {
+    const file = join(active, 'released-audit-' + encoding)
+    const candidateEvents = JSON.parse(await readFile(file + '-continued.json', 'utf8'))
+    const releasedEvents = JSON.parse(await readFile(file + '-readback.json', 'utf8'))
+    assert.deepEqual(releasedEvents, candidateEvents, 'Released reader differs after continuing ' + encoding + ' log')
+  }
   if (electronPath && ['win32', 'darwin'].includes(process.platform)) {
     await probe(reader, 'desktop', active)
     const plugins = join('user', '.dsh-uncensored', 'profiles', 'desktop', 'node_modules')

@@ -180,7 +180,7 @@ DSHU 主线的过渡版使用 `deliver:github --bridge` 整理五个安装包、
 
 ## 已有会话兼容性缺口
 
-节点 3 另有一项已有的兼容性缺口。`verify-persistence-changes` 报告历史事件 `target/admission` 的 `peers` 和 `target` 两个必填字段尚未声明。与上述 DSHU 基线逐项比对，当前目录中的持久化根、类型摘要和节点相同，只有三条类型的源代码行号移动。维护者需用含旧事件的资料副本验证读取与重放，按[持久化规则](../persistence/README.md)补齐真实兼容决定，并复跑目录及变更声明检查后再验收内核升级。
+节点 3 曾发现历史事件 `target/admission` 的两个名称字段缺少兼容性声明。新内核的 v4 读取约定允许 `target` 和 `peers` 为字符串、`null` 或省略。主线旧内核的持久化目录与声明须在最终合并时另行核对。[新版读取决定与跨版本复验](2026-11-25-release-handoff.md#含保护审计的旧会话) · [持久化规则](../persistence/README.md)
 
 ## 回退与接手
 

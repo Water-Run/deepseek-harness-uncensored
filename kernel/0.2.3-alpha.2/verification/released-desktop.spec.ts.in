@@ -72,6 +72,9 @@ it('opens the released conversations and creates a writing session despite an ob
       expect(page.records).toContainEqual(expect.objectContaining({ event: expect.objectContaining({
         type: 'user/message', data: expect.objectContaining({ content: [{ type: 'text', text: 'My writing notes' }] }),
       }) }))
+      const audit = page.records.map((row: { event: { type: string } }) => row.event)
+        .filter((event: { type: string }) => event.type === 'target/admission')
+      expect(audit).toEqual(JSON.parse(await readFile(join(home, sessionId + '-audit.json'), 'utf8')))
     }
     const created = await rpc(ready, 'session/create', { request: { workspaceId: writing.id, agentPreset: 'writing' } })
     expect(created).toMatchObject({ sessionId: expect.any(String), agentPreset: 'writing' })
