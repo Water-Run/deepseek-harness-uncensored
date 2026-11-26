@@ -29,6 +29,7 @@ export class BalanceController {
   private readonly clock: ReturnType<typeof setInterval>
   private readonly stopPreferences: () => void
   private readonly saves = new Set<Promise<boolean>>()
+  private readonly cleanups = new Set<Promise<BalanceSnapshot>>()
 
   /**
    * @param preferences - Shared Host-backed form.
@@ -82,21 +83,27 @@ export class BalanceController {
    * @returns Whether the Host accepted the cleanup.
    */
   readonly clear = async (request: BalanceCleanupRequest): Promise<boolean> => {
-    if (this.lifetime.signal.aborted) return false
-    this.state.set({ ...this.state.getSnapshot(), clearing: true })
+    const active = () => !this.lifetime.signal.aborted
+    if (!active()) return false
     const generation = this.revision
     let accepted = false
+    let cleanup: Promise<BalanceSnapshot> | undefined
     try {
-      const data = await this.clearSamples(request, this.view)
+      cleanup = this.clearSamples(request, this.view)
+      this.cleanups.add(cleanup)
+      this.state.set({ ...this.state.getSnapshot(), clearing: true })
+      const data = await cleanup
       accepted = data.status === 'ready' || data.status === 'empty'
       if (accepted && this.accepts(generation)) {
         this.state.set({ ...this.state.getSnapshot(), data, failed: false, loading: false, now: Date.now() })
       }
     } catch (_error) {
       accepted = false
+    } finally {
+      if (cleanup !== undefined) this.cleanups.delete(cleanup)
     }
-    if (!this.lifetime.signal.aborted) {
-      this.state.set({ ...this.state.getSnapshot(), clearing: false,
+    if (active()) {
+      this.state.set({ ...this.state.getSnapshot(), clearing: this.cleanups.size > 0,
         toast: accepted ? 'cleared' : 'clearFailed', toastId: this.state.getSnapshot().toastId + 1 })
     }
     return accepted
@@ -154,6 +161,6 @@ export class BalanceController {
   /** Stop timers and subscriptions, then await admitted reads and writes. @returns Quiescent completion. */
   async dispose(): Promise<void> {
     this.lifetime.abort(); this.stopPreferences(); clearTimeout(this.timer); clearInterval(this.clock)
-    await Promise.allSettled([this.pending, ...this.saves])
+    await Promise.allSettled([this.pending, ...this.saves, ...this.cleanups])
   }
 }

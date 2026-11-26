@@ -3454,10 +3454,10 @@ index 0000000000000000000000000000000000000000..85a7ef9dee1c89ad0a58ccc9a89bf533
 +}, 120_000)
 diff --git a/apps/web/tests/writing-spending.e2e.ts b/apps/web/tests/writing-spending.e2e.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..d2e471f6a5e665756d1560d84df1e9ad7ab63477
+index 0000000000000000000000000000000000000000..a57feb4f1ddee11cacc1d745e0b648ae6f4b47a4
 --- /dev/null
 +++ b/apps/web/tests/writing-spending.e2e.ts
-@@ -0,0 +1,192 @@
+@@ -0,0 +1,245 @@
 +/** Writing materials and concurrent rolling limits through the shipped Web Host. */
 +import { fileURLToPath } from 'node:url'
 +import { mkdir } from 'node:fs/promises'
@@ -3648,6 +3648,59 @@ index 0000000000000000000000000000000000000000..d2e471f6a5e665756d1560d84df1e9ad
 +    expect(await ctx.spendLimit.sessionUsage(coldId)).toMatchObject({ total: 0.000108, requests: 2, unpricedRequests: 1 })
 +    const window = (await ctx.spendLimit.get()).windows.find(item => item.period === '5h')
 +    expect(window).toMatchObject({ spent: 0.000108, reserved: 0, uncertain: 0 })
++  } finally { await scaffold.close() }
++}, 120_000)
++
++it('opens the Budget section from an oversized request and continues after raising its limit', async () => {
++  const scaffold = await launchWebScaffold({
++    extraOverlayPath: ['./pin-browse-picker.overlay.yml', './fixtures/writing-spending/rate.overlay.yml'].map(path => fileURLToPath(new URL(path, import.meta.url))),
++  })
++  try {
++    const { ctx } = scaffold
++    const adapter = new WritingAdapter()
++    ctx.effect(() => ctx.llm.registerAdapter(['writing-smoke'], adapter), 'test budget navigation adapter')
++    await ctx.agentDefaultModel.saveSelection({ provider: 'writing-smoke', model: 'writer' })
++    const workspace = await ctx.workspaceRegistry.create(scaffold.workspaceCwd)
++    const send = (id: SessionId) => ctx.sessionController.prompt({ sessionId: id, mode: 'queue', requestId: brandString<SessionRequestId>(id),
++      content: [{ type: 'text', text: 'Draft a paragraph.' }] }, AbortSignal.timeout(60_000))
++    await ctx.spendLimit.setAutoResume(true)
++    await ctx.spendLimit.configureWindow({ period: '5h', limit: 2, enabled: true })
++    const { sessionId: earlier } = await ctx.sessionController.create({ workspaceId: workspace.id, agentPreset: 'writing' })
++    await ctx.sessionController.selectModel({ sessionId: earlier, provider: 'writing-smoke', model: 'writer' })
++    await Promise.all([scaffold.whenTurnSettled(), send(earlier)])
++    const sessionId = brandString<SessionId>('adjust-budget-in-settings')
++    const handle = await ctx.agents.create({ sessionId, agentOptions: ctx.agentDefaultModel.currentSelection(),
++      meta: { cwd: scaffold.workspaceCwd, agentPreset: 'writing' },
++      setup: async (agentCtx) => { await ctx.agentPresets.mount(agentCtx, 'writing') },
++    })
++    await workspace.attachSession(sessionId)
++    await send(sessionId)
++    await expect.poll(async () => (await ctx.spendLimit.get()).pausedSessions.find(row => row.sessionId === sessionId)?.state, { timeout: 15_000 }).toBe('waiting')
++    await handle.dispose()
++    const lowered = await ctx.spendLimit.configureWindow({ period: '5h', limit: 0.1 })
++    expect(lowered.pausedSessions.find(row => row.sessionId === sessionId)).toMatchObject({ state: 'blocked', exceedsLimit: true })
++    const browser = await chromium.launch()
++    try {
++      const page = await newEnglishPage(browser)
++      await page.addInitScript(() => { localStorage.setItem('dsh.uncensored.prediction', '0') })
++      await page.goto(scaffold.authenticatedUrl)
++      await selectConversation(page, sessionId)
++      await page.getByText('This request requires more budget', { exact: false }).first().waitFor({ timeout: 10_000 })
++      const screenshots = fileURLToPath(new URL('../../../.artifacts/screenshots/writing-spending', import.meta.url))
++      await mkdir(screenshots, { recursive: true })
++      await page.getByRole('button', { name: 'Adjust limits' }).waitFor()
++      await page.screenshot({ path: join(screenshots, 'adjust-limits-banner.png') })
++      await page.getByRole('button', { name: 'Adjust limits' }).click({ timeout: 7000 })
++      const dialog = page.getByRole('dialog', { name: 'Settings', exact: true })
++      expect(await dialog.getByRole('button', { name: 'Budget', exact: true }).getAttribute('aria-current')).toBe('true')
++      await dialog.getByRole('switch', { name: 'Enable limit for 5 hours' }).waitFor()
++      expect(adapter.requests.filter(request => request.sessionId === sessionId)).toHaveLength(0)
++      await dialog.screenshot({ path: join(screenshots, 'adjust-limits-settings.png') })
++      await dialog.getByLabel('5 hours limit (CNY)', { exact: true }).fill('4')
++      const [finished] = await Promise.all([scaffold.whenTurnSettled(), dialog.getByRole('button', { name: 'Save limits' }).click()])
++      expect(finished).toBe(sessionId)
++      expect(adapter.requests.filter(request => request.sessionId === sessionId)).toHaveLength(1)
++    } finally { await browser.close() }
 +  } finally { await scaffold.close() }
 +}, 120_000)
 diff --git a/apps/web/tsconfig.json b/apps/web/tsconfig.json
@@ -12223,10 +12276,10 @@ index 0000000000000000000000000000000000000000..aac6d3d4ffa14651b107c6f5f2a75e0e
 +}
 diff --git a/packages/api/mode-dossiers/src/writing-context.ts b/packages/api/mode-dossiers/src/writing-context.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..7a103ec2007e320ea6fb62b21f20aa57c6586e30
+index 0000000000000000000000000000000000000000..4360d9ea03f259422f9d0ef1ee36c79142e22d26
 --- /dev/null
 +++ b/packages/api/mode-dossiers/src/writing-context.ts
-@@ -0,0 +1,107 @@
+@@ -0,0 +1,108 @@
 +/** Writing material admission and reconstruction from the conversation log. */
 +import type { Context } from '@deepseek-ai/cordis'
 +import { z } from 'zod'
@@ -12291,7 +12344,8 @@ index 0000000000000000000000000000000000000000..7a103ec2007e320ea6fb62b21f20aa57
 +  next: () => Promise<PreStepDecision>,
 +): Promise<PreStepDecision> {
 +  const decision = await next()
-+  if (decision.kind === 'reject' || signal.aborted || contextBytes === 0) return decision
++  const cancelled = () => signal.aborted
++  if (decision.kind === 'reject' || cancelled() || contextBytes === 0) return decision
 +  if (ctx.get('agentPresets')?.composedPreset(agent.ctx) !== WRITING_PRESET) return decision
 +  const rootPath = agent.session.header.cwd ?? ctx.get('sandboxPolicy')?.workspaceRoot
 +  if (rootPath === undefined) return decision
@@ -12303,7 +12357,7 @@ index 0000000000000000000000000000000000000000..7a103ec2007e320ea6fb62b21f20aa57
 +    ctx.logger.warn('mode-dossiers: writing materials could not be read: %o', error)
 +    return decision
 +  }
-+  if (signal.aborted) return decision
++  if (cancelled()) return decision
 +  const previous = agent.session.deriveMessages().findLast(message => message.role === 'user' && message.source.kind === 'mode-dossiers')
 +  if (!text && !admitted.stateOf(agent.session)) return decision
 +  const current = text || 'No writing materials are currently selected. Disregard earlier writing-material instructions.'
@@ -12421,10 +12475,10 @@ index 0000000000000000000000000000000000000000..03567a5a35aab846733b60e54f7ebf78
 +}
 diff --git a/packages/api/mode-dossiers/tests/writing.spec.ts b/packages/api/mode-dossiers/tests/writing.spec.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..91c410a5870d3b1032cb7c4fcdb10401ced8c6ab
+index 0000000000000000000000000000000000000000..8187745e2304adc899ed3c6c3a3dd465b073f079
 --- /dev/null
 +++ b/packages/api/mode-dossiers/tests/writing.spec.ts
-@@ -0,0 +1,203 @@
+@@ -0,0 +1,211 @@
 +/** Writing material admission and storage over a local workspace. */
 +
 +import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
@@ -12434,6 +12488,7 @@ index 0000000000000000000000000000000000000000..91c410a5870d3b1032cb7c4fcdb10401
 +import { createUserMessage, type UserMessage } from '@deepseek-ai/dsh-llm'
 +import { Session, type SessionEvent, type SessionId } from '@deepseek-ai/dsh-session'
 +import { brandString } from '@deepseek-ai/dsh-brand'
++import { isRecord } from '../src/files.ts'
 +import { writingMaterialsText } from '../src/index.ts'
 +import { failureCodeOf, openHarness, signal, WORKSPACE_ID, type Harness } from './harness.ts'
 +
@@ -12446,7 +12501,7 @@ index 0000000000000000000000000000000000000000..91c410a5870d3b1032cb7c4fcdb10401
 +  ] as const) {
 +    log.append('user/message', createUserMessage({ content, source }), { surfaceOp: 'append' })
 +  }
-+  const seed: SessionEvent[] = JSON.parse(JSON.stringify(log.snapshotEvents()))
++  const seed = JSON.parse(JSON.stringify(log.snapshotEvents())) as SessionEvent[]
 +  const previous = Session.create(id, seed.slice(0, 1), log.header)
 +  expect(previous.deriveMessages()).toEqual([log.deriveMessages()[0]])
 +  const restored = Session.create(id, seed, log.header)
@@ -12466,6 +12521,12 @@ index 0000000000000000000000000000000000000000..91c410a5870d3b1032cb7c4fcdb10401
 +  return harness
 +}
 +
++function materialText(message: UserMessage | undefined): string {
++  const block = message?.content[0]
++  if (block?.type !== 'text') throw new Error('Expected writing material text')
++  return block.text
++}
++
 +describe('writing materials', () => {
 +  it('budgets the complete context and preserves Chinese and emoji at the byte limit', async () => {
 +    const { service, workspace, ctx } = await open('dsh-story-')
@@ -12479,7 +12540,8 @@ index 0000000000000000000000000000000000000000..91c410a5870d3b1032cb7c4fcdb10401
 +      expect(text).toMatch(/\[truncated\]$/u)
 +    }
 +    const path = join(workspace, 'story/materials.json')
-+    const registry = JSON.parse(await readFile(path, 'utf8'))
++    const registry: unknown = JSON.parse(await readFile(path, 'utf8'))
++    if (!isRecord(registry)) throw new Error('Missing writing registry')
 +    await writeFile(path, JSON.stringify({ ...registry, selected: ['notes.md'] }))
 +    await expect(writingMaterialsText(ctx.fs, workspace, 'writing', 4096, signal())).rejects.toThrow('unregistered')
 +  })
@@ -12503,8 +12565,8 @@ index 0000000000000000000000000000000000000000..91c410a5870d3b1032cb7c4fcdb10401
 +    await service.createStory({ workspaceId: WORKSPACE_ID, section: 'bible', name: 'canon',
 +      title: 'Canon', markdown: 'CANON' }, signal())
 +    const [first] = await step()
-+    expect(first?.content[0]).toMatchObject({ text: expect.stringContaining('VOICE') })
-+    expect(first?.content[0]).toMatchObject({ text: expect.stringContaining('CANON') })
++    expect(materialText(first)).toContain('VOICE')
++    expect(materialText(first)).toContain('CANON')
 +    const admitted = session.append('user/message', first!, { surfaceOp: 'append' })
 +    expect(await step()).toEqual([])
 +    session.append('user/message', createUserMessage({ content: [{ type: 'text', text: 'Summary' }], source: { kind: 'user' } }), {
@@ -12523,7 +12585,7 @@ index 0000000000000000000000000000000000000000..91c410a5870d3b1032cb7c4fcdb10401
 +      reopened.ctx.provide('agentPresets', { composedPreset: () => 'writing' } as never)
 +      const replay = reopened.ctx.sessions.create(session.id, { meta: { cwd: workspace }, seed: structuredClone(events) })
 +      const [withdrawal] = await step({ ctx: reopened.ctx, session: replay, id: replay.id } as Agent)
-+      expect(withdrawal?.content[0]).toMatchObject({ text: expect.stringContaining('Disregard earlier writing-material instructions') })
++      expect(materialText(withdrawal)).toContain('Disregard earlier writing-material instructions')
 +    } finally {
 +      await reopened.dispose()
 +    }
@@ -12540,8 +12602,8 @@ index 0000000000000000000000000000000000000000..91c410a5870d3b1032cb7c4fcdb10401
 +    expect(await step()).toEqual([])
 +    await service.selectStory({ workspaceId: WORKSPACE_ID, selected: [card.path] }, signal())
 +    const [restored] = await step()
-+    expect(restored?.content[0]).toMatchObject({ text: expect.stringContaining('VOICE') })
-+    expect(restored?.content[0]).not.toMatchObject({ text: expect.stringContaining('CANON') })
++    expect(materialText(restored)).toContain('VOICE')
++    expect(materialText(restored)).not.toContain('CANON')
 +  })
 +  it('creates, selects, adopts, and removes records without deleting documents', async () => {
 +    const { service, workspace } = await open('dsh-dossiers-')
@@ -14606,7 +14668,7 @@ index 0000000000000000000000000000000000000000..671e69c8078bf6bda002ff57abe8d0bf
 +}
 diff --git a/packages/client/ui-mode-materials/src/client/WritingPanel.tsx b/packages/client/ui-mode-materials/src/client/WritingPanel.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..3dc60982a32e6d56284b3faf3e398e1ea71a28e7
+index 0000000000000000000000000000000000000000..da39826f96e75f2be3509d79af86653e1b5c715a
 --- /dev/null
 +++ b/packages/client/ui-mode-materials/src/client/WritingPanel.tsx
 @@ -0,0 +1,286 @@
@@ -14866,7 +14928,7 @@ index 0000000000000000000000000000000000000000..3dc60982a32e6d56284b3faf3e398e1e
 +      {creating === undefined ? null : <>
 +        <Field label={t('writing.section')}>
 +          <select value={creating.section} aria-label={t('writing.section')}
-+            onChange={event => { setCreating({ ...creating, section: event.target.value === 'style' ? 'style' : 'bible' }) }}>
++            onChange={(event) => { setCreating({ ...creating, section: event.target.value === 'style' ? 'style' : 'bible' }) }}>
 +            <option value="style">{t('writing.style')}</option>
 +            <option value="bible">{t('writing.bible')}</option>
 +          </select>
@@ -14971,7 +15033,7 @@ index 0000000000000000000000000000000000000000..d1e3052696638326b5a620611a01f66e
 +}
 diff --git a/packages/client/ui-mode-materials/src/client/index.ts b/packages/client/ui-mode-materials/src/client/index.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..f9b90de34251c7bceb92ecbc3c3938da27948e01
+index 0000000000000000000000000000000000000000..4034821b80bbef50c72d577661c1eaf86f94ffd9
 --- /dev/null
 +++ b/packages/client/ui-mode-materials/src/client/index.ts
 @@ -0,0 +1,112 @@
@@ -15035,7 +15097,7 @@ index 0000000000000000000000000000000000000000..f9b90de34251c7bceb92ecbc3c3938da
 +  // One request per call: these operations are short reads and writes, and a
 +  // superseded load is discarded through the generation guard.
 +  const lifetime = new AbortController()
-+  ctx.effect(() => () => lifetime.abort(), 'writing materials requests')
++  ctx.effect(() => () => { lifetime.abort() }, 'writing materials requests')
 +  const signal = (): AbortSignal => lifetime.signal
 +
 +  const load = async (workspaceId: string | undefined): Promise<void> => {
@@ -15239,7 +15301,7 @@ index 0000000000000000000000000000000000000000..34044fcc28d16464a436d8fe51af6fb0
 +}
 diff --git a/packages/client/ui-mode-materials/src/client/scope.tsx b/packages/client/ui-mode-materials/src/client/scope.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..24718ff1bc56b42d6701182a179738117a99a584
+index 0000000000000000000000000000000000000000..022b8159975aec72665dc98884736501e629fe43
 --- /dev/null
 +++ b/packages/client/ui-mode-materials/src/client/scope.tsx
 @@ -0,0 +1,83 @@
@@ -15313,7 +15375,7 @@ index 0000000000000000000000000000000000000000..24718ff1bc56b42d6701182a17973811
 +        {t('reload')}
 +      </Button>
 +    </div>
-+    {state.inventory?.workspace?.path === undefined ? null : <p className={css.scopePath} title={state.inventory.workspace.path}>
++    {state.inventory?.workspace.path === undefined ? null : <p className={css.scopePath} title={state.inventory.workspace.path}>
 +      {state.inventory.workspace.path}
 +    </p>}
 +    {state.workspaceId === undefined
@@ -15841,7 +15903,7 @@ index 0000000000000000000000000000000000000000..cae960bb0440a4401e95175dcddd19f4
 +  expect(document.activeElement).toBe(trigger)
 +})
 diff --git a/packages/client/ui-settings-account/README.i18n.yaml b/packages/client/ui-settings-account/README.i18n.yaml
-index 217a3754e16c0f3effcb7b80ccadbcf7e5ff3f67..80c646da67d9f6b6c1069428bec09b93dfc22c5f 100644
+index 217a3754e16c0f3effcb7b80ccadbcf7e5ff3f67..49e6698916ecd0a26d8e09ab78c630c00744fbeb 100644
 --- a/packages/client/ui-settings-account/README.i18n.yaml
 +++ b/packages/client/ui-settings-account/README.i18n.yaml
 @@ -9,14 +9,14 @@
@@ -15858,13 +15920,13 @@ index 217a3754e16c0f3effcb7b80ccadbcf7e5ff3f67..80c646da67d9f6b6c1069428bec09b93
  /deepseek-ai-dsh-client-ui-settings-account/use-this-package:
 -  en: 51864317e5c33943
 -  zh: c0507f3448859ef0
-+  en: 0bf2abd5fb8b303e
-+  zh: acac73d3d74aed59
++  en: 7927d2f736273da6
++  zh: 5b7b5864804706ad
  /deepseek-ai-dsh-client-ui-settings-account/use-this-package/desktop-onboarding:
    en: b17e3d33f66af025
    zh: 780f813205d955d9
 diff --git a/packages/client/ui-settings-account/README.md b/packages/client/ui-settings-account/README.md
-index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..369578b118ffce013a704770d63cc1749b5a7241 100644
+index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..4d396595f8a68556310abaa31decefd7a4671c02 100644
 --- a/packages/client/ui-settings-account/README.md
 +++ b/packages/client/ui-settings-account/README.md
 @@ -13,9 +13,11 @@ Server-expired account credentials clear the displayed account details and emit
@@ -15885,17 +15947,17 @@ index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..369578b118ffce013a704770d63cc174
  <a id="use-this-package"></a>
  ## Use this package
  
-+The sign-in dialog offers network troubleshooting only for `no-response` failures. HTTP, business, response-validation, storage, and account-stream failures retain the generic retry message. Manual cleanup can keep one sample. Automatic cleanup by count accepts 2 to 40,320 samples. The reading updates when a composer prediction or memory extraction records usage, including while the cost details are open.
++The sign-in dialog offers network troubleshooting only for `no-response` failures. HTTP, business, response-validation, storage, and account-stream failures retain the generic retry message. Manual cleanup can keep one sample. If Host access is revoked during cleanup, the controller waits for the submitted operation to finish. Late replies leave the closed view untouched. Automatic cleanup by count accepts 2 to 40,320 samples. The reading updates when a composer prediction or memory extraction records usage, including while the cost details are open.
 +
 +The account menu offers **About** before and after sign-in. On wide screens the brand panel fills the left edge of the dialog. On narrow screens it spans the top. The left panel displays the DSHU calendar version and UTC build time. The right panel identifies the kernel, base commit and date, source tree, release component pins and licenses, with links to the candidate manifest, notices and official DSHU releases. Escape returns focus to the account menu.
 +
-+Open **Budget** in Settings to inspect balance samples, adjust the two ends of the time range, set rolling limits, or reset a window. New samples use a 30-day retention policy by default. Sidebar visibility is independent of sampling, and its chart can show 24 hours, 7 days (default), or 30 days. A paused conversation shows its status above the input.
++Open **Budget** in Settings to inspect balance samples, adjust the two ends of the time range, set rolling limits, or reset a window. New samples use a 30-day retention policy by default. Sidebar visibility is independent of sampling, and its chart can show 24 hours, 7 days (default), or 30 days. A paused conversation shows its status above the input. If a lower limit can no longer accommodate a waiting request, select **Adjust limits** in the pause banner to open Budget settings.
 +
  Settings, feedback and sign-in actions use 14px shared Regular icons with 1px strokes. The package-local logout icon uses the same size and fixed stroke weight without a separately positioned inner SVG. The sign-in dialog aligns the trailing edges of its close button and footer actions with a shared 24px inset.
  
  Desktop and plain Web clients both mount the sidebar account launcher, Account settings, the sign-in step of model onboarding, and the account-state subscription. Desktop main opens the authorization page in the system browser. A plain Web client, identified by the absent Desktop preload bridge, sends `login_source` web with its own origin as the callback origin, preopens a tab during the sign-in click, navigates it to the authorization URL with the same `theme` parameter once its attempt receives one, and closes it on failure, expiry, or cancellation; a blocked popup leaves the copy-link route. Embedded Platform pages, Desktop onboarding, and the native device reader stay Desktop-only, so Web Platform links open new tabs.
 diff --git a/packages/client/ui-settings-account/README.zh.md b/packages/client/ui-settings-account/README.zh.md
-index 7ea45f5067591a84fb43ef786026cc0c1246729b..77a4617283f86691f017520975a9dea4c4c74e40 100644
+index 7ea45f5067591a84fb43ef786026cc0c1246729b..2dc9b9214cfbf73870ebdf93f1a82291ef7e51ff 100644
 --- a/packages/client/ui-settings-account/README.zh.md
 +++ b/packages/client/ui-settings-account/README.zh.md
 @@ -13,9 +13,11 @@ kind: "package-reference"
@@ -15916,11 +15978,11 @@ index 7ea45f5067591a84fb43ef786026cc0c1246729b..77a4617283f86691f017520975a9dea4
  <a id="use-this-package"></a>
  ## 使用此包
  
-+登录弹窗仅对 `no-response` 失败提示检查网络。HTTP、业务、响应校验、存储和账号状态流失败仍显示通用重试提示。 手动清理可以只保留 1 条采样。按条数自动清理时，可保留 2 至 40,320 条。输入预测或记忆提炼记录用量后，底栏金额及已展开的费用详情会随之更新。
++登录弹窗仅对 `no-response` 失败提示检查网络。HTTP、业务、响应校验、存储和账号状态流失败仍显示通用重试提示。 手动清理可以只保留 1 条采样。清理期间撤销 Host 权限时，控制器会等待已提交的清理结束。关闭后的界面不会收到迟到的结果。按条数自动清理时，可保留 2 至 40,320 条。输入预测或记忆提炼记录用量后，底栏金额及已展开的费用详情会随之更新。
 +
 +登录前后均可从账号菜单打开**关于**。宽屏的渐变铺满弹窗左侧，窄屏铺满顶部。左侧展示 DSHU 日期版本和 UTC 编译时间。右侧列出内核版本、基线提交及时间、候选源码树、发行版组件版本与许可，可打开候选清单、第三方许可和 DSHU 正式发行页。按 Escape 后焦点回到账号菜单。
 +
-+在设置的「额度」中可查看余额采样、拖动时间范围的两端、调整各档滚动上限或单独重置窗口。保存新采样时默认保留 30 天，侧栏显示与采样单独设置。侧栏图表可选短（24 小时）、中（默认 7 天）、长（30 天）。暂停状态显示在对应会话的输入框上方。
++在设置的「额度」中可查看余额采样、拖动时间范围的两端、调整各档滚动上限或单独重置窗口。保存新采样时默认保留 30 天，侧栏显示与采样单独设置。侧栏图表可选短（24 小时）、中（默认 7 天）、长（30 天）。暂停状态显示在对应会话的输入框上方。如果降低上限后，额度不足以容纳等待中的请求，点暂停提示里的“调整限额”可直接打开额度页。
 +
  设置、意见反馈和登录操作使用共享的 14px Regular 图标，描边为 1px。包内的退出登录图标采用相同的尺寸和固定描边粗细，无需单独定位内层 SVG。 登录弹窗的关闭按钮与底部操作按钮按外框右边缘对齐，共用 24px 内缩。
  
@@ -16855,7 +16917,7 @@ index d04ea53f90fe09f7fb733bfe627fdd39e6229c63..0c194b11c8b66290786c63cf84bf1549
 +  return `${value.lt(0) ? '-' : ''}${symbol}${Number(integer).toLocaleString()}.${fraction.padEnd(2, '0')}`
 +}
 diff --git a/packages/client/ui-settings-account/src/client/index.ts b/packages/client/ui-settings-account/src/client/index.ts
-index e680e1cb3210fbf10b1cc5969d72920de8b7d011..54f119ff24d2f0bc834f492037ccae48bce14523 100644
+index e680e1cb3210fbf10b1cc5969d72920de8b7d011..4f6f76bdaeefab21da99e7927ae90c6e873dfd8d 100644
 --- a/packages/client/ui-settings-account/src/client/index.ts
 +++ b/packages/client/ui-settings-account/src/client/index.ts
 @@ -24,6 +24,15 @@ import { AccountNotices } from './AccountNotices.tsx'
@@ -16893,7 +16955,7 @@ index e680e1cb3210fbf10b1cc5969d72920de8b7d011..54f119ff24d2f0bc834f492037ccae48
    const desktop = 'dshDesktop' in globalThis
 +  const carrier = (globalThis as typeof globalThis & { dshDesktop?: { protocolVersion: number; about?: DesktopAboutBridge } }).dshDesktop
 +  const about = new AboutController(carrier?.protocolVersion === 1 ? carrier.about : undefined)
-+  ctx.effect(() => { about.start(); return () => about.dispose() }, 'account: About presentation')
++  ctx.effect(() => { about.start(); return () => { about.dispose() } }, 'account: About presentation')
 +  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
 +    name: 'shell.overlay', id: 'product-about', locale: 'settings.account',
 +    inject: (): AboutOverlayInjected => ({ hooks: { about: about.state }, close: about.close }),
@@ -17095,7 +17157,7 @@ index 0000000000000000000000000000000000000000..094883ee05c0bec8a485be58ee553bec
 +}
 diff --git a/packages/client/ui-settings-account/src/client/spending.ts b/packages/client/ui-settings-account/src/client/spending.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..5dcdd27076f42d096621c8edef03f26a17cfb0f5
+index 0000000000000000000000000000000000000000..26eb788d451b27b9cb569017fa4a5085e4cb8c7e
 --- /dev/null
 +++ b/packages/client/ui-settings-account/src/client/spending.ts
 @@ -0,0 +1,76 @@
@@ -17152,7 +17214,7 @@ index 0000000000000000000000000000000000000000..5dcdd27076f42d096621c8edef03f26a
 +        name: 'conversation.input.dock', id: 'spending-pause', order: -30, locale: 'settings.spending',
 +        inject: () => {
 +          const settings = scope.get('settingsNavigation')
-+          return { ...inject(), ...settings === undefined ? {} : { openBudgetSettings: () => settings.openSection('spending') } }
++          return { ...inject(), ...settings === undefined ? {} : { openBudgetSettings: () => { settings.openSection('spending') } } }
 +        },
 +      }, SpendingBanner))
 +      const resources = scope.inject(['resources'], (child) => {
@@ -17703,7 +17765,7 @@ index a921a5cdb065691ef5ef1303ef0e61759db0f384..cfde7905105ac944d13092b8b7cb3b52
  <a id="understand-the-implementation"></a>
  ## 理解实现
 diff --git a/packages/client/ui-settings-general/src/client/index.ts b/packages/client/ui-settings-general/src/client/index.ts
-index ee3bb86d99b5ec164bc8f34914d2978f2a7e5e1c..86a3ec6e301ff5cce0543334921581e8caa25568 100644
+index ee3bb86d99b5ec164bc8f34914d2978f2a7e5e1c..b515dd502461752caabe43218151285a0fd2d666 100644
 --- a/packages/client/ui-settings-general/src/client/index.ts
 +++ b/packages/client/ui-settings-general/src/client/index.ts
 @@ -35,8 +35,6 @@ import { createSettingsShellStore } from './shell-store.ts'
@@ -17737,6 +17799,26 @@ index ee3bb86d99b5ec164bc8f34914d2978f2a7e5e1c..86a3ec6e301ff5cce0543334921581e8
    ctx.slots.inject('sidebar.toggle.badge', () => ctx.slots.register({
      name: 'sidebar.toggle.badge', locale: NS,
      inject: () => ({ hooks: { desktopUpdate: desktopUpdate.store, connectionState: connection.state } }),
+@@ -211,6 +194,10 @@ export function apply(ctx: ClientContext): void {
+       const shellHandle = createSettingsShellStore()
+       const shellInstance = shellHandle.create()
+       const shellStore: typeof shellHandle = { ...shellHandle, create: () => shellInstance }
++      const disposeNavigation = ctx.reflect.provide('settingsNavigation', {
++        openSection: (id: string) => { shellInstance.actions.openSection(id); ctx.emit('settings/section-opened', id) },
++        close: () => { shellInstance.actions.close() },
++      })
+       const disposeCommand = ctx.shortcuts.register({
+         id: 'settings.open' as ShortcutCommandId, label: () => t('shortcut.open'), aliases: ['settings', 'preferences'],
+         defaults: {
+@@ -246,7 +233,7 @@ export function apply(ctx: ClientContext): void {
+         },
+         inject: shellInjected,
+       }, SettingsRoot)
+-      return () => { disposeCommand(); disposeSlot() }
++      return () => { void disposeNavigation(); disposeCommand(); disposeSlot() }
+     }))
+ 
+   ctx.slots.inject('settings.trigger', () =>
 diff --git a/packages/client/ui-settings-general/tests/apply.client.spec.ts b/packages/client/ui-settings-general/tests/apply.client.spec.ts
 index 09723981dae0bc7662696b3d5acd536222d8bede..bc62dcf9661490c8f9b0c9e54bea159ecc0a334a 100644
 --- a/packages/client/ui-settings-general/tests/apply.client.spec.ts
@@ -18004,7 +18086,7 @@ index 1242197b3b92c42f21e2096e0fdb724fdafaa883..8fded9b9a9b722aa2c1f9079b0272545
    'account/getBalance': 'owner-only', // owner account and sign-in; the served page never reads it
    'account/getProfile': 'owner-only', // owner account and sign-in; the served page never reads it
 diff --git a/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts b/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
-index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..4e775bd3fd5d9565d90a13d828ba44446f6e2f23 100644
+index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..72d09ba0a72381b81c00c58910aa7d8dd5366e45 100644
 --- a/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
 +++ b/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
 @@ -256,7 +256,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
@@ -18199,10 +18281,13 @@ index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..4e775bd3fd5d9565d90a13d828ba4444
      ],
      replaceRisk: 'none',
      example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'plugins.tab\', () => ctx.slots.register(\n      { name: \'plugins.tab\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-@@ -4057,6 +4103,58 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+@@ -4055,7 +4101,59 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'none',
      example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.action\', () => ctx.slots.register(\n      { name: \'settings.action\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-     source: 'packages/client/ui-settings/src/client/contract/slots.ts:60',
-   },
+-    source: 'packages/client/ui-settings/src/client/contract/slots.ts:60',
++    source: 'packages/client/ui-settings/src/client/contract/slots.ts:80',
++  },
 +  {
 +    key: 'settings.budget.item',
 +    kind: 'list',
@@ -18254,10 +18339,18 @@ index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..4e775bd3fd5d9565d90a13d828ba4444
 +    replaceRisk: 'none',
 +    example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.budget.item\', () => ctx.slots.register(\n      { name: \'settings.budget.item\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
 +    source: 'packages/client/ui-settings-account/src/client/index.ts:56',
-+  },
+   },
    {
      key: 'settings.close',
-     kind: 'single',
+@@ -4089,7 +4187,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'shadows-shipped-ui',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.close\', () => ctx.slots.register(\n      { name: \'settings.close\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-settings/src/client/contract/slots.ts:66',
++    source: 'packages/client/ui-settings/src/client/contract/slots.ts:86',
+   },
+   {
+     key: 'settings.general.item',
 @@ -4143,11 +4241,14 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
        'client-ui-chat LinkOpeningRow id \'link-opening\'',
        'client-ui-chat PerformanceUsageRow id \'performance-usage\'',
@@ -18274,7 +18367,52 @@ index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..4e775bd3fd5d9565d90a13d828ba4444
        'client-ui-settings-session-log UploadRow',
        'client-ui-shortcuts ShortcutsRow id \'shortcuts\'',
        'client-ui-theme AppearanceRow id \'appearance\'',
-@@ -4605,7 +4706,9 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+@@ -4155,7 +4256,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'none',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.general.item\', () => ctx.slots.register(\n      { name: \'settings.general.item\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-settings/src/client/contract/slots.ts:115',
++    source: 'packages/client/ui-settings/src/client/contract/slots.ts:135',
+   },
+   {
+     key: 'settings.header',
+@@ -4189,7 +4290,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'shadows-shipped-ui',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.header\', () => ctx.slots.register(\n      { name: \'settings.header\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-settings/src/client/contract/slots.ts:54',
++    source: 'packages/client/ui-settings/src/client/contract/slots.ts:74',
+   },
+   {
+     key: 'settings.launcher',
+@@ -4223,7 +4324,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'shadows-shipped-ui',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.launcher\', () => ctx.slots.register(\n      { name: \'settings.launcher\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-settings/src/client/contract/slots.ts:32',
++    source: 'packages/client/ui-settings/src/client/contract/slots.ts:52',
+   },
+   {
+     key: 'settings.launcher.notifications',
+@@ -4415,7 +4516,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'shadows-shipped-ui',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.notice\', () => ctx.slots.register(\n      { name: \'settings.notice\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-settings/src/client/contract/slots.ts:38',
++    source: 'packages/client/ui-settings/src/client/contract/slots.ts:58',
+   },
+   {
+     key: 'settings.onboarding',
+@@ -4469,7 +4570,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'none',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.onboarding\', () => ctx.slots.register(\n      { name: \'settings.onboarding\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-settings/src/client/contract/slots.ts:100',
++    source: 'packages/client/ui-settings/src/client/contract/slots.ts:120',
+   },
+   {
+     key: 'settings.remoteConnection.content',
+@@ -4605,14 +4706,16 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
      occupants: [
        'client-remote-connection RemoteConnectionSettings id \'remote-connection\'',
        'client-ui-agent-preset AgentPresetSection id \'agent-presets\'',
@@ -18284,6 +18422,32 @@ index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..4e775bd3fd5d9565d90a13d828ba4444
        'client-ui-settings-account AccountSection id \'account\'',
        'client-ui-settings-general GeneralSection id \'general\'',
        'client-ui-settings-models ModelsSection id \'models\'',
+     ],
+     replaceRisk: 'none',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.section\', () => ctx.slots.register(\n      { name: \'settings.section\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-settings/src/client/contract/slots.ts:81',
++    source: 'packages/client/ui-settings/src/client/contract/slots.ts:101',
+   },
+   {
+     key: 'settings.section.icon',
+@@ -4663,7 +4766,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     occupants: [],
+     replaceRisk: 'none',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.section.icon\', () => ctx.slots.register(\n      { name: \'settings.section.icon\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-settings/src/client/contract/slots.ts:89',
++    source: 'packages/client/ui-settings/src/client/contract/slots.ts:109',
+   },
+   {
+     key: 'settings.trigger',
+@@ -4697,7 +4800,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'shadows-shipped-ui',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.trigger\', () => ctx.slots.register(\n      { name: \'settings.trigger\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-settings/src/client/contract/slots.ts:48',
++    source: 'packages/client/ui-settings/src/client/contract/slots.ts:68',
+   },
+   {
+     key: 'shell.bottom',
 @@ -4818,10 +4921,13 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
        'client-ui-open-in-app OpenInAppToast id \'open-in-app.toast\'',
        'client-ui-plugin-manager PluginRefreshToast id \'plugin-manager.refresh-toast\'',
@@ -23696,7 +23860,7 @@ index 0240ea3c50021c2e0483fb327adace35df164ab2..f43ade7b3399b36f6c910f44b0bd7bd3
  - **凭据清除依赖名称启发式规则**——只匹配 `*KEY*`／`*PASSWORD*`／`*SECRET*`／`*TOKEN*`；名称不同的 secret（例如 `*PASSPHRASE*`）会继续传递，对误删变量引入白名单属于已记录的后续工作。
 diff --git a/packages/subprocess/subprocess-local/tests/fixtures/terminal-output-exit.ts b/packages/subprocess/subprocess-local/tests/fixtures/terminal-output-exit.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..8a0825450fc6db5f0846a5c0efdb1d7224a00f04
+index 0000000000000000000000000000000000000000..3686f0827860b4fd42c32a72fa98b624585b941e
 --- /dev/null
 +++ b/packages/subprocess/subprocess-local/tests/fixtures/terminal-output-exit.ts
 @@ -0,0 +1,25 @@
@@ -23713,7 +23877,7 @@ index 0000000000000000000000000000000000000000..8a0825450fc6db5f0846a5c0efdb1d72
 +    { script: 'console.log("one reply")', code: 0, lines: ['one reply'] },
 +    { script: 'process.exitCode = 7', code: 7, lines: [] },
 +    { script: 'for (let i=0;i<256;i++) console.log("line-"+i+"-end")', code: 0,
-+      lines: Array.from({ length: 256 }, (_, i) => 'line-' + i + '-end') },
++      lines: Array.from({ length: 256 }, (_, i) => `line-${i}-end`) },
 +  ]) {
 +    const handle = await ctx.subprocess.spawnTerminal({ argv: [process.execPath, '-e', scenario.script],
 +      cwd: process.cwd(), rows: 24, cols: 80, terminalType: 'dumb', graceMs: 1000 })
@@ -24759,7 +24923,7 @@ index 0000000000000000000000000000000000000000..b33bbada006ee018fac3282d4099952f
 +  ['packages/util/product-version', 'MIT'],
 +])
 diff --git a/scripts/gen-cordis-catalog.ts b/scripts/gen-cordis-catalog.ts
-index e4885eec6cc42ff69745e01724a887da0e1ea966..3ec93a0e335855312c2ffd881fd8ffd57894d40a 100644
+index e4885eec6cc42ff69745e01724a887da0e1ea966..290088f9d47cdd005f3a6ff53a6330da1fbcb0d3 100644
 --- a/scripts/gen-cordis-catalog.ts
 +++ b/scripts/gen-cordis-catalog.ts
 @@ -99,6 +99,7 @@ export const SERVICE_PAGE: Record<string, string> = {
@@ -24795,7 +24959,15 @@ index e4885eec6cc42ff69745e01724a887da0e1ea966..3ec93a0e335855312c2ffd881fd8ffd5
    workspaceRegistry: 'workspace.md',
    workspaceController: 'workspace.md',
    workspaceFiles: 'workspace.md',
-@@ -303,6 +308,7 @@ export const EVENT_SCOPE_PAGE: Record<string, string> = {
+@@ -212,6 +217,7 @@ export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
+   uiConversation: 'client-side Conversation registries and assembler — packages/client/ui-conversation/README.md owns the API',
+   uiWorkspace: 'client-side Workspace navigation adapter — packages/client/ui-workspace/README.md owns the API',
+   settingsSchema: 'client-side schema introspection service — packages/client/ui-settings/README.md owns the API',
++  settingsNavigation: 'browser settings dialog navigation documented in packages/client/ui-settings/README.md',
+   configForms: 'client-side shared entry forms — packages/client/ui-settings/README.md owns the API',
+   chatFileMentions: 'client-side slot-contract accessor (ChatFileMentions) — packages/client/ui-chat/README.md owns the API',
+   shortcuts: 'client-side interface-typed keyboard service — packages/client/shortcuts/README.md owns the API',
+@@ -303,6 +309,7 @@ export const EVENT_SCOPE_PAGE: Record<string, string> = {
   * exemption cannot mask another declaration in that scope.
   */
  export const EVENT_WALK_EXEMPTIONS: Record<string, string> = {
@@ -24803,7 +24975,15 @@ index e4885eec6cc42ff69745e01724a887da0e1ea966..3ec93a0e335855312c2ffd881fd8ffd5
    'account-ui/change': 'client-side account lifecycle signal — packages/client/ui-settings-account/README.md owns the API',
    'account-ui/refresh': 'client-side account refresh signal — packages/client/ui-settings-account/README.md owns the API',
    'workspace/archive-notice': 'client-face archive follow-up copy — packages/client/ui-workspace/README.md owns the API',
-@@ -1102,6 +1108,36 @@ export const FOUNDATION_TYPE_NAMES: ReadonlySet<string> = new Set([
+@@ -310,6 +317,7 @@ export const EVENT_WALK_EXEMPTIONS: Record<string, string> = {
+   'workspace/archive-followup-settled': 'client-face archive follow-up settlement — packages/client/ui-workspace/README.md owns the API',
+   'agent/request': 'deprecated compatibility hook — packages/core/agent/README.md documents migration',
+   'command/executed': 'client-face local command acknowledgment — packages/client/ui-commands/README.md owns the API',
++  'settings/section-opened': 'browser settings dialog navigation event documented in packages/client/ui-settings/README.md',
+   'connection/reset': 'client-face transport signal — packages/api/session-controller/README.md owns the API',
+   'locale/change': 'client-face locale switch signal — packages/client/locale/README.md owns the API',
+   'slash/input-begin-command': 'client-face slash-input protocol — packages/client/ui-input-trigger/README.md owns the API',
+@@ -1102,6 +1110,36 @@ export const FOUNDATION_TYPE_NAMES: ReadonlySet<string> = new Set([
  
  /** Project types deliberately documented outside the subsystems catalog. */
  export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
@@ -24840,7 +25020,7 @@ index e4885eec6cc42ff69745e01724a887da0e1ea966..3ec93a0e335855312c2ffd881fd8ffd5
    AnyConnectorAccountView: 'generic connector account view is owned by packages/client/ui-connector-account/README.md',
    ConnectorAccountRegistration: 'Plugins page account registration is owned by packages/client/ui-connector-account/README.md',
    ConnectorAccountsView: 'registered account stream item is owned by packages/client/ui-connector-account/README.md',
-@@ -1224,6 +1260,21 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
+@@ -1224,6 +1262,21 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
    WorkflowAgentEndInfo: 'event-local snapshot is owned by packages/workflow/workflow/src/index.ts',
    WorkflowAgentInfo: 'event-local snapshot is owned by packages/workflow/workflow/src/index.ts',
    WorkflowResultInfo: 'event-local snapshot is owned by packages/workflow/workflow/src/index.ts',
@@ -28185,10 +28365,10 @@ index 0000000000000000000000000000000000000000..7d6294e38fe4c91ee189b0365baf4719
 +}
 diff --git a/packages/memory/memory/src/agent.ts b/packages/memory/memory/src/agent.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..abfa923c0a42d370e1d2125523c670af8418f49f
+index 0000000000000000000000000000000000000000..fbb0329dfaba8b072d12dce0ba4feadf2a35954b
 --- /dev/null
 +++ b/packages/memory/memory/src/agent.ts
-@@ -0,0 +1,364 @@
+@@ -0,0 +1,365 @@
 +/**
 + * The per-conversation memory consumer: retrieves scoped records into the
 + * request as a logged, model-visible snapshot, and exposes the model-facing
@@ -28339,14 +28519,15 @@ index 0000000000000000000000000000000000000000..abfa923c0a42d370e1d2125523c670af
 +  if (retrieval) {
 +    ctx.on('agent/pre-step', async ({ agent, messages, step, signal }, next): Promise<PreStepDecision> => {
 +      const decision = await next()
-+      if (decision.kind === 'reject' || signal.aborted || step !== 1 || !ctx.memory.enabled) return decision
++      const canRetrieve = () => ctx.memory.enabled && !signal.aborted
++      if (decision.kind === 'reject' || step !== 1 || !canRetrieve()) return decision
 +      const query = userText(messages)
 +      if (query === '') return decision
 +      const session = agent.session
 +      const scope = await resolveSessionScope(ctx, session, config.mode)
 +      // A fresh child conversation keeps its own empty context: quick
 +      // questions and spawned children never inherit the main line's memory.
-+      if (scope.freshChild || !ctx.memory.enabled) return decision
++      if (scope.freshChild || !canRetrieve()) return decision
 +      const { injectedVersions } = extraction.stateOf(session)
 +      const exclude = ctx.memory.records().filter(record => injectedVersions[record.id] === record.version).map(record => record.id)
 +      const outcome = ctx.memory.retrieve({ query, scope, exclude })
@@ -30324,10 +30505,10 @@ index 0000000000000000000000000000000000000000..0cefee95b32e4d21892f58c3871ea7c8
 +}
 diff --git a/packages/memory/memory/tests/agent.spec.ts b/packages/memory/memory/tests/agent.spec.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..6a38659d6d769d98643c65fb25d2f1bdc5464d07
+index 0000000000000000000000000000000000000000..53e84d5428904bffbd144923e1e3c78cce91da99
 --- /dev/null
 +++ b/packages/memory/memory/tests/agent.spec.ts
-@@ -0,0 +1,498 @@
+@@ -0,0 +1,521 @@
 +import { mkdtemp, rm } from 'node:fs/promises'
 +import { tmpdir } from 'node:os'
 +import { join } from 'node:path'
@@ -30340,7 +30521,8 @@ index 0000000000000000000000000000000000000000..6a38659d6d769d98643c65fb25d2f1bd
 +import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 +import { Session, SessionId } from '@deepseek-ai/dsh-session'
 +import type { SessionEvent } from '@deepseek-ai/dsh-session'
-+import type { Agent } from '@deepseek-ai/dsh-agent'
++import { agentEvents, type Agent } from '@deepseek-ai/dsh-agent'
++import * as scope from '../src/scope.ts'
 +import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 +import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
 +import Storage from '@deepseek-ai/dsh-storage'
@@ -30466,6 +30648,28 @@ index 0000000000000000000000000000000000000000..6a38659d6d769d98643c65fb25d2f1bd
 +}
 +
 +describe('memory through the real loop', () => {
++  it('skips retrieval when the step is cancelled while resolving its workspace', async () => {
++    const h = await harness([])
++    const agent = await h.agent('cancel-during-scope')
++    const controller = new AbortController()
++    const resolveScope = scope.resolveSessionScope
++    const lookup = vi.spyOn(scope, 'resolveSessionScope').mockImplementationOnce(async (...args) => {
++      const value = await resolveScope(...args)
++      controller.abort()
++      return value
++    })
++    const retrieve = vi.spyOn(h.ctx.memory, 'retrieve')
++    try {
++      const prompt = createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'Recall the notes.' }] })
++      const decision = await agentEvents(agent.ctx, agent).waterfall('agent/pre-step', {
++        turn: 1, step: 1, messages: [prompt], signal: controller.signal, modelSelection: { provider: 'mock', model: 'mock' },
++      }, () => Promise.resolve({ kind: 'enter' as const, messages: [] }))
++      expect(lookup).toHaveBeenCalledOnce()
++      expect(retrieve).not.toHaveBeenCalled()
++      expect(decision).toEqual({ kind: 'enter', messages: [] })
++    } finally { lookup.mockRestore(); retrieve.mockRestore() }
++  })
++
 +  it('omits memory tools, retrieval and extraction while conversation access is off', async () => {
 +    const h = await harness([textResponse('OK')], 'standard', { enabled: false, autoExtract: true })
 +    await h.ctx.memory.create({ type: 'preference', content: 'Always use teal', scope: { global: true }, source: { kind: 'user', confirmed: true } })
@@ -32705,10 +32909,10 @@ index 0000000000000000000000000000000000000000..bc4f76ca373f3cda3e47f0616adf2e47
 +}
 diff --git a/packages/client/ui-settings-account/src/client/balance-controller.ts b/packages/client/ui-settings-account/src/client/balance-controller.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..90e0675786f71c3a418947e7e8f4cc609d447f9e
+index 0000000000000000000000000000000000000000..e4168fef5f880017a7a5aaf20cb0f8cb3adb5573
 --- /dev/null
 +++ b/packages/client/ui-settings-account/src/client/balance-controller.ts
-@@ -0,0 +1,159 @@
+@@ -0,0 +1,166 @@
 +/** One polling lifetime shared by the balance settings page and sidebar. */
 +import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 +import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
@@ -32740,6 +32944,7 @@ index 0000000000000000000000000000000000000000..90e0675786f71c3a418947e7e8f4cc60
 +  private readonly clock: ReturnType<typeof setInterval>
 +  private readonly stopPreferences: () => void
 +  private readonly saves = new Set<Promise<boolean>>()
++  private readonly cleanups = new Set<Promise<BalanceSnapshot>>()
 +
 +  /**
 +   * @param preferences - Shared Host-backed form.
@@ -32793,21 +32998,27 @@ index 0000000000000000000000000000000000000000..90e0675786f71c3a418947e7e8f4cc60
 +   * @returns Whether the Host accepted the cleanup.
 +   */
 +  readonly clear = async (request: BalanceCleanupRequest): Promise<boolean> => {
-+    if (this.lifetime.signal.aborted) return false
-+    this.state.set({ ...this.state.getSnapshot(), clearing: true })
++    const active = () => !this.lifetime.signal.aborted
++    if (!active()) return false
 +    const generation = this.revision
 +    let accepted = false
++    let cleanup: Promise<BalanceSnapshot> | undefined
 +    try {
-+      const data = await this.clearSamples(request, this.view)
++      cleanup = this.clearSamples(request, this.view)
++      this.cleanups.add(cleanup)
++      this.state.set({ ...this.state.getSnapshot(), clearing: true })
++      const data = await cleanup
 +      accepted = data.status === 'ready' || data.status === 'empty'
 +      if (accepted && this.accepts(generation)) {
 +        this.state.set({ ...this.state.getSnapshot(), data, failed: false, loading: false, now: Date.now() })
 +      }
 +    } catch (_error) {
 +      accepted = false
++    } finally {
++      if (cleanup !== undefined) this.cleanups.delete(cleanup)
 +    }
-+    if (!this.lifetime.signal.aborted) {
-+      this.state.set({ ...this.state.getSnapshot(), clearing: false,
++    if (active()) {
++      this.state.set({ ...this.state.getSnapshot(), clearing: this.cleanups.size > 0,
 +        toast: accepted ? 'cleared' : 'clearFailed', toastId: this.state.getSnapshot().toastId + 1 })
 +    }
 +    return accepted
@@ -32865,7 +33076,7 @@ index 0000000000000000000000000000000000000000..90e0675786f71c3a418947e7e8f4cc60
 +  /** Stop timers and subscriptions, then await admitted reads and writes. @returns Quiescent completion. */
 +  async dispose(): Promise<void> {
 +    this.lifetime.abort(); this.stopPreferences(); clearTimeout(this.timer); clearInterval(this.clock)
-+    await Promise.allSettled([this.pending, ...this.saves])
++    await Promise.allSettled([this.pending, ...this.saves, ...this.cleanups])
 +  }
 +}
 diff --git a/packages/client/ui-settings-account/src/client/balance-hours.ts b/packages/client/ui-settings-account/src/client/balance-hours.ts
@@ -33231,10 +33442,10 @@ index 0000000000000000000000000000000000000000..aa5856f980b63eba06e445cf6014be85
 +}
 diff --git a/packages/client/ui-settings-account/tests/balance-controller.client.spec.ts b/packages/client/ui-settings-account/tests/balance-controller.client.spec.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..1715c467b177bf6ff367754a4084bd510b3d4456
+index 0000000000000000000000000000000000000000..1822a3fcf10e198f3181e4c28b8301ecc0097ffe
 --- /dev/null
 +++ b/packages/client/ui-settings-account/tests/balance-controller.client.spec.ts
-@@ -0,0 +1,134 @@
+@@ -0,0 +1,153 @@
 +import { afterEach, expect, it, vi } from 'vitest'
 +import { stubConfigForm } from '@deepseek-ai/dsh-client-test-runtime'
 +import type { BalanceCleanupRequest, BalancePreferences, BalanceSnapshot } from '@deepseek-ai/dsh-balance/types'
@@ -33354,6 +33565,25 @@ index 0000000000000000000000000000000000000000..1715c467b177bf6ff367754a4084bd51
 +    expect(await pending).toBe(true)
 +    expect(controller.state.getSnapshot().data).toBe(current)
 +  } finally { await controller.dispose() }
++})
++
++it('waits for pending history cleanup on unload without publishing late feedback', async () => {
++  vi.useFakeTimers()
++  const reply = Promise.withResolvers<BalanceSnapshot>()
++  const controller = new BalanceController(preferences().scope, () => Promise.resolve(sample('9.00')), () => reply.promise)
++  await vi.advanceTimersByTimeAsync(0)
++  const pending = controller.clear({ mode: 'all' })
++  let disposed = false
++  const closing = controller.dispose().then(() => { disposed = true })
++  try {
++    await vi.advanceTimersByTimeAsync(0)
++    expect(disposed).toBe(false)
++    const snapshot = controller.state.getSnapshot()
++    reply.resolve(sample('0.00'))
++    expect(await pending).toBe(true)
++    await closing
++    expect(controller.state.getSnapshot()).toBe(snapshot)
++  } finally { reply.resolve(sample('0.00')); await closing }
 +})
 +
 +it('reports a failed cleanup without discarding the shown history', async () => {
@@ -34775,7 +35005,7 @@ index ddf9c2d6db33e22d7a5922c322b12ff08ff23e0f..703e38c49db92925d553f09116a0652c
    {
 diff --git a/apps/web/tests/about-dialog-fit.e2e.ts b/apps/web/tests/about-dialog-fit.e2e.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..b02989c8467b5fada5cd1cb1e301a0b2c9318925
+index 0000000000000000000000000000000000000000..3a455d1c1bf647b4bfbe1c036dbb4b6fc19ee801
 --- /dev/null
 +++ b/apps/web/tests/about-dialog-fit.e2e.ts
 @@ -0,0 +1,108 @@
@@ -34811,7 +35041,7 @@ index 0000000000000000000000000000000000000000..b02989c8467b5fada5cd1cb1e301a0b2
 +    const page = await browser.newPage({ locale: labels.locale, viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' })
 +    let published = 'v2026.11.24.3'
 +    let checks = 0
-+    await page.route('https://api.github.com/repos/Water-Run/deepseek-harness-uncensored/releases?*', async route => {
++    await page.route('https://api.github.com/repos/Water-Run/deepseek-harness-uncensored/releases?*', async (route) => {
 +      checks += 1
 +      await route.fulfill({ json: [{ tag_name: published, prerelease: false, draft: false,
 +        html_url: 'https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/' + published }] })
@@ -34858,7 +35088,7 @@ index 0000000000000000000000000000000000000000..b02989c8467b5fada5cd1cb1e301a0b2
 +      expect(brand.x).toBeCloseTo(frame.x, 0)
 +      expect(brand.y).toBeCloseTo(frame.y, 0)
 +      expect(brand.height).toBeCloseTo(frame.height, 0)
-+      await dialog.screenshot({ path: join(shots, labels.locale + '-' + viewport.width + '.png') })
++      await dialog.screenshot({ path: join(shots, `${labels.locale}-${viewport.width}.png`) })
 +    }
 +    await page.keyboard.press('Escape')
 +    await dialog.waitFor({ state: 'detached' })
@@ -35830,19 +36060,20 @@ index 0000000000000000000000000000000000000000..bf02f1f695a486acfc343da513745c6e
 +  return <AboutDialog open={open} t={t} close={close} />
 +}
 diff --git a/packages/client/ui-settings-account/src/client/AccountMenu.tsx b/packages/client/ui-settings-account/src/client/AccountMenu.tsx
-index 1972e80bfddf31baa74336496474f5f25eeec5cc..f37ea860ead4d31f6829340e1d1b79049e2c6cbb 100644
+index 1972e80bfddf31baa74336496474f5f25eeec5cc..081f30a0cd3d7f871d244644c6f2c241d8be12e1 100644
 --- a/packages/client/ui-settings-account/src/client/AccountMenu.tsx
 +++ b/packages/client/ui-settings-account/src/client/AccountMenu.tsx
-@@ -1,7 +1,7 @@
+@@ -1,7 +1,8 @@
  /** Sidebar account launcher and locally authoritative sign-out action. */
  import { useEffect, useRef, useState } from 'react'
  import {
 -  Toast, Menu, IconEllipsisOutlineMedium, IconPaperPlaneOutlineRegular, IconSettingsOutlineRegular, IconUserOutlineRegular,
-+  Toast, Menu, IconEllipsisOutlineMedium, IconInfoOutlineRegular, IconPaperPlaneOutlineRegular, IconSettingsOutlineRegular, IconUserOutlineRegular,
++  Toast, Menu, IconEllipsisOutlineMedium, IconInfoOutlineRegular, IconPaperPlaneOutlineRegular,
++  IconSettingsOutlineRegular, IconUserOutlineRegular,
  } from '@deepseek-ai/dsh-client-ui-primitives'
  import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
  import type { AccountSectionInjected } from './AccountSection.tsx'
-@@ -13,7 +13,7 @@ import type {} from './account-ui.ts'
+@@ -13,7 +14,7 @@ import type {} from './account-ui.ts'
  import css from './AccountMenu.module.css'
  
  /** Account launcher composed by the settings shell. */
@@ -35851,7 +36082,7 @@ index 1972e80bfddf31baa74336496474f5f25eeec5cc..f37ea860ead4d31f6829340e1d1b7904
  
  /** The signed-in label stays empty while the profile loads.
   * @param props - sidebar geometry, settings navigation and account operations.
-@@ -22,7 +22,7 @@ export type AccountMenuProps = PropsRuntime<'settings.launcher'> & PropsLocale<'
+@@ -22,7 +23,7 @@ export type AccountMenuProps = PropsRuntime<'settings.launcher'> & PropsLocale<'
  export function AccountMenu({
    subscribeSessionExpired, subscribeModelSignInRequired, wide, settingsShortcut, openSettings, openOnboarding, settingsOpen,
    useAccount, useTheme, signOut, hasRunningAccountTasks, refreshAccount,
@@ -35860,7 +36091,7 @@ index 1972e80bfddf31baa74336496474f5f25eeec5cc..f37ea860ead4d31f6829340e1d1b7904
  }: AccountMenuProps) {
    // The launcher outlives the panel, so a false-to-true edge is one Settings entry:
    // re-renders, section switches and tab switches inside one open must not read again.
-@@ -69,6 +69,7 @@ export function AccountMenu({
+@@ -69,6 +70,7 @@ export function AccountMenu({
        items={[
          { id: 'settings', label: t('settings'), icon: <IconSettingsOutlineRegular size={14} />,
            ...(settingsShortcut === undefined ? {} : { shortcut: settingsShortcut }) },
@@ -35868,7 +36099,7 @@ index 1972e80bfddf31baa74336496474f5f25eeec5cc..f37ea860ead4d31f6829340e1d1b7904
          { id: 'contact', label: t('contactUs'), icon: <IconPaperPlaneOutlineRegular size={14} /> },
          ...(signedIn ? [{ id: 'signout', label: t('signOut'), icon: <LogoutIcon />, disabled: busy }]
            : [{ id: 'signin', label: t('signIn'), icon: <IconUserOutlineRegular size={14} /> }]),
-@@ -76,6 +77,7 @@ export function AccountMenu({
+@@ -76,6 +78,7 @@ export function AccountMenu({
        onClose={() => { setOpen(false) }}
        onSelect={(id) => {
          if (id === 'settings') { setOpen(false); trigger.current?.focus(); openSettings() }
@@ -36325,28 +36556,28 @@ index 0000000000000000000000000000000000000000..3346e03e714fde82e4673ce5f500737c
 +} satisfies Record<keyof typeof aboutEn, string>
 diff --git a/packages/client/ui-settings-account/src/client/release-components.ts b/packages/client/ui-settings-account/src/client/release-components.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..6196e2197bab2d0ec5fa8cafe85334ca4ed97976
+index 0000000000000000000000000000000000000000..f83df26cc0ae36726c94b6c93d19ee12ac6dceee
 --- /dev/null
 +++ b/packages/client/ui-settings-account/src/client/release-components.ts
 @@ -0,0 +1,19 @@
 +/** Component references from the DSHU release manifest, displayed separately from installed software. */
 +export const releaseComponents = [
 +  {
-+    "name": "dsh-purge Community",
-+    "repository": "https://github.com/kingcharleslzy-ai/dsh-purge",
-+    "version": "1.7.20",
-+    "commit": "e519253d5b01344056055af9d2041dcafa42fed3",
-+    "time": "2026-11-18T10:24:44Z",
-+    "license": "MIT"
++    name: 'dsh-purge Community',
++    repository: 'https://github.com/kingcharleslzy-ai/dsh-purge',
++    version: '1.7.20',
++    commit: 'e519253d5b01344056055af9d2041dcafa42fed3',
++    time: '2026-11-18T10:24:44Z',
++    license: 'MIT',
 +  },
 +  {
-+    "name": "REA",
-+    "repository": "https://github.com/morluto/rea",
-+    "version": "6.9.0",
-+    "commit": "d74549e495c58eb4a560279fd9f05508401ea0a0",
-+    "time": "2026-11-12T08:58:30Z",
-+    "license": "MIT"
-+  }
++    name: 'REA',
++    repository: 'https://github.com/morluto/rea',
++    version: '6.9.0',
++    commit: 'd74549e495c58eb4a560279fd9f05508401ea0a0',
++    time: '2026-11-12T08:58:30Z',
++    license: 'MIT',
++  },
 +] as const
 diff --git a/packages/client/ui-settings-account/tests/about-controller.client.spec.ts b/packages/client/ui-settings-account/tests/about-controller.client.spec.ts
 new file mode 100644
@@ -54479,7 +54710,7 @@ index 0000000000000000000000000000000000000000..08c756d4b45912d8c9e5d99ddae5adc4
 +})
 diff --git a/apps/web/tests/persistent-side.e2e.ts b/apps/web/tests/persistent-side.e2e.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..11e16c70bacb25a0dcc7c708451f0dd2462f5e66
+index 0000000000000000000000000000000000000000..8466a1d1ccdbbcec956c447b16dae29e0c8dbed4
 --- /dev/null
 +++ b/apps/web/tests/persistent-side.e2e.ts
 @@ -0,0 +1,271 @@
@@ -54667,7 +54898,7 @@ index 0000000000000000000000000000000000000000..11e16c70bacb25a0dcc7c708451f0dd2
 +
 +it('shows a background side answer as unread until its panel is visible, across reload and windows', async () => {
 +  const scaffold = await launchWebScaffold({ extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
-+  const finish = Promise.withResolvers<void>()
++  const finish = Promise.withResolvers<undefined>()
 +  class BackgroundAdapter extends SideAdapter {
 +    override async *stream(options: Parameters<SideAdapter['stream']>[0]) {
 +      if (this.requests.length === 1) await finish.promise
@@ -54714,7 +54945,7 @@ index 0000000000000000000000000000000000000000..11e16c70bacb25a0dcc7c708451f0dd2
 +      await row.locator('[data-state=ongoing][data-appearance=dashed]').waitFor()
 +      await page.getByRole('button', { name: 'Collapse right sidebar', exact: true }).click()
 +      await panel.waitFor({ state: 'hidden' })
-+      finish.resolve()
++      finish.resolve(undefined)
 +      await expect.poll(() => headerLight.getAttribute('data-aside-status')).toBe('unread')
 +      const key = 'dshu.aside.read.' + sessionId
 +      expect(await page.evaluate(key => localStorage.getItem(key), key)).toBeNull()
@@ -54731,9 +54962,9 @@ index 0000000000000000000000000000000000000000..11e16c70bacb25a0dcc7c708451f0dd2
 +      const origin = new URL(scaffold.authenticatedUrl).origin
 +      await other.route(origin + '/receipt-test', route => route.fulfill({ contentType: 'text/html', body: '<title>Read receipt fixture</title>' }))
 +      await other.goto(origin + '/receipt-test')
-+      await other.evaluate(key => localStorage.removeItem(key), key)
++      await other.evaluate((key) => { localStorage.removeItem(key) }, key)
 +      await expect.poll(() => headerLight.getAttribute('data-aside-status')).toBe('unread')
-+      await other.evaluate(([key, value]) => localStorage.setItem(key!, value!), [key, receipt])
++      await other.evaluate(([key, value]) => { localStorage.setItem(key!, value!) }, [key, receipt])
 +      await expect.poll(() => headerLight.getAttribute('data-aside-status')).toBe('read')
 +      await other.close()
 +      await page.reload()
@@ -54751,8 +54982,8 @@ index 0000000000000000000000000000000000000000..11e16c70bacb25a0dcc7c708451f0dd2
 +      await input.waitFor()
 +      await expect.poll(() => headerLight.count()).toBe(0)
 +      expect(adapter.requests).toHaveLength(3)
-+    } finally { finish.resolve(); await browser.close() }
-+  } finally { finish.resolve(); await scaffold.close() }
++    } finally { finish.resolve(undefined); await browser.close() }
++  } finally { finish.resolve(undefined); await scaffold.close() }
 +}, 90_000)
 diff --git a/packages/client/ui-commands/src/client/asides/AsideIcon.tsx b/packages/client/ui-commands/src/client/asides/AsideIcon.tsx
 new file mode 100644
@@ -54816,7 +55047,7 @@ index 0000000000000000000000000000000000000000..c92c7d3f3fbd7a8607e19d72b0bced50
 +@keyframes aside-breathe { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }
 diff --git a/packages/client/ui-commands/src/client/asides/SidePanel.tsx b/packages/client/ui-commands/src/client/asides/SidePanel.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..9ba5972c45cdccde3c6cd3e66a6ad13925ced538
+index 0000000000000000000000000000000000000000..aed7a7059f915a85b0c58a4037478d9a95fa371c
 --- /dev/null
 +++ b/packages/client/ui-commands/src/client/asides/SidePanel.tsx
 @@ -0,0 +1,107 @@
@@ -54860,12 +55091,12 @@ index 0000000000000000000000000000000000000000..9ba5972c45cdccde3c6cd3e66a6ad139
 +    if (!tab.visible || resource.status !== 'live' || !events || child === undefined || seq === undefined) return
 +    let acknowledged = false
 +    const acknowledge = () => {
-+      if (acknowledged || document.visibilityState !== 'visible') return
++      if (acknowledged || document.visibilityState !== 'visible') return acknowledged
 +      const received = events.getSnapshot().entries.some(({ event }) => event.seq === seq && event.type === 'turn/end')
 +      if (received) { acknowledged = true; markRead(child, seq) }
++      return received
 +    }
-+    acknowledge()
-+    if (acknowledged) return
++    if (acknowledge()) return
 +    const release = events.subscribe(acknowledge)
 +    document.addEventListener('visibilitychange', acknowledge)
 +    return () => { release(); document.removeEventListener('visibilitychange', acknowledge) }
@@ -54960,7 +55191,7 @@ index 0000000000000000000000000000000000000000..df880029ad2b2c9e7ce544b22559063f
 +}
 diff --git a/packages/client/ui-commands/src/client/asides/side.ts b/packages/client/ui-commands/src/client/asides/side.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..4f2a6bb45de7803378d7f6689ddaf93008528b99
+index 0000000000000000000000000000000000000000..b5812e3e24a48b3a9cb940b29191122e644ebefe
 --- /dev/null
 +++ b/packages/client/ui-commands/src/client/asides/side.ts
 @@ -0,0 +1,237 @@
@@ -54996,9 +55227,9 @@ index 0000000000000000000000000000000000000000..4f2a6bb45de7803378d7f6689ddaf930
 +    const t = scope.locale.bind('command')
 +    const reads = new AsideReads()
 +    scope.effect(() => {
-+      const sync = (event: StorageEvent) => reads.sync(event)
++      const sync = (event: StorageEvent) => { reads.sync(event) }
 +      window.addEventListener('storage', sync)
-+      return () => window.removeEventListener('storage', sync)
++      return () => { window.removeEventListener('storage', sync) }
 +    }, 'side conversation: synchronize read positions')
 +    const bindings = new Map<SessionId, {
 +      ready: Promise<SessionReference>
@@ -55158,7 +55389,7 @@ index 0000000000000000000000000000000000000000..4f2a6bb45de7803378d7f6689ddaf930
 +      name: 'sidebar.right.pane.tab', key: tabType, locale: 'command',
 +      inject: (parent: SessionId) => ({
 +        clear: (child: SessionId) => { reset(parent, child, 'manual') },
-+        markRead: (child: SessionId, seq: number) => reads.mark(parent, child, seq),
++        markRead: (child: SessionId, seq: number) => { reads.mark(parent, child, seq) },
 +      }),
 +      children: { 'sidebar.aside.conversation': { kind: 'single', scope: 'session' } },
 +    }, SidePanel))
@@ -56000,7 +56231,7 @@ index d6bea0c4b783233e5901bd976dbce640074be740..f731c8fd87edb0cb98b2390373b15d7e
      ])
 diff --git a/packages/client/ui-commands/src/client/asides/read-status.ts b/packages/client/ui-commands/src/client/asides/read-status.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..8f4c1d538f784b474287c562353dc2833835cc2f
+index 0000000000000000000000000000000000000000..ddb06697e6244324b52c507550321fcfb770c55a
 --- /dev/null
 +++ b/packages/client/ui-commands/src/client/asides/read-status.ts
 @@ -0,0 +1,132 @@
@@ -56061,7 +56292,7 @@ index 0000000000000000000000000000000000000000..8f4c1d538f784b474287c562353dc283
 +        if (next !== raw) { raw = next; receipt = decode(next) }
 +        return receipt
 +      },
-+      subscribe: listener => {
++      subscribe: (listener) => {
 +        this.changes.addEventListener(PREFIX + parent, listener)
 +        this.changes.addEventListener('clear', listener)
 +        return () => {
@@ -56118,7 +56349,7 @@ index 0000000000000000000000000000000000000000..8f4c1d538f784b474287c562353dc283
 + */
 +export function sideMetadata(list: SessionListState, child: SessionId | undefined): SessionListMetadata['side'] {
 +  if (child === undefined) return undefined
-+  return (list.projectionsBySession[child]?.values?.sessionListMetadata ?? list.byId[child]?.projectionValues?.sessionListMetadata)?.side
++  return (list.projectionsBySession[child]?.values.sessionListMetadata ?? list.byId[child]?.projectionValues?.sessionListMetadata)?.side
 +}
 +
 +/**
@@ -59611,3 +59842,122 @@ index 0000000000000000000000000000000000000000..7aa03cebc166f1d04de1f058a5e4a3db
 +import { clientBundle } from '../tsdown.client.ts'
 +
 +export default clientBundle(import.meta.dirname, ['lib/types/index.js'])
+diff --git a/packages/client/ui-settings-general/tests/shell.client.spec.ts b/packages/client/ui-settings-general/tests/shell.client.spec.ts
+index 8e53dcbcb142b50e229f7da7884488366421fd9f..c70bac7fd0b0a0416f5b9c5f080dd82f43d1c23a 100644
+--- a/packages/client/ui-settings-general/tests/shell.client.spec.ts
++++ b/packages/client/ui-settings-general/tests/shell.client.spec.ts
+@@ -44,7 +44,7 @@ const CHILD_NAMES = Object.keys(CHILD_SPECS) as Array<keyof typeof CHILD_SPECS>
+  * ui-settings-models, ui-plugin-manager, and ui-agent-preset. A plugin
+  * adding a section changes this list.
+  */
+-const PRODUCT_SECTIONS: readonly string[] = ['general', 'models', 'plugins', 'agent-presets', 'remote-connection']
++const PRODUCT_SECTIONS: readonly string[] = ['general', 'models', 'spending', 'plugins', 'agent-presets', 'writing-materials', 'remote-connection']
+ /** Onboarding steps the web-app roster registers, in coordinator order; both come from ui-settings-models. */
+ const PRODUCT_ONBOARDING: readonly { id: string; order: number }[] = [
+   { id: 'welcome-notice', order: -100 },
+@@ -92,6 +92,7 @@ describe('ui-settings-general shell', () => {
+   withoutSettingsAccess('leaves sidebar.settings unoccupied while the current Peer may not read the settings description', async ({ start }) => {
+     const c = await start()
+     expect(c.ctx.slots.entries('sidebar.settings')).toEqual([])
++    expect(c.ctx.get('settingsNavigation')).toBeUndefined()
+   }, COLD_BOOT_TIMEOUT_MS)
+ 
+   it('projects the section ledger: product sections in order, defaults for bare rows, stable snapshots', async ({ start }) => {
+@@ -175,6 +176,25 @@ describe('ui-settings-general shell', () => {
+     for (const name of CHILD_NAMES) expect(c.ctx.slots.spec(name)).toEqual(CHILD_SPECS[name])
+   })
+ 
++  it('routes plugin links into the Settings dialog and removes navigation on unload', async ({ start }) => {
++    const c = await start()
++    const entry = c.ctx.slots.entries('sidebar.settings')[0]!
++    const handle = entry.store
++    expect(handle && 'create' in handle).toBeTruthy()
++    if (handle === undefined || !('create' in handle)) throw new Error('missing settings store')
++    const opened = vi.fn()
++    const stop = c.ctx.on('settings/section-opened', opened)
++    c.ctx.settingsNavigation.openSection('plugins')
++    expect(handle.create().getSnapshot()).toMatchObject({ open: true, activeId: 'plugins' })
++    expect(opened).toHaveBeenCalledWith('plugins')
++    c.ctx.settingsNavigation.close()
++    c.ctx.settingsNavigation.close()
++    expect(handle.create().getSnapshot()).toMatchObject({ open: false, activeId: undefined })
++    stop()
++    await c.unload(SELF)
++    expect(c.ctx.get('settingsNavigation')).toBeUndefined()
++  })
++
+   it('unregisters the shell and collapses every child slot when its row unloads', async ({ start }) => {
+     const c = await start()
+     await c.unload(SELF)
+diff --git a/packages/client/ui-settings/README.i18n.yaml b/packages/client/ui-settings/README.i18n.yaml
+index 6c4ca00638ef9a735bde825dc3f20e88fcefe822..480a2ced646ed57615c7c19949c4311c6bc51f8b 100644
+--- a/packages/client/ui-settings/README.i18n.yaml
++++ b/packages/client/ui-settings/README.i18n.yaml
+@@ -15,8 +15,8 @@
+   en: d152484eb41ac6b4
+   zh: 09388d293f9be9cb
+ /deepseek-ai-dsh-client-ui-settings/use-this-package:
+-  en: 2417d8409aad6ca7
+-  zh: 449eee623a2f334b
++  en: 23be3250e3b7f156
++  zh: 34ada44a7665148d
+ /deepseek-ai-dsh-client-ui-settings/use-this-package/configuration-forms:
+   en: c2b31046779bab9e
+   zh: ce183f67e63114b3
+diff --git a/packages/client/ui-settings/README.md b/packages/client/ui-settings/README.md
+index 6cb716d1dc0fb01ca92a1e27be506cc99ef64425..88a415488b089d6b81b64b50f8160465eb0fe116 100644
+--- a/packages/client/ui-settings/README.md
++++ b/packages/client/ui-settings/README.md
+@@ -25,6 +25,8 @@ This package lets web-client features expose editable preferences backed by the
+ <a id="use-this-package"></a>
+ ## Use this package
+ 
++The shell supplies `ctx.settingsNavigation`: `openSection(id)` opens a registered settings page, and `close()` dismisses Settings without changing feature data. Opening a section emits the browser event `settings/section-opened` with its ID. Navigation is available while the settings shell is mounted and the viewer can read Settings.
++
+ Feature plugins use this package to store and edit their preferences without re-implementing transport or schema handling. Mount it once per composition; it injects the `remote` service with its `settings` namespace and owns the single `settings.describe` reader in the browser.
+ 
+ ### Configuration forms
+diff --git a/packages/client/ui-settings/README.zh.md b/packages/client/ui-settings/README.zh.md
+index ba4e03008640fea32be2562b2597b3fc733cf185..b1fb77b466937ea30ab24b4750c4bb6c3f5c2324 100644
+--- a/packages/client/ui-settings/README.zh.md
++++ b/packages/client/ui-settings/README.zh.md
+@@ -25,6 +25,8 @@ kind: "package-reference"
+ <a id="use-this-package"></a>
+ ## 使用本包
+ 
++外壳提供 `ctx.settingsNavigation`：`openSection(id)` 打开已注册的设置页，`close()` 关闭设置而不修改功能数据。打开设置页时会触发浏览器事件 `settings/section-opened`，携带该页的 ID。设置外壳已挂载且查看者可读取设置时，导航服务可用。
++
+ 功能插件用本包存储与编辑自己的偏好设置，而无需重新实现传输层或 schema 处理。每个组合挂载一次即可；它注入 `remote` 服务及其 `settings` 命名空间，并持有浏览器中唯一的 `settings.describe` 读取方。
+ 
+ ### 配置表单
+diff --git a/packages/client/ui-settings/src/client/contract/slots.ts b/packages/client/ui-settings/src/client/contract/slots.ts
+index 7c2c5aedcfd9437c7a654981e451f48762c6c950..052fee9de1c72d0c83792597ec66ebc814798b6b 100644
+--- a/packages/client/ui-settings/src/client/contract/slots.ts
++++ b/packages/client/ui-settings/src/client/contract/slots.ts
+@@ -11,6 +11,26 @@
+ 
+ import type {} from '@deepseek-ai/dsh-client-ui-slots'
+ 
++declare module '@deepseek-ai/cordis' {
++  interface Context {
++    /** Navigation owned by the shared settings dialog. */
++    settingsNavigation: {
++      /** Open a feature-owned settings page. @param id - Registered section identity. */
++      openSection(id: string): void
++      /** Close Settings when an action leaves for another view; repeated calls have no effect. */
++      close(): void
++    }
++  }
++  interface Events {
++    /**
++     * Programmatic navigation to a settings page.
++     * @mode emit
++     * @param id - Registered settings section identity.
++     */
++    'settings/section-opened'(id: string): void
++  }
++}
++
+ declare module '@deepseek-ai/dsh-client-ui-slots' {
+   interface SlotFactoryMap {
+     /**

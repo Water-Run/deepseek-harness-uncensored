@@ -119,6 +119,25 @@ it('keeps the new account visible when an earlier cleanup finishes', async () =>
   } finally { await controller.dispose() }
 })
 
+it('waits for pending history cleanup on unload without publishing late feedback', async () => {
+  vi.useFakeTimers()
+  const reply = Promise.withResolvers<BalanceSnapshot>()
+  const controller = new BalanceController(preferences().scope, () => Promise.resolve(sample('9.00')), () => reply.promise)
+  await vi.advanceTimersByTimeAsync(0)
+  const pending = controller.clear({ mode: 'all' })
+  let disposed = false
+  const closing = controller.dispose().then(() => { disposed = true })
+  try {
+    await vi.advanceTimersByTimeAsync(0)
+    expect(disposed).toBe(false)
+    const snapshot = controller.state.getSnapshot()
+    reply.resolve(sample('0.00'))
+    expect(await pending).toBe(true)
+    await closing
+    expect(controller.state.getSnapshot()).toBe(snapshot)
+  } finally { reply.resolve(sample('0.00')); await closing }
+})
+
 it('reports a failed cleanup without discarding the shown history', async () => {
   vi.useFakeTimers()
   const form = preferences()

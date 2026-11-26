@@ -1,0 +1,45 @@
+{
+  "observedOn": "2026-11-26",
+  "environment": "Windows Sandbox x64, networking disabled, installed NSIS desktop with a loopback model fixture",
+  "dshuVersion": "2026.11.25.0",
+  "kernelVersion": "0.2.3-alpha.2",
+  "package": {
+    "tree": "39dc7d95a408e1e043110916d08d3d4647c3be01",
+    "blocks": 15501,
+    "artifacts": [
+      {
+        "name": "deepseek-harness-uncensored-2026.11.25.0-win-x64-unsigned.exe",
+        "size": 325429084,
+        "sha256": "05c8b842f71429e3e37c49cb5043c4d729157b567383d474f84dffe14d44126b"
+      },
+      {
+        "name": "deepseek-harness-uncensored-2026.11.25.0-win-x64-unsigned.exe.blockmap",
+        "size": 336674,
+        "sha256": "d5969a9892f233b99e27738dc9843c0e25e6ee0f5f893868b9b47f78db0ce060"
+      }
+    ]
+  },
+  "precedingPackage": {
+    "name": "deepseek-harness-uncensored-2026.11.25.0-win-x64-unsigned.exe",
+    "size": 325427946,
+    "sha256": "7bb705d7336fe90935470987a798c25fb71145d1563799545a9832aa00a1338d"
+  },
+  "retainedSession": "retained-print-notebook from v2026.11.24.3",
+  "installedScenario": "Seeded a blocked reservation of 3 CNY for the retained session and lowered the five-hour limit to 1 CNY before launching the installed application.",
+  "oldResult": "The pause notice was visible; the Adjust limits button was absent.",
+  "installedResult": {
+    "selectedBudget": true,
+    "beforeCny": 1,
+    "afterCny": 2,
+    "requiredCny": 3,
+    "modelReplies": 0
+  },
+  "webScenario": {
+    "previousUsageCny": 1.000008,
+    "loweredFiveHourLimitCny": 0.1,
+    "savedFiveHourLimitCny": 4,
+    "autoResume": true,
+    "dispatchedToWaitingSessionBefore": 0,
+    "dispatchedToWaitingSessionAfter": 1
+  }
+}
