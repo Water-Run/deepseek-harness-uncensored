@@ -13,7 +13,9 @@ if ((!standalone && !process.versions.electron) || !['write', 'continue', 'reope
 }
 const archive = standalone
   ? join(process.execPath.slice(0, -linuxNode.length), 'resources', 'app.asar.unpacked')
-  : join(dirname(process.execPath), 'resources', 'app.asar')
+  : process.platform === 'darwin'
+    ? join(dirname(process.execPath), '..', 'Resources', 'app.asar')
+    : join(dirname(process.execPath), 'resources', 'app.asar')
 const packages = join(archive, 'dsh', 'node_modules')
 const bundled = name => import(pathToFileURL(join(packages, name, 'lib', 'index.js')).href)
 const { Context } = await bundled('@deepseek-ai/cordis')

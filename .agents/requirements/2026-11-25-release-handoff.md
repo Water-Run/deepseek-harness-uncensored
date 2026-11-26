@@ -974,6 +974,18 @@ Debian 实机对 `c048b2e78877` 重跑构建及安装包验收。三种未签名
 
 GTK 目录选择及关于页也在这个树的组装目录重验。实际二进制和 `app.asar` 均与 DEB 内的文件摘要一致。独立 X11 会话中能创建默认工作区，默认选中日出日落。关于页左侧显示 DSHU `2026.11.25.0`，右侧显示 DSH `0.2.3-alpha.2` 和新源码树。维护机交付目录为 `%USERPROFILE%/DSHU-Deliveries/20261126/linux-x64/c048b2e78877/`，含三种归档、19 项回放日志、实装步骤日志及截图。
 
+### 原生 ARM64 候选
+
+DGX Spark 和 Mac Studio 用 Node.js `24.22.3`、pnpm `11.28.5` 与 Electron `44.11.5` 从同一固定树 `c048b2e78877` 构建。分别执行 `pnpm run package:desktop:linux:arm64:unsigned --build-version 2026.1125.0` 和 `pnpm run package:desktop:mac:arm64:unsigned --build-version 2026.1125.0`。两个入口都通过 10 项构建检查、包内 CLI 离线插件装卸及 Office 转换。Electron、Node、Python 与 wheel 归档复用按锁定清单校验的文件。Mac 还使用与构建器锁定 SHA-256 一致的 DMG 生成工具归档。[实机接入](2026-11-24-platform-targets.md#11-月-26-日原生-arm64-设备)
+
+DGX Spark 在 Ubuntu 24.04.5 实机上解包 DEB 和 tar.gz，以普通用户运行包内 CLI。Mac Studio 只读挂载两个正式版的 DMG 与候选 DMG，核对应用版本和包内 CLI。每个平台均用两个正式旧版各写入一份未压缩 v4 JSONL 和一份 zstd 会话，由候选续写并冷重开。[共用会话检查](../../kernel/0.2.3-alpha.2/verification/installed-composer-session.mjs)
+
+同一 DGX Spark 上的两个 Debian 13 ARM64 容器分别从 `2026.11.23.0` 和 `2026.11.24.3` 覆盖升级，再同版重装。两组均验证了 UID `1001` 的 CLI、会话续写与重开、资料标记和已安装的 `app.asar` 摘要。首发版的 134 个系统依赖按 APT 验证过的签名索引逐项核对后预置。容器内的桌面沙箱探测报告用户命名空间不可用，直接登录图形桌面的验收另行执行。
+
+Mac 的 `hdiutil verify` 校验通过。候选使用 ad hoc 应用签名。正式签名、公证、Gatekeeper、应用内升级及 Issue #20 的保留旧 profile 图形启动仍待验。维护机交付目录为 `%USERPROFILE%/DSHU-Deliveries/20261126/native-arm64-c048b2e7/`，保留逐包摘要、构建日志、安装日志及复验脚本。[安装包和日志摘要](../../kernel/0.2.3-alpha.2/verification/native-arm64-c048b2e7.json)
+
+复验 Linux 时按回执核对镜像和三份 DEB 的 SHA-256，每个起点使用独立容器。将 `first.deb`、`previous.deb`、`candidate.deb`、`assets.sha256` 及归档脚本和样本只读挂载到 `/inputs`，运行 `verify-arm64-apt.sh previous`。首发版另将 `linux-arm64/apt-first-reproduction.tar.gz` 的 `apt-signed/` 只读挂载到 `/apt-seed`，运行 `verify-arm64-apt-cached.sh first`。Mac 上先用 `hdiutil verify` 校验候选 DMG，再从构建作业目录运行 `native-arm64-accept.sh`，两个参数依次取首发版和上一正式版 DMG 的绝对路径。脚本使用作业目录内的 `artifact-sha256.txt` 与会话样本。两边均使用合成会话和独立资料目录。
+
 ### 在 Linux 安装目录复验旧会话
 
 从两个正式版的受控测试资料各取一份压缩 v4 会话及其 `prediction-events.json`，每个版本使用独立副本。原始写入提交为 `95325688c913` 和 `7eaeddc6050e`。测试会话保存了用户的第一句话、输入建议的请求与结果。先记录两个原件的 SHA-256。安装后以普通用户操作副本，从应用安装目录启动[会话检查](../../kernel/0.2.3-alpha.2/verification/installed-composer-session.mjs)。
@@ -995,8 +1007,8 @@ node_bin="$runtime/primary-runtime/dependencies/node/bin/node"
 | --- | --- | --- |
 | Windows x64 | exe | `c048b2e78877` 的缺省与写作候选已从两个正式版覆盖升级。两种格式的旧会话均通过续写与同版重装后重开。四模式包、正式签名与真实在线更新仍待验收。[实装回执](#回放修正后的-windows-x64-重建) |
 | Linux x64 | deb、rpm 分别验证 | `c048b2e78877` 已从两个正式版分别覆盖升级，验过同版重装和两种格式的旧会话。Debian 实机已在独立 X11 会话验证 GTK 目录选择门户。直接登录图形桌面的验证及正式四模式包仍待完成。[逐包摘要与回执](#回放修正后的-linux-x64-重建) |
-| Linux arm64 | deb | 已接入 deb 和 tar.gz 打包入口。待原生构建、在包管理器中安装并验证启动与已有资料。 |
-| macOS arm64 | DMG 手动安装，按旧版实际更新索引验证应用内升级 | 记录签名、公证及 Gatekeeper 结果，再做 Issue #20 的保留资料场景。过渡版本的旧更新器仍可能下载 ZIP。 |
+| Linux arm64 | deb | DGX Spark 已构建 DEB、tar.gz。两个正式旧版分别在 Debian ARM64 容器覆盖升级及同版重装，通过 CLI 与两种旧会话复验。直接登录图形桌面的验证仍待完成。[原生 ARM64 回执](#原生-arm64-候选) |
+| macOS arm64 | DMG 手动安装，按旧版实际更新索引验证应用内升级 | Mac Studio 已构建并挂载 DMG，核对版本、包内 CLI 及两个正式旧版的两种会话。正式签名、公证、Gatekeeper、应用内升级及 Issue #20 仍待验。过渡版本的旧更新器仍可能下载 ZIP。[原生 ARM64 回执](#原生-arm64-候选) |
 
 交回平台结果时，每个安装格式单列一行，附上操作系统及架构、原安装版本与候选版本、安装包摘要、首次启动结果、升级后的资料数量和恢复演练结果。若失败，记录首次失败的操作和原始错误，将仍可运行的旧版本与对应备份成对保留。
 

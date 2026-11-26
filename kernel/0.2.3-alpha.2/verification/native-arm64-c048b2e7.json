@@ -1,0 +1,109 @@
+{
+  "date": "2026-11-26",
+  "sourceTree": "c048b2e788770f0f4068ff96ee50699579c91518",
+  "dshuVersion": "2026.11.25.0",
+  "kernelVersion": "0.2.3-alpha.2",
+  "modes": ["default", "writing"],
+  "nodeVersion": "24.22.3",
+  "electronVersion": "44.11.5",
+  "pnpmVersion": "11.28.5",
+  "linux": {
+    "host": "NVIDIA DGX Spark",
+    "system": "Ubuntu 24.04.5 LTS",
+    "kernel": "7.0.0-1025-nvidia",
+    "machine": "aarch64",
+    "buildGatesPassed": 10,
+    "releaseSigned": false,
+    "runtimeLockSha256": "65ffc6af63dde70652aeeb40871584bb64cff455611239060f2242d4ad6ca0f5",
+    "artifacts": [
+      {
+        "name": "deepseek-harness-uncensored-2026.11.25.0-linux-arm64-unsigned.deb",
+        "size": 281483428,
+        "sha256": "1d47f936af8f249027c9b72b8f40aefaef362998062ac6bb11ad0fff34bff9a8"
+      },
+      {
+        "name": "deepseek-harness-uncensored-2026.11.25.0-linux-arm64-unsigned.tar.gz",
+        "size": 358013261,
+        "sha256": "87437b47437aab91e5578d8a61f810b90989bc529e57b802ebdcae49a910c6de"
+      }
+    ],
+    "appAsarSha256": "807d367a30311b5462b541e99d8efaedc706f58caa2e9633081a37c81c2c6b72",
+    "nativeArchiveReadback": {
+      "uid": 1000,
+      "oldVersions": ["2026.11.23.0", "2026.11.24.3"],
+      "compression": ["none", "zstd"],
+      "phases": ["write", "continue", "reopen"],
+      "portableCliVersion": "2026.11.25.0",
+      "logSha256": "abe603f5c858cb8fef14bbce69b6212211cca98e32e86a5ab00d1056485ddbf1"
+    },
+    "apt": {
+      "image": "docker.io/library/debian:13-slim",
+      "imageId": "sha256:486bbdb6417a70eba0898bf3a24a44648eb27938ac952f5bf7db09eca27ef7a6",
+      "manifestDigest": "sha256:8aa5a7bf5a1955bddbe7d74fcdd0b91ab30e74362a8b73af672b0481b35b44a0",
+      "uid": 1001,
+      "architecture": "arm64",
+      "registeredCandidateVersion": "2026.1125.0",
+      "namespaceProbe": "unshare: unshare failed: Operation not permitted",
+      "cases": [
+        {
+          "oldVersion": "2026.11.23.0",
+          "oldAssetSha256": "5b645318ad9c41e28d918be1cddcce982066e27d1b3f14535546b8e0190cefa4",
+          "sameVersionReinstall": true,
+          "retainedMarkerSha256Preserved": true,
+          "compression": ["none", "zstd"],
+          "phases": ["write", "continue", "reopen"],
+          "verifiedCache": {
+            "packages": 134,
+            "bytes": 75177704,
+            "indexArchiveSha256": "b9087768d84532a6924066b2abd4489b7595401b30f4c41f14797072f83d854c",
+            "packageManifestSha256": "592e3ef0ef33bf1efca44c81b7184ac23235d474309885edecd64168d094adf5",
+            "reproductionArchiveSha256": "b498e964298beb431d9fdd86fbbc65d3fbc5f1596e7039db5dbbe6721bb717df"
+          },
+          "logSha256": "b1fbdc034984ca7119f0cac3af4e70f83a84114e97da9799c064b4e7f327d905"
+        },
+        {
+          "oldVersion": "2026.11.24.3",
+          "oldAssetSha256": "75e288aa37e376cce828dd84979fce975093f7e1aa8f34fc5a44a9fa2ffcadb0",
+          "sameVersionReinstall": true,
+          "retainedMarkerSha256Preserved": true,
+          "compression": ["none", "zstd"],
+          "phases": ["write", "continue", "reopen"],
+          "logSha256": "ba1215056bd8b047d34b75923560bd0f3f80b9a7f6f443e683c4229022a05e61"
+        }
+      ]
+    },
+    "buildLogSha256": "26a8aecf8ddfcb2e5b45661fcd4922b32b7a6ce331d882fd4de1f9dbf4e00505"
+  },
+  "macos": {
+    "host": "Mac Studio",
+    "system": "macOS 26.6.2 (25G83)",
+    "kernel": "Darwin 25.6.0",
+    "machine": "arm64",
+    "buildGatesPassed": 10,
+    "applicationSigning": "ad hoc",
+    "notarized": false,
+    "runtimeLockSha256": "d02086613d9e11da2ceac78fcbc20490161abbc31a904353372961ea567a57e6",
+    "artifacts": [
+      {
+        "name": "deepseek-harness-uncensored-2026.11.25.0-mac-arm64-unsigned.dmg",
+        "size": 279618384,
+        "sha256": "1bbdd37219e2395b0bc11857a207211cbf886b309f66b0840731c81d2a0f5caf"
+      }
+    ],
+    "appAsarSha256": "e65db2170f1b44edbcfd23d94543e48d16e60b956e5c097e3907dc5b3de8a496",
+    "readOnlyDmgMount": {
+      "uid": 501,
+      "imageChecksumValid": true,
+      "oldVersions": ["2026.11.23.0", "2026.11.24.3"],
+      "oldAssetsSha256": [
+        "5f66ee5ef5a47d31c3b56346847d1ab226abb340502dacb773b36d59acae7b24",
+        "ce723062ee9a0a10468343c3dc3703ac445be8db63a57cb42e2e94c8bb9f639c"
+      ],
+      "compression": ["none", "zstd"],
+      "phases": ["write", "continue", "reopen"],
+      "logSha256": "88c505075232b48a1008e5c9f647fc92926b7d3a3d1a5c9e6fc8e8516c00ee02",
+      "verifyLogSha256": "44c87f647c95fcf3316f4d51ae0d84e2684a3973e7e7e6f28f18a6f8f1c9ec07"
+    },
+    "buildLogSha256": "648a9db56bbc3b6bc9934681738248877674967b8ba8b8356f8b02ebe8a883c1"
+  }
+}
