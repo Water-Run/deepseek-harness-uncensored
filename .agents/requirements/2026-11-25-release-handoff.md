@@ -137,15 +137,21 @@ Windows 安装包 `fc81c3d7…` 的关于页信息正确，但工作区标题仍
 
 1. 冻结最终源码、日期版本和验收回执。使用 `deliver` 收集五个安装包，再用 `deliver:github` 生成上传清单和发行正文。本版采用常规五件套。过渡版专用的 `--bridge` 保留给旧流程。[桌面发行命令](../../apps/desktop/README.zh.md#更新)
 2. 公共附件为 Windows x64 EXE、macOS ARM64 DMG、Linux x64 DEB/RPM 和 Linux ARM64 DEB，统一使用 `DSHU-<版本>-<平台架构>.<扩展名>`。以 `upload-files.txt` 为准，保留 `release-notes.md` 中的安装包摘要。
-3. 从两个旧正式版复验安装、冷启动、设置和资料，核对新版检查更新、下载、签名与恢复。仍使用旧索引的客户端按发行说明手动安装一次。根 README、手册、升级指南及截图与最终产物对齐。
+3. 给 `2026.11.23.0` 做手动覆盖升级，给 `2026.11.24.3` 做应用内更新。分别记录安装、冷启动、设置和旧资料，并核对新版的下载、签名与恢复。根 README、手册、升级指南及截图与最终产物对齐。
 4. 验收齐全后，由发行负责人将 `v<版本>` 标为正式版和 Latest。公开后逐项回读附件及摘要。验收缺项时继续保留上一正式版为 Latest。
 
 [可编辑的 Release 说明](../../发布稿/Release-下一版.md)只含面向用户的文字。逐条对照最终安装文件，核实 #22 的文件头识别及实际随包组件后再补写对应变更。保留 #23、#26 的已知问题，除非有对应服务或系统上的新证据。
 
-在本 DSHU 仓库根目录执行下列命令。将前两个占位符换成绝对路径，草稿路径相对于 `apps/desktop`。工具在定稿后追加下载表和唯一的 `dshu-installers-v1` 校验清单。发布时整份使用新目录中的 `release-notes.md`，附件按同目录的 `upload-files.txt` 选择。再次修改文字或替换安装包时，传入新目录重新生成。
+在 DSHU 仓库或已还原的候选根目录执行下列命令。三个路径均可用绝对路径。草稿位于 DSHU 仓库的 `发布稿/Release-下一版.md`。工具在定稿后追加下载表和唯一的 `dshu-installers-v1` 校验清单。发布时整份使用新目录中的 `release-notes.md`，附件按同目录的 `upload-files.txt` 选择。再次修改文字或替换安装包时，传入新目录重新生成。
 
 ```sh
-pnpm --dir apps/desktop run deliver:github --from "<收集目录>" --out "<新目录>" --notes-file "../../发布稿/Release-下一版.md"
+pnpm --dir apps/desktop run deliver:github --from "<收集目录>" --out "<新目录>" --notes-file "<定稿的绝对路径>"
+```
+
+正式版标为 Latest 后，在 DSHU 仓库根目录执行下列只读检查，把最后一个参数换成刚才生成的上传目录。它使用桌面更新器解析 GitHub 的实际响应，逐个核对公开附件名、大小、GitHub 的 SHA-256、正文中的 SHA-512 与本地文件。成功时输出五行。之后可以修改 Release 中的说明文字，保留校验清单并再次运行。[公开附件核对脚本](../../kernel/0.2.3-alpha.2/verification/public-release-installers.mjs)
+
+```sh
+gh api repos/Water-Run/deepseek-harness-uncensored/releases/latest | node --import tsx/esm kernel/0.2.3-alpha.2/verification/public-release-installers.mjs "<上传目录>"
 ```
 
 五个本地候选安装包共 1,434,684,672 字节。用上面的命令读入中文草稿后，主线和固定树 `3727e1fb510f` 的更新器都从生成的正文中读回全部五个下载目标，文件名、字节数与 SHA-512 均匹配。两种更新器均能读取 LF 和 CRLF 换行的正文，并拒绝缺失或重复的校验清单。此项验证的是 Release 正文和安装文件的一致性。真实在线升级另见[平台验收](#桌面与平台验收)。
@@ -155,6 +161,15 @@ pnpm --dir apps/desktop run deliver:github --from "<收集目录>" --out "<新�
 固定候选 `b284268c88db` 已接入五附件整理和新版更新读取逻辑。正式打包预设使用 `DSH_DESKTOP_AUTO_UPDATE_ENV=production`。演练用上一候选的五个实际安装文件执行 `deliver` 与 `deliver:github`，逐一核对了文件名、字节及正文摘要。清单和正文归档在 `%USERPROFILE%/DSHU-Deliveries/20261126/new-release-layout/`。最终安装包须从当前树重建，并完成签名和在线更新验收。
 
 Debian 13 实机使用 `DSH_PACKAGING_PRESET=production` 和独立预设目录，从 `b284268c88db` 运行 `pnpm --dir apps/desktop run package:linux:x64 --build-version 2026.1125.0`。从 DEB 和 RPM 存档分别读回 `package-type` 及 GitHub 正式更新地址，验证包内应用启用了 GitHub 更新读取。安装后的在线更新仍待复验。[逐包摘要与回执](../../kernel/0.2.3-alpha.2/verification/linux-production-b284268c.json)
+
+### 两个已发布版本如何发现新安装包
+
+在候选树 `292580a791047f4f34dded4909a29a2fd47c45dd` 的 `deliver:github` 中传入可编辑的 Release 草稿，用上面的五个安装文件重新生成了发行正文。另取两个旧正式版各五个安装包，逐一核对 GitHub 附件的 SHA-256，从每个 `app.asar` 读取 `lib/main.js`，并读取与 `app.asar` 同目录的 `app-update.yml`。测试使用包内的更新代码，并用本地生成的发行数据应答更新请求。五个候选安装文件的大小、SHA-256 和 SHA-512 均从文件重新计算。[十个已发布安装包与五个下载目标的回执](../../kernel/0.2.3-alpha.2/verification/published-update-discovery.json)
+
+| 已安装的 DSHU | 正式渠道的检查结果 | 最终发行验收 |
+| --- | --- | --- |
+| `2026.11.23.0` | Windows、macOS、Linux x64、Linux ARM64 请求各自的 `latest*.yml`。五附件发布没有这些索引，回放返回 404。 | 下载对应安装包并覆盖安装，冷启动后打开旧会话。 |
+| `2026.11.24.3` | 五份程序均请求 GitHub 的 `releases/latest`，识别候选版本。在 Linux x64 上，DEB 和 RPM 更新器分别选中原格式。Windows、macOS、Linux ARM64 也分别找到匹配的 EXE、DMG 和 DEB。 | 发布后在应用菜单点「检查更新」，记录下载、签名检查、安装和重启后的旧会话。 |
 
 ### Linux 桌面检查正式更新源
 

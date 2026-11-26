@@ -63050,3 +63050,173 @@ index 0000000000000000000000000000000000000000..91ccadb2210eeda7d80484ec5ebe283f
 +    expect(deepEqualJson(renamed, first)).toBe(false)
 +  })
 +})
+diff --git a/apps/desktop/README.i18n.yaml b/apps/desktop/README.i18n.yaml
+index fc18dcb10e65862271fcf6ada1e053804ae599f5..f016efe8c0ebf62680268ab737873d46bee0b6aa 100644
+--- a/apps/desktop/README.i18n.yaml
++++ b/apps/desktop/README.i18n.yaml
+@@ -57,8 +57,8 @@
+   en: ccfa977f1d7eaeb0
+   zh: dd5116b4054ad64a
+ /deepseek-harness-desktop/updates:
+-  en: 2523b0ea6974a8fe
+-  zh: 30c5ef8d34f55617
++  en: d89a5f06f668073a
++  zh: 351daaf854e80d0b
+ /deepseek-harness-desktop/updates/local-desktop-settings:
+   en: c4384915bee9209f
+   zh: eef9ac69d1e3e2cf
+diff --git a/apps/desktop/README.md b/apps/desktop/README.md
+index 2624bd9f836e64c7d61a76e915886ea140f5499b..c40135fc7b8c41cd120913c1864c25dc6e98388d 100644
+--- a/apps/desktop/README.md
++++ b/apps/desktop/README.md
+@@ -279,7 +279,7 @@ Use `node apps/desktop/scripts/test-windows-installer.mjs --uninstall-only --com
+ 
+ DSHU production installers check the latest public GitHub release and download the matching installer from its immutable tag. On macOS, the updater prepares the signed app from the DMG for the system update service. Test packages keep their configured test feed.
+ 
+-Collect the five installers with `pnpm --dir apps/desktop run deliver` and stage the GitHub attachment list and release body with `pnpm --dir apps/desktop run deliver:github --from <collected> --out <new-directory>`. Keep the installer checksums in the generated release body. Users of the legacy YAML updater may need to install this release manually once. On macOS, retrying a download verifies the cached DMG against the published SHA-512 and downloads it again if the checksum differs.
++Collect the five installers with `pnpm --dir apps/desktop run deliver` and stage the GitHub attachment list and release body with `pnpm --dir apps/desktop run deliver:github --from <collected> --out <new-directory>`. Use `--notes-file <draft.md>` to include your edited UTF-8 release notes before the download table. Publish the generated release body with its installer checksums. Users of `2026.11.23.0` need to download the matching installer from the release page and install it over their existing copy once. In `2026.11.24.3`, choose **Check for Updates** in the application menu. This version reads the installer checksums from the latest release body. On macOS, retrying a download verifies the cached DMG against the published SHA-512 and downloads it again if the checksum differs.
+ 
+ On Windows, the downloaded-update confirmation explains that the application closes during installation, reopens automatically, and should not be launched again while updating. An installer restart carrying `--updated` raises and focuses the main window once when startup opens the workspace directly, without enabling always-on-top. Startup into the welcome page discards that request so a later login keeps its normal activation behavior. Ordinary launches and other platforms do not use this foregrounding step.
+ 
+diff --git a/apps/desktop/README.zh.md b/apps/desktop/README.zh.md
+index f6c7ae1346b1e495ae8a585ee3f180845a07e247..aca798dbceec0486671fa4652f71b6c6ba640d1a 100644
+--- a/apps/desktop/README.zh.md
++++ b/apps/desktop/README.zh.md
+@@ -279,7 +279,7 @@ Windows 卸载程序会随应用一起删除 Electron 用户数据目录（`%APP
+ 
+ DSHU 正式安装包读取 GitHub 的最新公开正式版，并从固定标签下载对应安装包。macOS 更新器将 DMG 内的签名应用交给系统更新服务。测试包继续使用配置的测试更新源。
+ 
+-使用 `pnpm --dir apps/desktop run deliver` 收集五个安装包，再运行 `pnpm --dir apps/desktop run deliver:github --from <收集目录> --out <新目录>` 生成 GitHub 附件清单和发行正文。保留正文内的安装包摘要。仍使用旧 YAML 更新器的用户可能需要手动安装本版一次。macOS 重试下载时会按发行版的 SHA-512 核对缓存的 DMG，校验值不符时会重新下载。
++使用 `pnpm --dir apps/desktop run deliver` 收集五个安装包，再运行 `pnpm --dir apps/desktop run deliver:github --from <收集目录> --out <新目录>` 生成 GitHub 附件清单和发行正文。用 `--notes-file <草稿.md>` 在下载表前加入已编辑的 UTF-8 发行说明，发布时保留生成的安装包校验清单。从首发版 `2026.11.23.0` 升级，需要从 Release 页面下载对应安装包，手动覆盖安装一次。`2026.11.24.3` 可在应用菜单中选择「检查更新」，从最新正式版正文读取安装包校验清单。macOS 重试下载时会按发行版的 SHA-512 核对缓存的 DMG，校验值不符时会重新下载。
+ 
+ Windows 下载完成后的更新确认说明应用会在安装期间关闭、完成后自动打开，并提示期间不要重复启动。安装器携带 `--updated` 重启应用并直接打开工作区时，壳会将主窗口前置并聚焦一次，不启用永久置顶。启动进入欢迎页时会清除此请求，使后续登录保留正常的激活行为。普通启动和其他平台不执行此前置步骤。
+ 
+diff --git a/apps/desktop/scripts/stage-github-release.ts b/apps/desktop/scripts/stage-github-release.ts
+index ceb71069765f479399812c7bb844359b3eeaeb87..91f9d7c7d090b5b2e302f7ab69f640a1e1a28581 100644
+--- a/apps/desktop/scripts/stage-github-release.ts
++++ b/apps/desktop/scripts/stage-github-release.ts
+@@ -49,13 +49,30 @@ async function verifyFile(directory: string, file: z.infer<typeof receipt>): Pro
+   return sha512.digest('base64')
+ }
+ 
++async function readDraft(path: string): Promise<string> {
++  const bytes = await readFile(path)
++  let text: string
++  try {
++    text = new TextDecoder('utf-8', { fatal: true }).decode(bytes)
++  } catch (cause) {
++    throw new Error('GitHub release: save the release notes as UTF-8 in ' + path, { cause })
++  }
++  const markdown = text.replace(/\r\n?/gu, '\n').replace(/\n+$/u, '')
++  if (!markdown.trim()) throw new Error('GitHub release: empty release notes in ' + path)
++  if (/^<!-- dshu-installers-v1 /mu.test(markdown)) {
++    throw new Error('GitHub release: remove the generated installer checksum list from ' + path)
++  }
++  return markdown
++}
++
+ /**
+  * Create a new upload directory from the desktop collector's receipt. Failed validation leaves no upload directory.
+  * @param from - Collected files and RELEASE-MANIFEST.json.
+  * @param out - New directory for one version's attachments, upload list and release notes.
+  * @param bridge - Include the previous client's automatic update indexes and macOS ZIP.
++ * @param notesFile - Optional UTF-8 Markdown draft to place before the generated download table.
+  */
+-export async function stageGithubRelease(from: string, out: string, bridge = false): Promise<void> {
++export async function stageGithubRelease(from: string, out: string, bridge = false, notesFile?: string): Promise<void> {
+   const source = resolve(from), destination = resolve(out)
+   const manifest = manifestSchema.parse(JSON.parse(await readFile(join(source, 'RELEASE-MANIFEST.json'), 'utf8')))
+   const version = parseCalendarVersion(manifest.version)
+@@ -72,6 +89,7 @@ export async function stageGithubRelease(from: string, out: string, bridge = fal
+     throw error
+   })) throw new Error(`GitHub release: choose a new output directory: ${destination}`)
+ 
++  const notes = notesFile === undefined ? [] : [await readDraft(notesFile), '']
+   await mkdir(dirname(destination), { recursive: true })
+   const staging = await mkdtemp(join(dirname(destination), '.' + basename(destination) + '-'))
+   try {
+@@ -87,7 +105,7 @@ export async function stageGithubRelease(from: string, out: string, bridge = fal
+     }
+     const tag = 'v' + version.display
+     const base = 'https://github.com/' + DSHU_RELEASE_REPOSITORY + '/releases/download/' + tag + '/'
+-    const notes = ['## 安装包', '', '| 系统 | 下载 |', '| --- | --- |']
++    notes.push('## 安装包', '', '| 系统 | 下载 |', '| --- | --- |')
+     for (const [suffix, label] of installers) {
+       const filename = name(suffix)
+       uploads.push(`installers/${filename}#${label} · 安装包`)
+@@ -111,7 +129,7 @@ export async function stageGithubRelease(from: string, out: string, bridge = fal
+     }
+     notes.push('')
+     if (bridge) notes.push('旧版用户可在应用内检查更新。曾手动选择「开发版」的用户，请在设置中切回「正式版」，再检查更新。', '')
+-    else notes.push('若过渡前的旧版无法检查更新，请选择上方对应系统的安装包，手动安装一次。', '')
++    else if (notesFile === undefined) notes.push('首发版 `2026.11.23.0` 需要手动覆盖安装一次。`2026.11.24.3` 可在应用菜单中检查更新。', '')
+     const checksums = manifest.artifacts.map(file => ({
+       name: file.name, size: file.bytes, sha256: file.sha256.toLowerCase(), sha512: files.get(file.name)!.sha512,
+     }))
+@@ -123,7 +141,9 @@ export async function stageGithubRelease(from: string, out: string, bridge = fal
+ }
+ 
+ if (process.argv[1] !== undefined && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
+-  const { values } = parseArgs({ options: { from: { type: 'string' }, out: { type: 'string' }, bridge: { type: 'boolean', default: false } } })
+-  if (!values.from || !values.out) throw new Error('Usage: stage-github-release --from <collected> --out <new directory> [--bridge]')
+-  await stageGithubRelease(values.from, values.out, values.bridge)
++  const { values } = parseArgs({ options: {
++    from: { type: 'string' }, out: { type: 'string' }, bridge: { type: 'boolean', default: false }, 'notes-file': { type: 'string' },
++  } })
++  if (!values.from || !values.out) throw new Error('Usage: stage-github-release --from <collected> --out <new directory> [--notes-file <draft.md>] [--bridge]')
++  await stageGithubRelease(values.from, values.out, values.bridge, values['notes-file'])
+ }
+diff --git a/apps/desktop/tests/github-release-layout.spec.ts b/apps/desktop/tests/github-release-layout.spec.ts
+index 5c464a5feace676b51b042c5f3672e35c1c0a573..449fab9e1805bc26e232d33dce3e1fcb0f4bb965 100644
+--- a/apps/desktop/tests/github-release-layout.spec.ts
++++ b/apps/desktop/tests/github-release-layout.spec.ts
+@@ -50,6 +50,9 @@ it('stages five installers from a collection without update metadata', async ()
+   await writeFile(join(source, 'RELEASE-MANIFEST.json'), JSON.stringify({ ...manifest, feeds: undefined, auxiliary: undefined }))
+   await stageGithubRelease(source, out)
+   const entries = (await readFile(join(out, 'upload-files.txt'), 'utf8')).trim().split('\n')
++  const notes = await readFile(join(out, 'release-notes.md'), 'utf8')
++  expect(notes).toContain('2026.11.23.0` 需要手动覆盖安装一次')
++  expect(notes).toContain('2026.11.24.3` 可在应用菜单中检查更新')
+   expect(entries).toHaveLength(5)
+   expect(entries.every(entry => entry.startsWith('installers/'))).toBe(true)
+   expect(await readdir(out)).not.toContain('updates')
+@@ -57,13 +60,19 @@ it('stages five installers from a collection without update metadata', async ()
+ 
+ it('reads the latest release metadata and verifies each platform installer from the five-asset upload', async () => {
+   const { source, out, manifest } = await fixture()
+-  await stageGithubRelease(source, out)
++  const draft = '## 从旧版升级\r\n\r\n沿用原来的安装格式。  \r\n安装后从「关于」核对版本。'
++  await writeFile(join(source, 'release draft.md'), '\uFEFF' + draft + '\r\n')
++  await stageGithubRelease(source, out, false, join(source, 'release draft.md'))
+   const base = 'https://github.com/Water-Run/deepseek-harness-uncensored/releases/download/v' + version + '/'
+   const assets = manifest.artifacts.map(file => ({
+     name: file.name, size: file.bytes, state: 'uploaded', digest: 'sha256:' + file.sha256, browser_download_url: base + file.name,
+   }))
+   const release = { tag_name: 'v' + version, published_at: '2026-11-24T00:00:00Z', draft: false, prerelease: false,
+     body: await readFile(join(out, 'release-notes.md'), 'utf8'), assets }
++  expect(release.body).toMatch(/^## 从旧版升级/u)
++  expect(release.body).not.toContain('首发版 `2026.11.23.0`')
++  expect(release.body).toContain(draft.replaceAll('\r\n', '\n') + '\n\n## 安装包')
++  expect(release.body.match(/^<!-- dshu-installers-v1 /gmu)).toHaveLength(1)
+   for (const [platform, arch, expected] of [
+     ['win32', 'x64', ['win-x64.exe']], ['darwin', 'arm64', ['mac-arm64.dmg']],
+     ['linux', 'x64', ['linux-x64.deb', 'linux-x64.rpm']], ['linux', 'arm64', ['linux-arm64.deb']],
+@@ -104,6 +113,18 @@ it('reads the latest release metadata and verifies each platform installer from
+   expect(() => installerUpdateInfo(release, '2026.1123.0', 'darwin', 'x64')).toThrow('unsupported installer')
+ })
+ 
++it.each([
++  ['empty', ' \r\n\t', 'empty release notes'],
++  ['incorrectly encoded', Buffer.from('\uFEFF## 从旧版升级', 'utf16le'), 'save the release notes as UTF-8'],
++  ['already generated', '## 变更\r\n\r\n<!-- dshu-installers-v1 [] -->\r\n', 'installer checksum list'],
++] as const)('withholds the upload directory for an %s draft', async (_name, content, message) => {
++  const { source, out } = await fixture()
++  const file = join(source, 'release draft.md')
++  await writeFile(file, content)
++  await expect(stageGithubRelease(source, out, false, file)).rejects.toThrow(message)
++  await expect(readdir(out)).rejects.toMatchObject({ code: 'ENOENT' })
++})
++
+ it('stages ten bridge assets and explains the previous channel setting', async () => {
+   const { source, out } = await fixture()
+   await stageGithubRelease(source, out, true)

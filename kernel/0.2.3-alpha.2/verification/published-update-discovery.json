@@ -1,0 +1,148 @@
+{
+  "date": "2026-11-26",
+  "stagingSourceTree": "292580a791047f4f34dded4909a29a2fd47c45dd",
+  "candidateMetadata": {
+    "tag": "v2026.11.25.0",
+    "releaseNotesSha256": "ae77b82f3b44de250e0464419011004a7de4748c348718ebf259e9c76ec7785e",
+    "installers": [
+      {
+        "name": "DSHU-2026.11.25.0-win-x64.exe",
+        "size": 325430131,
+        "sha256": "48ebb4f8a7d12bf3afcabcdc96b526766faec7de0311b65ebba39917ea7c507b",
+        "sha512": "URzE5CpYTIvaMIDlX9ufO7Muwynn4UR+INr4J3PB/HZZBoD7VzRvIgdjYUEFJQFTsGYdnseky2YvLi5UQ8vkqQ=="
+      },
+      {
+        "name": "DSHU-2026.11.25.0-mac-arm64.dmg",
+        "size": 279618384,
+        "sha256": "1bbdd37219e2395b0bc11857a207211cbf886b309f66b0840731c81d2a0f5caf",
+        "sha512": "Sl6WMuuXbK32whwAXEyrlxExgG0a+o5P4Eny0m7yqZhk3PiWGmls9VjR4Qkt3IZjvFT43jGHZbKx0GgS/FqWXQ=="
+      },
+      {
+        "name": "DSHU-2026.11.25.0-linux-x64.deb",
+        "size": 298843788,
+        "sha256": "0860ae06a3d05cd3c64f5338e6ff4d158079e2dfbcc1d703d7cec284bb7bfe8f",
+        "sha512": "S7ylLlNSpOfqUu+J1YgO2Os8L0OfCQMZ9FAdOJPW8bAHQ/Jvu25lA3OxJdGmB4lFPlHKkbrMHP2KQsw2vl1lzQ=="
+      },
+      {
+        "name": "DSHU-2026.11.25.0-linux-x64.rpm",
+        "size": 249308941,
+        "sha256": "b006400371898959bc7686c4dd375175f1694c24281e602aaeb462487880bfce",
+        "sha512": "3E5G4Ucvsl+ZmjQp5CyyppUTw4rpRB5F8RDx7A0PlM7nuiYY12oPKjDqVzB17lxiVXWVe98N+2OycACrmcOC+g=="
+      },
+      {
+        "name": "DSHU-2026.11.25.0-linux-arm64.deb",
+        "size": 281483428,
+        "sha256": "1d47f936af8f249027c9b72b8f40aefaef362998062ac6bb11ad0fff34bff9a8",
+        "sha512": "J86et4auMPPaPGpPXutAIlOvN4IkhsVYJhz/iLA4pK4JGGIJOp92HS6RKCFadKqFI//kHQWYYMipZCsOevzlqg=="
+      }
+    ]
+  },
+  "method": {
+    "oldClients": "Published installer bytes matched GitHub asset SHA-256. The replay used the update coordinator and provider code from each packaged lib/main.js and the installed app-update.yml with the public channel selected.",
+    "transport": "The test supplied the staged release notes and five asset records locally in the GitHub API response format. Legacy index requests received HTTP 404. Candidate installer files were read locally to check sizes and both digests.",
+    "linuxSelection": "The DEB and RPM download methods selected their file from the provider results before transfer.",
+    "scope": "Discovery and file selection. Installation, signing, restart, and a live check against a published successor require the final release."
+  },
+  "oldClients": [
+    {
+      "asset": "DSHU-2026.11.23.0-win-x64.exe",
+      "sha256": "8f54226cc0e43943d4b60c9c5539ee57959d23eb070eee38c2de504f3be66f1a",
+      "appAsarSha256": "3b106b2c5822ad122be069a0ceca00ae7e6d11061b5b290eff9c376328dae547",
+      "mainJsSha256": "5e43ef594b63cd19bff5b0c5b54165ff4e60effd3ce2b822f19711cc9920455f",
+      "provider": "generic",
+      "requested": "https://github.com/Water-Run/deepseek-harness-uncensored/releases/latest/download/latest.yml",
+      "result": "error",
+      "installer": null
+    },
+    {
+      "asset": "DSHU-2026.11.23.0-mac-arm64.dmg",
+      "sha256": "5f66ee5ef5a47d31c3b56346847d1ab226abb340502dacb773b36d59acae7b24",
+      "appAsarSha256": "b1b1bd50ef43a46b2df715cac06b69ea56bfe3b01d54ab6db9257796b6ee78f9",
+      "mainJsSha256": "d2f66460341d24f4ec37a799a59e2a1e4ed8af7d9fc8f0d8da8471fd4d62e887",
+      "provider": "generic",
+      "requested": "https://github.com/Water-Run/deepseek-harness-uncensored/releases/latest/download/latest-mac.yml",
+      "result": "error",
+      "installer": null
+    },
+    {
+      "asset": "DSHU-2026.11.23.0-linux-x64.deb",
+      "sha256": "8e66234129fd0301b15dee21b6c5328e90324697bd08318c64b7169d442e5170",
+      "appAsarSha256": "77d9ab40203d859c0ee642e251f5a354426fa193bd9368c40776590a2b259da4",
+      "mainJsSha256": "21ed4b6fb5ec3464c2b2402143fb13bd1a2e6287859bddf4fea73ca08fcd4de9",
+      "provider": "generic",
+      "requested": "https://github.com/Water-Run/deepseek-harness-uncensored/releases/latest/download/latest-linux.yml",
+      "result": "error",
+      "installer": null
+    },
+    {
+      "asset": "DSHU-2026.11.23.0-linux-x64.rpm",
+      "sha256": "0cd044e1290d16fe9d7355a6a93477fa69fe88a0ba44370eddeeb49f06723e78",
+      "appAsarSha256": "77d9ab40203d859c0ee642e251f5a354426fa193bd9368c40776590a2b259da4",
+      "mainJsSha256": "21ed4b6fb5ec3464c2b2402143fb13bd1a2e6287859bddf4fea73ca08fcd4de9",
+      "provider": "generic",
+      "requested": "https://github.com/Water-Run/deepseek-harness-uncensored/releases/latest/download/latest-linux.yml",
+      "result": "error",
+      "installer": null
+    },
+    {
+      "asset": "DSHU-2026.11.23.0-linux-arm64.deb",
+      "sha256": "5b645318ad9c41e28d918be1cddcce982066e27d1b3f14535546b8e0190cefa4",
+      "appAsarSha256": "ec1aa497d26c8f5e22ee236bceccc882d2178b6975855c5cf0778de98a464a24",
+      "mainJsSha256": "4fada9fbfa4937dfae80cb27976aa27e673169c53965854d50fe5009e7c74101",
+      "provider": "generic",
+      "requested": "https://github.com/Water-Run/deepseek-harness-uncensored/releases/latest/download/latest-linux-arm64.yml",
+      "result": "error",
+      "installer": null
+    },
+    {
+      "asset": "deepseek-harness-uncensored-2026.11.24.3-win-x64-unsigned.exe",
+      "sha256": "a84001b8ec3d64ae4452833d8fdd018857900a772be366488de2f219334b5b30",
+      "appAsarSha256": "9dadc46597d4826c9e2188b6097986fd177bc20bdd449eb44b9e8736b40200bf",
+      "mainJsSha256": "db7f0aa0f84a0077a1fe7aba4d99c7d705ea62da23f7e33567ff530ed9b7abdb",
+      "provider": "custom",
+      "requested": "https://api.github.com/repos/Water-Run/deepseek-harness-uncensored/releases/latest",
+      "result": "available",
+      "installer": "DSHU-2026.11.25.0-win-x64.exe"
+    },
+    {
+      "asset": "deepseek-harness-uncensored-2026.11.24.3-mac-arm64-unsigned.dmg",
+      "sha256": "ce723062ee9a0a10468343c3dc3703ac445be8db63a57cb42e2e94c8bb9f639c",
+      "appAsarSha256": "22301cc5d7de560c4a28f76eb5fc3bc2c20ab0528ce1cbb64b09a2c8263de7bf",
+      "mainJsSha256": "7cadc89ea90221550306f91dbd14b044776e29abe5bc5218c72c6586e0895a05",
+      "provider": "custom",
+      "requested": "https://api.github.com/repos/Water-Run/deepseek-harness-uncensored/releases/latest",
+      "result": "available",
+      "installer": "DSHU-2026.11.25.0-mac-arm64.dmg"
+    },
+    {
+      "asset": "deepseek-harness-uncensored-2026.11.24.3-linux-amd64-unsigned.deb",
+      "sha256": "871f1e23207b6d3aed717ca175adf5963153f48e54a4fca790d21abba15f5807",
+      "appAsarSha256": "e8b99f3690eaae9ea26127c0e4913dec4f87421b08b10ab042be944c12f89e59",
+      "mainJsSha256": "e8c8a2365a03766487635ad6009a6a943e87dae3f43edecf146bbe3e725fbb34",
+      "provider": "custom",
+      "requested": "https://api.github.com/repos/Water-Run/deepseek-harness-uncensored/releases/latest",
+      "result": "available",
+      "installer": "DSHU-2026.11.25.0-linux-x64.deb"
+    },
+    {
+      "asset": "deepseek-harness-uncensored-2026.11.24.3-linux-x86_64-unsigned.rpm",
+      "sha256": "bebd5e958996c18a77cb8bb9d415cda57daae3400da8eb5ae55a833be6537dc1",
+      "appAsarSha256": "e8b99f3690eaae9ea26127c0e4913dec4f87421b08b10ab042be944c12f89e59",
+      "mainJsSha256": "e8c8a2365a03766487635ad6009a6a943e87dae3f43edecf146bbe3e725fbb34",
+      "provider": "custom",
+      "requested": "https://api.github.com/repos/Water-Run/deepseek-harness-uncensored/releases/latest",
+      "result": "available",
+      "installer": "DSHU-2026.11.25.0-linux-x64.rpm"
+    },
+    {
+      "asset": "deepseek-harness-uncensored-2026.11.24.3-linux-arm64-unsigned.deb",
+      "sha256": "75e288aa37e376cce828dd84979fce975093f7e1aa8f34fc5a44a9fa2ffcadb0",
+      "appAsarSha256": "227266ea1addd4216b6a06b97663990d00e4e5a678ba23ad7abcee2266897091",
+      "mainJsSha256": "74213ab1abfcaababa449eba58eb8679e6350693f4ecff0a3ee02eceecb48673",
+      "provider": "custom",
+      "requested": "https://api.github.com/repos/Water-Run/deepseek-harness-uncensored/releases/latest",
+      "result": "available",
+      "installer": "DSHU-2026.11.25.0-linux-arm64.deb"
+    }
+  ]
+}

@@ -1,11 +1,13 @@
 /** Public download layout and compatibility with the generic updater used by installed desktop apps. */
 import { createHash } from 'node:crypto'
+import { spawnSync } from 'node:child_process'
 import { createServer } from 'node:http'
 import { once } from 'node:events'
 import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import yaml from 'js-yaml'
 import { gt, SemVer } from 'semver'
 import { AppUpdater } from 'electron-updater/out/AppUpdater.js'
@@ -50,6 +52,9 @@ it('stages five installers from a collection without update metadata', async () 
   await writeFile(join(source, 'RELEASE-MANIFEST.json'), JSON.stringify({ ...manifest, feeds: undefined, auxiliary: undefined }))
   await stageGithubRelease(source, out)
   const entries = (await readFile(join(out, 'upload-files.txt'), 'utf8')).trim().split('\n')
+  const notes = await readFile(join(out, 'release-notes.md'), 'utf8')
+  expect(notes).toContain('2026.11.23.0` 需要手动覆盖安装一次')
+  expect(notes).toContain('2026.11.24.3` 可在应用菜单中检查更新')
   expect(entries).toHaveLength(5)
   expect(entries.every(entry => entry.startsWith('installers/'))).toBe(true)
   expect(await readdir(out)).not.toContain('updates')
@@ -67,8 +72,22 @@ it('reads the latest release metadata and verifies each platform installer from 
   const release = { tag_name: 'v' + version, published_at: '2026-11-24T00:00:00Z', draft: false, prerelease: false,
     body: await readFile(join(out, 'release-notes.md'), 'utf8'), assets }
   expect(release.body).toMatch(/^## 从旧版升级/u)
+  expect(release.body).not.toContain('首发版 `2026.11.23.0`')
   expect(release.body).toContain(draft.replaceAll('\r\n', '\n') + '\n\n## 安装包')
   expect(release.body.match(/^<!-- dshu-installers-v1 /gmu)).toHaveLength(1)
+  const verifyPublicFiles = () => {
+    const cwd = fileURLToPath(new URL('../../../', import.meta.url))
+    const script = fileURLToPath(new URL('../../../kernel/0.2.3-alpha.2/verification/public-release-installers.mjs', import.meta.url))
+    const result = spawnSync(process.execPath, ['--import', 'tsx/esm', script, out], {
+      cwd, input: JSON.stringify({ ...release, body: 'Edited release notes\n\n' + release.body }), encoding: 'utf8', timeout: 30_000,
+    })
+    if (result.error) throw result.error
+    expect(result.signal, result.stderr).toBeNull()
+    return result
+  }
+  const verified = verifyPublicFiles()
+  expect(verified.status, verified.stderr).toBe(0)
+  expect(verified.stdout.trim().split('\n')).toHaveLength(5)
   for (const [platform, arch, expected] of [
     ['win32', 'x64', ['win-x64.exe']], ['darwin', 'arm64', ['mac-arm64.dmg']],
     ['linux', 'x64', ['linux-x64.deb', 'linux-x64.rpm']], ['linux', 'arm64', ['linux-arm64.deb']],
@@ -107,6 +126,12 @@ it('reads the latest release metadata and verifies each platform installer from 
     expect(installerUpdateInfo({ ...release, body: null }, current, 'win32', 'x64').files).toEqual([])
   }
   expect(() => installerUpdateInfo(release, '2026.1123.0', 'darwin', 'x64')).toThrow('unsupported installer')
+  const exe = join(out, 'installers', installer.name)
+  const bytes = await readFile(exe)
+  await writeFile(exe, Buffer.alloc(bytes.length, 0))
+  const mismatched = verifyPublicFiles()
+  expect(mismatched.status).toBe(1)
+  expect(mismatched.stderr).toContain('Local installer bytes differ')
 })
 
 it.each([

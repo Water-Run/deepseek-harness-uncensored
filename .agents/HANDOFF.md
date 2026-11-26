@@ -6,7 +6,7 @@
 
 1. **对齐功能。** 以[上一版逐项对照](requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表)和[专项待办](requirements/2026-11-25-release-handoff.md#专项维护者待办)登记余下差异、负责人和证据。正式发行范围为四模式。关于页的组件状态须与实际安装内容一致。[关于页验收](requirements/2026-11-25-release-handoff.md#合并后的关于页)
 2. **验收最终安装文件。** 对同一源码树，从首发版和上一正式版分别升级，核对旧资料、旁问计费、签名和实际在线更新。Windows 静置问题保留独立结论。已有回执按平台和候选树索引，可直接复用其中的测试资料与步骤。[平台矩阵](requirements/2026-11-25-release-handoff.md#桌面与平台验收) · [Windows 静置](requirements/2026-11-25-release-handoff.md#issue-26-的-windows-静置卡死)
-3. **准备发行正文。** 编辑[下一版 Release 说明](../发布稿/Release-下一版.md)。在 DSHU 仓库用 `deliver:github --notes-file` 传入定稿，生成含下载表和五个安装包校验值的 `release-notes.md`。确认 README、关于页、下载链接和实际版本一致。[完整命令与发布前核对](requirements/2026-11-25-release-handoff.md#发布前最后一次核对)
+3. **准备发行正文。** 编辑[下一版 Release 说明](../发布稿/Release-下一版.md)。在候选根目录用 `deliver:github --notes-file` 传入定稿，生成含下载表和五个安装包校验值的 `release-notes.md`。首发版用户需要手动覆盖安装，`2026.11.24.3` 可在应用内检查更新。[完整命令](requirements/2026-11-25-release-handoff.md#发布前最后一次核对) · [两个旧版的更新路径](requirements/2026-11-25-release-handoff.md#两个已发布版本如何发现新安装包)
 
 下列为 2026-11-18 至 19 日的历史交付记录。
 

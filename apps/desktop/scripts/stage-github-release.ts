@@ -128,7 +128,7 @@ export async function stageGithubRelease(from: string, out: string, bridge = fal
     }
     notes.push('')
     if (bridge) notes.push('旧版用户可在应用内检查更新。曾手动选择「开发版」的用户，请在设置中切回「正式版」，再检查更新。', '')
-    else notes.push('若过渡前的旧版无法检查更新，请选择上方对应系统的安装包，手动安装一次。', '')
+    else if (notesFile === undefined) notes.push('首发版 `2026.11.23.0` 需要手动覆盖安装一次。`2026.11.24.3` 可在应用菜单中检查更新。', '')
     const checksums = manifest.artifacts.map(file => ({
       name: file.name, size: file.bytes, sha256: file.sha256.toLowerCase(), sha512: files.get(file.name)!.sha512,
     }))
