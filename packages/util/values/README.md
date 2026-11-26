@@ -45,7 +45,7 @@ const snapshot = snapshotJsonValue(input) as JsonValue
 
 ### Publish, compare, or retain keyed values
 
-`deepFreeze(value)` freezes an object graph in place and returns the same value. It walks enumerable string-keyed children and deliberately leaves live `AbortSignal` objects mutable. `deepEqualJson(a, b)` compares JSON-compatible arrays and records structurally; callers must validate hostile or unconstrained values before comparison.
+`deepFreeze(value)` freezes an object graph in place and returns the same value. It walks enumerable string-keyed children and deliberately leaves live `AbortSignal` objects mutable. `deepEqualJson(a, b)` compares arrays in order and records by their own JSON fields regardless of field order; callers must validate hostile or unconstrained values before comparison.
 
 `WeakMapWithValues<Key, Value>` combines weak object-key lookup with a strongly retained, insertion-ordered `values` set. Each value belongs to one key. The owner must call `delete(key)` or `clear()` at the corresponding lifecycle boundary; the collection does not perform automatic cleanup.
 

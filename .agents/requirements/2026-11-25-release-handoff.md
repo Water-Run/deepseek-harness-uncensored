@@ -629,6 +629,10 @@ if ($LASTEXITCODE -ne 0) { throw "会话恢复检查失败，退出码 $LASTEXIT
 
 ### 点名拒绝后的恢复与缓存排查
 
+候选树 `4bf9a929e6950bc89f33ec4cdeadbf8b596a4e10` 修复了工具服务重连后仅因 JSON 对象字段顺序变化就清空声明历史的问题。`in-history` 通道须逐字节保留原始声明，并保留启停消息的顺序。参数名、参数值或数组顺序改变时须采用新声明。独立对话仍可使用其已启用的工具。此项复验覆盖会话历史的隔离。现有设置页的服务开关仍然共享。[工具历史回归](../../packages/core/session/tests/tool-history.spec.ts) · [请求序列化探针](../../kernel/0.2.3-alpha.2/verification/mcp-schema-probe.mjs)
+
+在该树的 Windows 构建中，用 JSONL/Zstandard 分别写入失败会话和正常会话，退出进程，再从磁盘重开两份会话。失败会话移除被点名的笔记工具后，发给适配器的另两项工具声明逐字节保持一致。正常会话仍可声明全部三项工具。Debian 13 x64 使用 Node `24.22.3`、pnpm `11.28.5` 从固定补丁构建，运行 `pnpm run test:snapshot snapshots/session/headless.snapshot.ts snapshots/sdk/sdk.snapshot.ts -t dynamic-tool-updates`，Headless 和 SDK 各有一项选中并通过。
+
 主线和内核候选从已记录的错误读取工具名。HTTP 400、`INVALID_REQUEST` 和供应商的具名 schema 诊断须同时匹配。会话只标记已声明且被点名的工具，停用后才排除其声明与启停引用。连续点名不同工具时分别保留记录。如果会话从未声明过该名称，保留原请求历史。没有点名的旧错误继续沿用旧会话恢复行为。[错误解析](../../packages/llm/llm/src/schema-error.ts) · [会话投影](../../packages/core/session/src/tool-history.ts)
 
 | 复验入口 | 操作与通过条件 |

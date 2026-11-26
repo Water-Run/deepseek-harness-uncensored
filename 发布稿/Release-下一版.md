@@ -21,9 +21,10 @@
 - Windows 安装器可以识别以 `.0` 结尾的 DSHU 日期版本，支持从首发版静默覆盖升级，以及同版重装修复。[#24](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24)
 - 如果服务商点名拒绝某个 MCP 工具的声明并返回 HTTP 400，可在设置中停用对应工具服务并保存，再回到原对话重发。已有消息、调用结果和其他仍启用的工具声明都会保留。该设置会影响使用此服务的其他对话。[#25](https://github.com/Water-Run/deepseek-harness-uncensored/issues/25)
 - macOS 应用内更新准备失败后，可以直接重试。应用会重新校验缓存的 DMG，损坏时重新下载，完整的安装包可直接复用。
+- 修复工具重连后仅因 JSON 字段顺序变化就重建声明的问题。支持在消息中记录工具启停的 API 可以沿用原有声明和启停记录。[#23](https://github.com/Water-Run/deepseek-harness-uncensored/issues/23)
 - 桌面安装包精简为五个，覆盖 Windows x64、Apple 芯片 Mac、Linux x64（DEB 和 RPM）及 Linux ARM64（DEB）。仓库首页可直接播放带中文配音和字幕的功能演示。
 
 ## 已知问题
 
 - 部分 Windows 11 用户报告应用静置时卡死。已修复旁问和输入预测中的重复请求。在保留旧会话的安装测试中未复现整机卡死，原报告的根因仍待确认。[#26](https://github.com/Water-Run/deepseek-harness-uncensored/issues/26)
-- 第三方 API 的缓存命中取决于服务商。针对 HTTP 400 的修复保留了未被拒绝的工具声明。目前尚无报告所用服务商的缓存用量对照。[#23](https://github.com/Water-Run/deepseek-harness-uncensored/issues/23)
+- 第三方 API 的实际缓存命中量以服务商返回的数据为准。报告所用服务的缓存读写量仍待核实。[#23](https://github.com/Water-Run/deepseek-harness-uncensored/issues/23)

@@ -168,7 +168,7 @@ export function isJsonValue(value: unknown): boolean {
 }
 
 /**
- * Compare JSON-compatible values structurally.
+ * Compare JSON-compatible values by array order and own object members.
  * @param a - one JSON-compatible value.
  * @param b - the other JSON-compatible value.
  * @returns whether both values contain the same JSON data.
@@ -184,7 +184,7 @@ export function deepEqualJson(a: unknown, b: unknown): boolean {
   const right = b as Record<string, unknown>
   const keys = Object.keys(left)
   if (keys.length !== Object.keys(right).length) return false
-  return keys.every(key => key in right && deepEqualJson(left[key], right[key]))
+  return keys.every(key => Object.hasOwn(right, key) && deepEqualJson(left[key], right[key]))
 }
 
 /**

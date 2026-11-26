@@ -62873,3 +62873,180 @@ index 2b26db45a61b22516e476c266153745bdd1132b5..b6ad3ba61b62422d9a74b9ec3be78524
      if (args[0] === 'attach') {
        expect(args.slice(1, 4)).toEqual(['-readonly', '-nobrowse', '-mountpoint'])
        expect(args.at(-1)).toBe(dmg)
+diff --git a/packages/core/session/README.i18n.yaml b/packages/core/session/README.i18n.yaml
+index ff7ae49543153250c5169a7fbef23eaf16990e07..6549b6990e5bb48485c5dac6f18b08d4cd37f18b 100644
+--- a/packages/core/session/README.i18n.yaml
++++ b/packages/core/session/README.i18n.yaml
+@@ -96,8 +96,8 @@
+   en: 5397f067293a55cd
+   zh: 1dcc30d0c214f175
+ /deepseek-ai-dsh-session/model-experience/logged-request-header/what-the-model-sees:
+-  en: aa5d84379c316d9c
+-  zh: d7741e3360bd3c4e
++  en: e7b1490e8ab7708e
++  zh: 9b73df0397b0c191
+ /deepseek-ai-dsh-session/model-experience/logged-request-header/token-effect:
+   en: 310b8f36a86443e5
+   zh: 906c4da8d03c5966
+diff --git a/packages/core/session/README.md b/packages/core/session/README.md
+index 3f44319691fa52459f8dbf74b14dccb9ac6b13a2..ea1c317d6ca24a0672e2e4a1897eccb251e9e3cb 100644
+--- a/packages/core/session/README.md
++++ b/packages/core/session/README.md
+@@ -199,7 +199,7 @@ Append-only; newly visible content follows the reusable request prefix and does
+ 
+ #### What the model sees
+ 
+-The session reconstructs active tool schemas and call config from request headers; provider-specific deferred and retained declarations are derived at dispatch. `toolHistory()` caches a stateful fold over committed headers and developer messages, consuming only unseen events on subsequent reads. It resolves additions through their historical `headerSeq`, returns immutable snapshots, and restarts declarations on an explicit request series or a changed retained definition. Restoring a retained name with an unchanged definition continues the series; the recorded addition re-offers it. Both loop requests and compaction calls use this state. Headers lacking matching update records use complete active declarations. Same-name schema changes are allowed and invalidate prefix reuse even on `in-history` routes; registration-time rejection against historical tools is deferred ([rationale](../../../.agents/notes/implemented/architecture/2026-09-20-dynamic-tool-updates.md)). The system prompt remains part of `deriveMessages()`; header events add no message or prompt copy. When an HTTP 400 identifies a rejected tool schema by its quoted name, the projection marks that declaration in the current series. If the tool becomes inactive, subsequent requests omit it and preserve unrelated tool history. A name absent from the series has no effect. For an unnamed `INVALID_REQUEST`, recovery still uses declarations inactive at rejection or missing from the next header.
++The session reconstructs active tool schemas and call config from request headers; provider-specific deferred and retained declarations are derived at dispatch. `toolHistory()` caches a stateful fold over committed headers and developer messages, consuming only unseen events on subsequent reads. It resolves additions through their historical `headerSeq`, returns immutable snapshots, and restarts declarations on an explicit request series or a changed retained definition. Restoring a retained name with an equivalent definition continues the series. On an in-history route the original declaration keeps its serialized property order, and the recorded addition re-offers it. A different array order or field value changes the definition. Both loop requests and compaction calls use this state. Headers lacking matching update records use complete active declarations. Same-name schema changes are allowed and invalidate prefix reuse even on `in-history` routes; registration-time rejection against historical tools is deferred ([rationale](../../../.agents/notes/implemented/architecture/2026-09-20-dynamic-tool-updates.md)). The system prompt remains part of `deriveMessages()`; header events add no message or prompt copy. When an HTTP 400 identifies a rejected tool schema by its quoted name, the projection marks that declaration in the current series. If the tool becomes inactive, subsequent requests omit it and preserve unrelated tool history. A name absent from the series has no effect. For an unnamed `INVALID_REQUEST`, recovery still uses declarations inactive at rejection or missing from the next header.
+ 
+ #### Token effect
+ 
+diff --git a/packages/core/session/README.zh.md b/packages/core/session/README.zh.md
+index 34a08d4cc6264cfc0550eefc0777808595d2d46b..5c8b6e8a87d106721a95b0e6821e99b97b78785b 100644
+--- a/packages/core/session/README.zh.md
++++ b/packages/core/session/README.zh.md
+@@ -199,7 +199,7 @@ surface 事件（`system/message`、`developer/message`、`user/message`、`assi
+ 
+ #### 模型看到什么
+ 
+-会话从请求头重建有效工具模式和调用配置；提供方专用的延迟声明与保留声明在分发时派生。`toolHistory()` 缓存对已提交请求头和 developer 消息的有状态归约，后续读取仅处理新增事件。它通过历史 `headerSeq` 解析添加定义，返回不可变快照，并在显式新请求序列或保留定义发生变化时重新建立声明。以未变化的定义恢复保留名称时序列继续，由记录的添加重新提供该工具。循环请求和压缩调用均使用此状态。 请求头缺少对应更新记录时，使用完整有效声明。 允许同名工具的 schema 变化，即使在 `in-history` 路由上也会使前缀复用失效；注册时对照历史工具进行拒绝检查留待后续实现（[原因](../../../.agents/notes/implemented/architecture/2026-09-20-dynamic-tool-updates.zh.md)）。系统提示词仍属于 `deriveMessages()`；请求头事件不添加消息或提示词副本。 如果 HTTP 400 用单引号点名声明被拒绝的工具，投影会在当前声明序列中标记它。一旦该工具停用，后续请求便排除它并保留其他工具的历史。序列中不存在的名称会被忽略。对于未点名的 `INVALID_REQUEST`，恢复仍依据拒绝时已停用或下个请求头中消失的声明。
++会话从请求头重建有效工具模式和调用配置；提供方专用的延迟声明与保留声明在分发时派生。`toolHistory()` 缓存对已提交请求头和 developer 消息的有状态归约，后续读取仅处理新增事件。它通过历史 `headerSeq` 解析添加定义，返回不可变快照，并在显式新请求序列或保留定义发生变化时重新建立声明。同名工具重新注册时，等价定义沿用原序列。在支持历史工具更新的路由上，请求保留原声明的字段顺序，由已记录的添加重新提供工具。数组元素次序或字段值改变时会建立新序列。循环请求和压缩调用均使用此状态。 请求头缺少对应更新记录时，使用完整有效声明。 允许同名工具的 schema 变化，即使在 `in-history` 路由上也会使前缀复用失效；注册时对照历史工具进行拒绝检查留待后续实现（[原因](../../../.agents/notes/implemented/architecture/2026-09-20-dynamic-tool-updates.zh.md)）。系统提示词仍属于 `deriveMessages()`；请求头事件不添加消息或提示词副本。 如果 HTTP 400 用单引号点名声明被拒绝的工具，投影会在当前声明序列中标记它。一旦该工具停用，后续请求便排除它并保留其他工具的历史。序列中不存在的名称会被忽略。对于未点名的 `INVALID_REQUEST`，恢复仍依据拒绝时已停用或下个请求头中消失的声明。
+ 
+ #### Token 影响
+ 
+diff --git a/packages/core/session/src/tool-history.ts b/packages/core/session/src/tool-history.ts
+index a689f0054bf43358d6a9d23169956f23e52e6924..980b8bb26ae74cc69f2b94d9ca76f551a14d708e 100644
+--- a/packages/core/session/src/tool-history.ts
++++ b/packages/core/session/src/tool-history.ts
+@@ -2,7 +2,7 @@
+ 
+ import type { ToolHistory, ToolSchema } from '@deepseek-ai/dsh-llm'
+ import { rejectedSchemaToolName } from '@deepseek-ai/dsh-llm/schema-error'
+-import { deepFreeze } from '@deepseek-ai/dsh-util-values'
++import { deepEqualJson, deepFreeze } from '@deepseek-ai/dsh-util-values'
+ import type { SessionEvent, SessionSeq } from './types.ts'
+ 
+ /** Folds committed headers and developer messages independently of model capability. */
+@@ -40,7 +40,7 @@ export class ToolHistoryProjection {
+       // prefix reuse; an unchanged restored name is re-offered by its recorded addition.
+       const redeclared = tools.some((tool) => {
+         const before = this.declared.get(tool.name)
+-        return before !== undefined && JSON.stringify(before) !== JSON.stringify(tool)
++        return before !== undefined && !deepEqualJson(before, tool)
+       })
+       if (this.baselineSeq === undefined || event.data.reason === 'series' || event.data.startsSeries || redeclared) {
+         this.baselineSeq = event.seq
+diff --git a/packages/core/session/tests/tool-history.spec.ts b/packages/core/session/tests/tool-history.spec.ts
+index c6011658ce39dacf517454e116bf03368abea5df..ea6470aa0cc98e8cbbabbf145311311463a0990c 100644
+--- a/packages/core/session/tests/tool-history.spec.ts
++++ b/packages/core/session/tests/tool-history.spec.ts
+@@ -123,6 +123,25 @@ describe('Session.toolHistory', () => {
+     ] })
+   })
+ 
++  it('keeps the original declaration bytes when a tool returns with reordered JSON properties', () => {
++    const parameters = { type: 'object', properties: { tag: { type: 'string', enum: ['a', 'b'] } } }
++    const notes = { ...fetch, name: 'mcp__notes__list', parameters }
++    const session = opened([search, notes])
++    header(session, [search])
++    const removed = update(session, [remove(notes.name)])
++    const reordered = { ...notes, parameters: { properties: { tag: { enum: ['a', 'b'], type: 'string' } }, type: 'object' } }
++    const added = update(session, [add(notes.name)], header(session, [search, reordered]))
++    const restored = Session.fromRestore(session.id, session.snapshotEvents(), session.header, SessionLogOffset(0), 'shared-frozen')
++    for (const current of [session, restored]) {
++      const wire = projectToolUpdates(current.deriveMessages(), [search, reordered], 'in-history', current.toolHistory())
++      expect(JSON.stringify(wire.tools)).toBe(JSON.stringify([search, notes]))
++      expect(wire.messages).toEqual([removed, added])
++    }
++    const changed = { ...notes, parameters: { ...parameters, properties: { tag: { type: 'string', enum: ['b', 'a'] } } } }
++    header(session, [search, changed])
++    expect(session.toolHistory()).toEqual({ tools: [search, changed], updates: [] })
++  })
++
+   it('falls back to complete active declarations while a header lacks its update record', () => {
+     const session = opened([search])
+     const headerSeq = header(session, [search, fetch])
+diff --git a/packages/util/values/README.i18n.yaml b/packages/util/values/README.i18n.yaml
+index 91617636a43263440086273697f43d8ec1018ed9..4ffefbe332446692e1a198b50e087bdc5fdb3adc 100644
+--- a/packages/util/values/README.i18n.yaml
++++ b/packages/util/values/README.i18n.yaml
+@@ -24,8 +24,8 @@
+   en: c53d8e94245c2378
+   zh: de0308a325b17dad
+ /deepseek-ai-dsh-util-values/use-this-package/publish-compare-or-retain-keyed-values:
+-  en: 13628af2abe3eea6
+-  zh: e284bb8d3ebe38ea
++  en: 6ca676d556b99765
++  zh: ea73c22b068de500
+ /deepseek-ai-dsh-util-values/use-this-package/close-a-discriminated-union:
+   en: f21b7bd8040a72eb
+   zh: 19548d3e537c0b5b
+diff --git a/packages/util/values/README.md b/packages/util/values/README.md
+index 07b4fc8802fb4efc5b1b0d26b2819317ed648412..23e9197e95b0ab32b032ccd19d59a1bcf4f436d1 100644
+--- a/packages/util/values/README.md
++++ b/packages/util/values/README.md
+@@ -45,7 +45,7 @@ const snapshot = snapshotJsonValue(input) as JsonValue
+ 
+ ### Publish, compare, or retain keyed values
+ 
+-`deepFreeze(value)` freezes an object graph in place and returns the same value. It walks enumerable string-keyed children and deliberately leaves live `AbortSignal` objects mutable. `deepEqualJson(a, b)` compares JSON-compatible arrays and records structurally; callers must validate hostile or unconstrained values before comparison.
++`deepFreeze(value)` freezes an object graph in place and returns the same value. It walks enumerable string-keyed children and deliberately leaves live `AbortSignal` objects mutable. `deepEqualJson(a, b)` compares arrays in order and records by their own JSON fields regardless of field order; callers must validate hostile or unconstrained values before comparison.
+ 
+ `WeakMapWithValues<Key, Value>` combines weak object-key lookup with a strongly retained, insertion-ordered `values` set. Each value belongs to one key. The owner must call `delete(key)` or `clear()` at the corresponding lifecycle boundary; the collection does not perform automatic cleanup.
+ 
+diff --git a/packages/util/values/README.zh.md b/packages/util/values/README.zh.md
+index 01e306bfe50904a51b5ec0f8f1344050115a8bb7..ddb336a62101fdfa8909089381b561ac336fc035 100644
+--- a/packages/util/values/README.zh.md
++++ b/packages/util/values/README.zh.md
+@@ -45,7 +45,7 @@ const snapshot = snapshotJsonValue(input) as JsonValue
+ 
+ ### 发布、比较或保留键控值
+ 
+-`deepFreeze(value)` 原地冻结对象图并返回同一个值。它遍历可枚举字符串键的子项，并刻意让活跃 `AbortSignal` 对象保持可变。`deepEqualJson(a, b)` 按结构比较 JSON 兼容数组与记录；调用方必须先校验恶意或不受约束的值，再进行比较。
++`deepFreeze(value)` 原地冻结对象图并返回同一个值。它遍历可枚举字符串键的子项，并刻意让活跃 `AbortSignal` 对象保持可变。`deepEqualJson(a, b)` 按顺序比较数组，并按记录自身的 JSON 字段比较对象，字段顺序不影响结果；调用方必须先校验恶意或不受约束的值，再进行比较。
+ 
+ `WeakMapWithValues<Key, Value>` 组合弱对象键查找与强引用且保持插入顺序的 `values` set。每个 value 只属于一个 key。owner 必须在对应生命周期边界调用 `delete(key)` 或 `clear()`；该集合不执行自动清理。
+ 
+diff --git a/packages/util/values/src/index.ts b/packages/util/values/src/index.ts
+index b6488245de8b41004e335e1c276c7780d82f3dc9..3ffd280e87e6dc11726758399f1c817f858d8844 100644
+--- a/packages/util/values/src/index.ts
++++ b/packages/util/values/src/index.ts
+@@ -168,7 +168,7 @@ export function isJsonValue(value: unknown): boolean {
+ }
+ 
+ /**
+- * Compare JSON-compatible values structurally.
++ * Compare JSON-compatible values by array order and own object members.
+  * @param a - one JSON-compatible value.
+  * @param b - the other JSON-compatible value.
+  * @returns whether both values contain the same JSON data.
+@@ -184,7 +184,7 @@ export function deepEqualJson(a: unknown, b: unknown): boolean {
+   const right = b as Record<string, unknown>
+   const keys = Object.keys(left)
+   if (keys.length !== Object.keys(right).length) return false
+-  return keys.every(key => key in right && deepEqualJson(left[key], right[key]))
++  return keys.every(key => Object.hasOwn(right, key) && deepEqualJson(left[key], right[key]))
+ }
+ 
+ /**
+diff --git a/packages/util/values/tests/deep-equal-json.spec.ts b/packages/util/values/tests/deep-equal-json.spec.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..91ccadb2210eeda7d80484ec5ebe283f9a04d516
+--- /dev/null
++++ b/packages/util/values/tests/deep-equal-json.spec.ts
+@@ -0,0 +1,15 @@
++/** JSON members with names also present on the object prototype. */
++import { describe, expect, it } from 'vitest'
++import { deepEqualJson } from '../src/index.ts'
++
++describe('deepEqualJson', () => {
++  it('compares own JSON fields in both directions', () => {
++    const first = { ['__proto__']: {}, title: 'notes' }
++    const reordered = { title: 'notes', ['__proto__']: {} }
++    const renamed = { label: {}, title: 'notes' }
++
++    expect(deepEqualJson(first, reordered)).toBe(true)
++    expect(deepEqualJson(first, renamed)).toBe(false)
++    expect(deepEqualJson(renamed, first)).toBe(false)
++  })
++})

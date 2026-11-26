@@ -45,7 +45,7 @@ const snapshot = snapshotJsonValue(input) as JsonValue
 
 ### 发布、比较或保留键控值
 
-`deepFreeze(value)` 原地冻结对象图并返回同一个值。它遍历可枚举字符串键的子项，并刻意让活跃 `AbortSignal` 对象保持可变。`deepEqualJson(a, b)` 按结构比较 JSON 兼容数组与记录；调用方必须先校验恶意或不受约束的值，再进行比较。
+`deepFreeze(value)` 原地冻结对象图并返回同一个值。它遍历可枚举字符串键的子项，并刻意让活跃 `AbortSignal` 对象保持可变。`deepEqualJson(a, b)` 按顺序比较数组，并按记录自身的 JSON 字段比较对象，字段顺序不影响结果；调用方必须先校验恶意或不受约束的值，再进行比较。
 
 `WeakMapWithValues<Key, Value>` 组合弱对象键查找与强引用且保持插入顺序的 `values` set。每个 value 只属于一个 key。owner 必须在对应生命周期边界调用 `delete(key)` 或 `clear()`；该集合不执行自动清理。
 

@@ -122,6 +122,25 @@ describe('Session.toolHistory', () => {
     ] })
   })
 
+  it('keeps the original declaration bytes when a tool returns with reordered JSON properties', () => {
+    const parameters = { type: 'object', properties: { tag: { type: 'string', enum: ['a', 'b'] } } }
+    const notes = { ...fetch, name: 'mcp__notes__list', parameters }
+    const session = opened([search, notes])
+    header(session, [search])
+    const removed = update(session, [remove(notes.name)])
+    const reordered = { ...notes, parameters: { properties: { tag: { enum: ['a', 'b'], type: 'string' } }, type: 'object' } }
+    const added = update(session, [add(notes.name)], header(session, [search, reordered]))
+    const restored = Session.fromRestore(session.id, session.snapshotEvents(), session.header, SessionLogOffset(0), 'shared-frozen')
+    for (const current of [session, restored]) {
+      const wire = projectToolUpdates(current.deriveMessages(), [search, reordered], 'in-history', current.toolHistory())
+      expect(JSON.stringify(wire.tools)).toBe(JSON.stringify([search, notes]))
+      expect(wire.messages).toEqual([removed, added])
+    }
+    const changed = { ...notes, parameters: { ...parameters, properties: { tag: { type: 'string', enum: ['b', 'a'] } } } }
+    header(session, [search, changed])
+    expect(session.toolHistory()).toEqual({ tools: [search, changed], updates: [] })
+  })
+
   it('falls back to complete active declarations while a header lacks its update record', () => {
     const session = opened([search])
     const headerSeq = header(session, [search, fetch])

@@ -28,7 +28,7 @@ const name = 'mcp__notes__lookup'
 const description = 'Look up a note label.'
 const parameters = label => ({ type: 'object', properties: { label } })
 const lookup = { name, description, parameters: parameters(labelSchemas.combined) }
-const clock = { name: 'clock', description: 'Read the date.', parameters: { type: 'object' } }
+const clock = { name: 'clock', description: 'Read the date.', parameters: { type: 'object', properties: {} } }
 const user = { role: 'user', source: { kind: 'user' }, content: [{ type: 'text', text: 'Reply OK.' }] }
 const update = (id, type) => ({ id, role: 'developer', source: { kind: 'tool-registry' }, content: [{ type, toolName: name }] })
 const added = update('add', 'tool-addition')
@@ -157,12 +157,21 @@ named.append('turn/end', { turn: 1, reason: { kind: 'error', error: {
 const reopened = Session.fromRestore(named.id, named.snapshotEvents(), named.header, 0, 'shared-frozen')
 reopened.append('turn/start', { turn: 2 })
 reopened.append('step/start', { turn: 2, step: 1 })
-removeTools(reopened, 2, [clock], name)
+const refreshedClock = { ...clock, parameters: { properties: {}, type: 'object' } }
+removeTools(reopened, 2, [refreshedClock], name)
 input(reopened, 'Continue.')
-const recovered = wire(reopened, [clock], 'in-history')
-deepStrictEqual(recovered.tools, initialTools.filter(tool => tool.name !== name))
+const recovered = wire(reopened, [refreshedClock], 'in-history')
+deepStrictEqual(JSON.stringify(recovered.tools), JSON.stringify(initialTools.filter(tool => tool.name !== name)))
 const history = JSON.stringify(recovered.messages)
 if (!history.includes(list.name) || history.includes(name) || !history.includes('Keep my note.')) {
   throw new Error('Named-schema recovery changed unrelated tool history or user text.')
 }
 console.log(JSON.stringify({ scenario: 'named-rejection', runtime: installed ? 'installed' : 'source', retained: recovered.tools.map(tool => tool.name) }))
+
+const other = Session.create('mcp-schema-independent-notebook')
+other.append('turn/start', { turn: 1 })
+other.append('step/start', { turn: 1, step: 1 })
+other.append('request/header', { reason: 'initial', header: { config, tools: [clock, list, lookup] } })
+input(other, 'Open my other notebook.')
+deepStrictEqual(wire(other, [clock, list, lookup], 'in-history').tools, initialTools)
+console.log(JSON.stringify({ scenario: 'independent-session', tools: initialTools.map(tool => tool.name) }))

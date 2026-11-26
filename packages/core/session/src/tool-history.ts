@@ -2,7 +2,7 @@
 
 import type { ToolHistory, ToolSchema } from '@deepseek-ai/dsh-llm'
 import { rejectedSchemaToolName } from '@deepseek-ai/dsh-llm/schema-error'
-import { deepFreeze } from '@deepseek-ai/dsh-util-values'
+import { deepEqualJson, deepFreeze } from '@deepseek-ai/dsh-util-values'
 import type { SessionEvent, SessionSeq } from './types.ts'
 
 /** Folds committed headers and developer messages independently of model capability. */
@@ -40,7 +40,7 @@ export class ToolHistoryProjection {
       // prefix reuse; an unchanged restored name is re-offered by its recorded addition.
       const redeclared = tools.some((tool) => {
         const before = this.declared.get(tool.name)
-        return before !== undefined && JSON.stringify(before) !== JSON.stringify(tool)
+        return before !== undefined && !deepEqualJson(before, tool)
       })
       if (this.baselineSeq === undefined || event.data.reason === 'series' || event.data.startsSeries || redeclared) {
         this.baselineSeq = event.seq
