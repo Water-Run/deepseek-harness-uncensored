@@ -62581,3 +62581,295 @@ index 17f112b3..4c9a4c72 100644
          parameters: [{ name: 'sessionId', description: 'Conversation to inspect; only the application owner may read it.' }],
          returns: 'CNY estimate and bounded cumulative history, with missing usage or rates counted explicitly.',
        },
+diff --git a/apps/desktop/README.i18n.yaml b/apps/desktop/README.i18n.yaml
+index 0bffdf12eacc4a73602e2980257cca7f6b7992a7..fc18dcb10e65862271fcf6ada1e053804ae599f5 100644
+--- a/apps/desktop/README.i18n.yaml
++++ b/apps/desktop/README.i18n.yaml
+@@ -57,8 +57,8 @@
+   en: ccfa977f1d7eaeb0
+   zh: dd5116b4054ad64a
+ /deepseek-harness-desktop/updates:
+-  en: f0aa33b16c763f7c
+-  zh: f7119ca815600750
++  en: 2523b0ea6974a8fe
++  zh: 30c5ef8d34f55617
+ /deepseek-harness-desktop/updates/local-desktop-settings:
+   en: c4384915bee9209f
+   zh: eef9ac69d1e3e2cf
+diff --git a/apps/desktop/README.md b/apps/desktop/README.md
+index 2edb116f66f931d6ff2f2022c1c6c37311701ecf..2624bd9f836e64c7d61a76e915886ea140f5499b 100644
+--- a/apps/desktop/README.md
++++ b/apps/desktop/README.md
+@@ -279,7 +279,7 @@ Use `node apps/desktop/scripts/test-windows-installer.mjs --uninstall-only --com
+ 
+ DSHU production installers check the latest public GitHub release and download the matching installer from its immutable tag. On macOS, the updater prepares the signed app from the DMG for the system update service. Test packages keep their configured test feed.
+ 
+-Collect the five installers with `pnpm --dir apps/desktop run deliver` and stage the GitHub attachment list and release body with `pnpm --dir apps/desktop run deliver:github --from <collected> --out <new-directory>`. Keep the installer checksums in the generated release body. Users of the legacy YAML updater may need to install this release manually once.
++Collect the five installers with `pnpm --dir apps/desktop run deliver` and stage the GitHub attachment list and release body with `pnpm --dir apps/desktop run deliver:github --from <collected> --out <new-directory>`. Keep the installer checksums in the generated release body. Users of the legacy YAML updater may need to install this release manually once. On macOS, retrying a download verifies the cached DMG against the published SHA-512 and downloads it again if the checksum differs.
+ 
+ On Windows, the downloaded-update confirmation explains that the application closes during installation, reopens automatically, and should not be launched again while updating. An installer restart carrying `--updated` raises and focuses the main window once when startup opens the workspace directly, without enabling always-on-top. Startup into the welcome page discards that request so a later login keeps its normal activation behavior. Ordinary launches and other platforms do not use this foregrounding step.
+ 
+diff --git a/apps/desktop/README.zh.md b/apps/desktop/README.zh.md
+index 392587de1ce0dc27d80563664d1b4b0ecd7dcb3e..f6c7ae1346b1e495ae8a585ee3f180845a07e247 100644
+--- a/apps/desktop/README.zh.md
++++ b/apps/desktop/README.zh.md
+@@ -279,7 +279,7 @@ Windows 卸载程序会随应用一起删除 Electron 用户数据目录（`%APP
+ 
+ DSHU 正式安装包读取 GitHub 的最新公开正式版，并从固定标签下载对应安装包。macOS 更新器将 DMG 内的签名应用交给系统更新服务。测试包继续使用配置的测试更新源。
+ 
+-使用 `pnpm --dir apps/desktop run deliver` 收集五个安装包，再运行 `pnpm --dir apps/desktop run deliver:github --from <收集目录> --out <新目录>` 生成 GitHub 附件清单和发行正文。保留正文内的安装包摘要。仍使用旧 YAML 更新器的用户可能需要手动安装本版一次。
++使用 `pnpm --dir apps/desktop run deliver` 收集五个安装包，再运行 `pnpm --dir apps/desktop run deliver:github --from <收集目录> --out <新目录>` 生成 GitHub 附件清单和发行正文。保留正文内的安装包摘要。仍使用旧 YAML 更新器的用户可能需要手动安装本版一次。macOS 重试下载时会按发行版的 SHA-512 核对缓存的 DMG，校验值不符时会重新下载。
+ 
+ Windows 下载完成后的更新确认说明应用会在安装期间关闭、完成后自动打开，并提示期间不要重复启动。安装器携带 `--updated` 重启应用并直接打开工作区时，壳会将主窗口前置并聚焦一次，不启用永久置顶。启动进入欢迎页时会清除此请求，使后续登录保留正常的激活行为。普通启动和其他平台不执行此前置步骤。
+ 
+diff --git a/apps/desktop/src/updates/electron-updater/mac-dmg.ts b/apps/desktop/src/updates/electron-updater/mac-dmg.ts
+index 249752fe26b77545a604b32735f2d82693ffc283..85f772e0c316bfe808713977da1b03bf1aa8f68c 100644
+--- a/apps/desktop/src/updates/electron-updater/mac-dmg.ts
++++ b/apps/desktop/src/updates/electron-updater/mac-dmg.ts
+@@ -21,7 +21,7 @@ const run = promisify(execFile)
+ export async function prepareMacUpdateArchive(dmg: string, execute: (program: string, args: string[]) => Promise<unknown> = run):
+ Promise<{ path: string; size: number }> {
+   const mount = await mkdtemp(join(tmpdir(), 'dshu-update-volume-'))
+-  const work = await mkdtemp(join(dirname(dmg), 'dshu-update-')).catch(async (error) => { await rmdir(mount); throw error })
++  const work = await mkdtemp(join(dirname(dmg), 'dshu-update-')).catch(async (error: unknown) => { await rmdir(mount); throw error })
+   const temporary = join(work, 'update.zip'), path = join(dirname(dmg), 'squirrel-update.zip')
+   try {
+     await execute('/usr/bin/hdiutil', ['attach', '-readonly', '-nobrowse', '-mountpoint', mount, dmg])
+@@ -40,8 +40,9 @@ Promise<{ path: string; size: number }> {
+   } finally {
+     await rm(work, { recursive: true, force: true })
+     // Never recursively remove a volume if detaching it failed.
+-    await rmdir(mount).catch((error: NodeJS.ErrnoException) => {
+-      if (error.code !== 'ENOENT' && error.code !== 'EBUSY' && error.code !== 'ENOTEMPTY') throw error
++    await rmdir(mount).catch((error: unknown) => {
++      if (!(error instanceof Error && 'code' in error
++        && (error.code === 'ENOENT' || error.code === 'EBUSY' || error.code === 'ENOTEMPTY'))) throw error
+     })
+   }
+ }
+@@ -53,6 +54,8 @@ export class DmgMacUpdater extends MacUpdater {
+     if (!(provider instanceof GithubInstallerProvider)) return super.doDownloadUpdate(options)
+     const [file] = provider.resolveFiles(info)
+     if (!file?.url.pathname.endsWith('.dmg')) throw new Error('desktop update: macOS release has no DMG')
++    // A fresh cache helper rechecks the on-disk SHA-512 even when the previous attempt ran in this process.
++    this.downloadedUpdateHelper = null
+     // electron-updater 6.x owns the authenticated loopback server and its native update state.
+     const native = this as object as {
+       httpExecutor: ElectronHttpExecutor
+diff --git a/docs/config-catalog.md b/docs/config-catalog.md
+index 805400d1a409ec3999168491b953510d3f9ce8c4..a6468b7437f4fbb07eb2227bfcf2da385581b933 100644
+--- a/docs/config-catalog.md
++++ b/docs/config-catalog.md
+@@ -4022,7 +4022,7 @@ export type PackId = (typeof PACK_IDS)[number]
+ ## `@deepseek-ai/dsh-spend-limit`
+ 
+ - `inject`: `llm`
+-- `source`: [`packages/guard/spend-limit/src/index.ts:19`](../packages/guard/spend-limit/src/index.ts)
++- `source`: [`packages/guard/spend-limit/src/index.ts:20`](../packages/guard/spend-limit/src/index.ts)
+ 
+ ```ts config-catalog
+ /** Deployment-owned ledger path and conservative rates. User limits live in the ledger. */
+diff --git a/docs/config-catalog.zh.md b/docs/config-catalog.zh.md
+index 7b18ddf6b2905dddad06546bfaadd230e071cf08..019d62adb6a9dbddcfa9ee7764f17dfde85101b1 100644
+--- a/docs/config-catalog.zh.md
++++ b/docs/config-catalog.zh.md
+@@ -4024,7 +4024,7 @@ export type PackId = (typeof PACK_IDS)[number]
+ ## `@deepseek-ai/dsh-spend-limit`
+ 
+ - `inject`: `llm`
+-- `source`: [`packages/guard/spend-limit/src/index.ts:19`](../packages/guard/spend-limit/src/index.ts)
++- `source`: [`packages/guard/spend-limit/src/index.ts:20`](../packages/guard/spend-limit/src/index.ts)
+ 
+ ```ts config-catalog
+ /** Deployment-owned ledger path and conservative rates. User limits live in the ledger. */
+diff --git a/packages/client/ui-settings-account/README.i18n.yaml b/packages/client/ui-settings-account/README.i18n.yaml
+index b8c6b36315a3d2fee58fc27bcc8375a3593b6532..db2a99b7131dcd5c74a59b8cc28a37ad949ab740 100644
+--- a/packages/client/ui-settings-account/README.i18n.yaml
++++ b/packages/client/ui-settings-account/README.i18n.yaml
+@@ -9,8 +9,8 @@
+   en: 9ff7ac2d70f70b59
+   zh: ded522c4cfd6e040
+ /deepseek-ai-dsh-client-ui-settings-account/summary:
+-  en: 3c504f8a4f68083b
+-  zh: c399d7cb3e87d442
++  en: 8a38a5da4ef2a288
++  zh: 02d758bafa396113
+ /deepseek-ai-dsh-client-ui-settings-account/table-of-contents:
+   en: c26f81e8adf0128b
+   zh: e11ab371f51f66bc
+diff --git a/packages/client/ui-settings-account/README.md b/packages/client/ui-settings-account/README.md
+index 8f639dafe1d3372dd99ea86942ce5cc02e9fe327..857162f88d8c48cb0554345bcd1eb0100d09cb59 100644
+--- a/packages/client/ui-settings-account/README.md
++++ b/packages/client/ui-settings-account/README.md
+@@ -13,9 +13,9 @@ Server-expired account credentials clear the displayed account details and emit
+ 
+ ## Summary
+ 
+-Opening About checks this repository’s GitHub releases using the DSHU product version. The dialog shows the result and supports a manual retry. A rate-limited response displays when a retry is available.
++Open About to check the DSHU product version against this repository’s GitHub releases. You can retry there and see when GitHub’s rate limit expires.
+ 
+-An active main conversation shows its estimated cost and shared spending limits below the composer. The estimate includes native side questions, including cleared generations. Open a reading to inspect cumulative cost or each enabled window. Unpriced requests are counted separately.
++An active main conversation shows estimated cost and shared limits below the composer. Totals include current and cleared side questions. Select a figure to see cumulative cost, enabled windows or the number of unpriced requests.
+ 
+ The Account settings section displays DeepSeek login state and offers browser sign-in and cancellation; the sidebar account menu provides Platform sign-out. Desktop users also receive a resumable introduction to account credit and presentation preferences.
+ 
+diff --git a/packages/client/ui-settings-account/README.zh.md b/packages/client/ui-settings-account/README.zh.md
+index 5df0595f16a772f6e2688ecd76aa1cbbe32ecdf2..822f16cbc22d963e54d5e71792de961b3a99e30b 100644
+--- a/packages/client/ui-settings-account/README.zh.md
++++ b/packages/client/ui-settings-account/README.zh.md
+@@ -13,9 +13,9 @@ kind: "package-reference"
+ 
+ ## 概述
+ 
+-打开关于页会按 DSHU 产品版本检查本仓库的 GitHub Release。可以在弹窗中查看结果和手动重试。触发 GitHub 限流时，页面显示可再次检查的时间。
++打开关于页可对照本仓库的 GitHub Release 检查 DSHU 产品版本。你可以在此重试，遇到 GitHub 限流时也能查看下次可检查的时间。
+ 
+-有内容的主对话在输入框下方显示估算费用和共用额度。估算包含旁问及已清理的旁问历史。点击读数可查看累计费用曲线或各启用窗口的占用，缺少用量或费率的请求单列数量。
++有内容的主对话在输入框下方显示估算费用和共用额度。总额包含当前旁问和已清理旁问的历史费用。点击读数可查看累计费用曲线、已启用的额度窗口或无法计价的请求数。
+ 
+ 设置中的账号页面显示 DeepSeek 登录状态，并提供浏览器登录和取消；侧边栏账号菜单提供 Platform 退出登录。Desktop 用户还会进入可恢复的引导，了解账号额度并选择展示偏好。
+ 
+diff --git a/packages/guard/spend-limit/README.i18n.yaml b/packages/guard/spend-limit/README.i18n.yaml
+index 4bdcbf440c1b978fc2b2b60019fc425d0cb41455..e8bb2e2c8ced062156313d2b7a120a76538e74e0 100644
+--- a/packages/guard/spend-limit/README.i18n.yaml
++++ b/packages/guard/spend-limit/README.i18n.yaml
+@@ -15,8 +15,8 @@
+   en: 801a3956a0c8e2c3
+   zh: 019c35d3f810197f
+ /spending-limits/charging-and-recovery:
+-  en: 7dd7c8e15f21f593
+-  zh: f869103f078b9d6d
++  en: 30829606da1fb19c
++  zh: 7cf8331165d8775c
+ /spending-limits/charging-and-recovery/recovery-and-upgrades:
+   en: b66432feba7d76af
+   zh: b8b5327fbcd73b86
+diff --git a/packages/guard/spend-limit/README.zh.md b/packages/guard/spend-limit/README.zh.md
+index 7db634414678a26144ffa37c9e3cde5a78868a45..85d2882ec217454ba6fda455229595464fbdd55f 100644
+--- a/packages/guard/spend-limit/README.zh.md
++++ b/packages/guard/spend-limit/README.zh.md
+@@ -26,7 +26,7 @@ SQLite 事务保证不同进程无法同时花费同一额度。发送前持久
+ 
+ 单次预留超限和缺少费率分别抛出 `HarnessError`，错误码为 `SPEND_REQUEST_TOO_LARGE` 和 `SPEND_RATE_UNKNOWN`，模型请求不会发送。它们属于本机准入失败，不能按服务商重试处理；调用方按错误码提供调整限额或费率的入口。
+ 
+-应用所有者可查看本对话回答、重试、输入预测和记忆提炼的估算费用。预测和提炼使用各自请求中记录的服务商和模型，按当前人民币费率估算。缺少请求标识、路由、结果、用量或匹配费率时，该请求计入无法计价的数量。父会话和祖先会话的消费归各自会话。累计曲线最多显示 240 点，总额包含所有可计价请求。已打开的会话发布最近一条计费事件的序号，用于刷新显示金额。金额和费率仍通过仅应用所有者可用的费用接口读取。中断且没有用量回执的尝试单独计数，已知费用只累计可计价的用量。
++应用所有者可在主对话查看回答、重试、输入预测和记忆提炼的估算费用。总额包括主对话及其所有旁问，即使清理旁问历史，其中已发生的请求仍计入。预测和提炼使用各自请求中记录的服务商和模型，按当前人民币费率估算。缺少请求标识、路由、结果、用量或匹配费率时，该请求计入无法计价的数量。父会话和祖先会话的消费归各自会话。累计曲线最多显示 240 点，总额包含所有可计价请求。已打开的会话发布最近一条计费事件的序号，用于刷新显示金额。金额和费率仍通过仅应用所有者可用的费用接口读取。中断且没有用量回执的尝试单独计数，已知费用只累计可计价的用量。
+ 
+ ### 恢复与升级
+ 
+diff --git a/apps/desktop/tests/mac-dmg-update.spec.ts b/apps/desktop/tests/mac-dmg-update.spec.ts
+index 2b26db45a61b22516e476c266153745bdd1132b5..b6ad3ba61b62422d9a74b9ec3be78524eb301d7e 100644
+--- a/apps/desktop/tests/mac-dmg-update.spec.ts
++++ b/apps/desktop/tests/mac-dmg-update.spec.ts
+@@ -1,11 +1,100 @@
++import { execFile } from 'node:child_process'
+ import { once } from 'node:events'
+-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
++import { createHash } from 'node:crypto'
++import { copyFile, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+ import { tmpdir } from 'node:os'
+ import { join } from 'node:path'
++import { promisify } from 'node:util'
+ import type { Server } from 'node:http'
+ import { MacUpdater } from 'electron-updater/out/MacUpdater.js'
++import { NoOpLogger, type DownloadUpdateOptions } from 'electron-updater/out/AppUpdater.js'
++import { DownloadedUpdateHelper } from 'electron-updater/out/DownloadedUpdateHelper.js'
++import { CancellationToken } from 'electron-updater/out/types.js'
+ import { expect, it, onTestFinished } from 'vitest'
+-import { prepareMacUpdateArchive } from '../src/updates/electron-updater/mac-dmg.ts'
++import { DmgMacUpdater, prepareMacUpdateArchive } from '../src/updates/electron-updater/mac-dmg.ts'
++import { GithubInstallerProvider } from '../src/updates/github-release.ts'
++
++async function cachedDmg(dir: string, original: Buffer, download: (target: URL, destination: string) => Promise<string>) {
++  const name = 'DSHU-2026.11.25.0-mac-arm64.dmg'
++  const url = new URL(name, 'https://example.invalid/releases/')
++  const sha512 = createHash('sha512').update(original).digest('base64')
++  const file = { url: url.href, sha512, size: original.length }
++  const info = { version: '2026.1125.0', files: [file], path: url.href, sha512, releaseDate: '2026-11-25T00:00:00Z' }
++  const cache = new DownloadedUpdateHelper(join(dir, 'release'))
++  const cached = join(cache.cacheDirForPendingUpdate, name)
++  await mkdir(cache.cacheDirForPendingUpdate, { recursive: true })
++  await writeFile(cached, original)
++  await cache.setDownloadedFile(cached, null, info, { url, info: file }, name, true)
++  let feed: { url: string; headers: Record<string, string> } | undefined
++  const updater = Object.assign(Object.create(DmgMacUpdater.prototype) as {
++    doDownloadUpdate(options: DownloadUpdateOptions): Promise<string[]>
++    server?: Server
++  }, {
++    downloadedUpdateHelper: cache, app: { baseCachePath: dir }, configOnDisk: { value: { updaterCacheDirName: 'release' } },
++    autoInstallOnAppQuit: false, _logger: new NoOpLogger(), httpExecutor: { download },
++    nativeUpdater: { setFeedURL(value: NonNullable<typeof feed>) { feed = value }, removeListener() {} },
++  })
++  onTestFinished(async () => {
++    if (!updater.server?.listening) return
++    const closed = once(updater.server, 'close')
++    updater.server.close()
++    updater.server.closeAllConnections()
++    await closed
++  })
++  const provider = Object.create(GithubInstallerProvider.prototype) as GithubInstallerProvider
++  const retry = () => updater.doDownloadUpdate({ updateInfoAndProvider: { info, provider },
++    requestHeaders: {}, cancellationToken: new CancellationToken() })
++  return { cached, retry, feed: () => feed }
++}
++
++it('requests a fresh DMG when the previously downloaded image is damaged before a retry', async () => {
++  const dir = await mkdtemp(join(tmpdir(), 'dshu-mac-retry-'))
++  onTestFinished(() => rm(dir, { recursive: true, force: true }))
++  const h = await cachedDmg(dir, Buffer.from('original'), () => Promise.reject(new Error('fresh transfer requested')))
++  await writeFile(h.cached, 'damaged!')
++  await expect(h.retry()).rejects.toThrow('fresh transfer requested')
++})
++
++it.runIf(process.platform === 'darwin')('serves a signed app from a re-downloaded image and reuses the intact DMG on retry', async () => {
++  const dir = await mkdtemp(join(tmpdir(), 'dshu-native-dmg-'))
++  onTestFinished(() => rm(dir, { recursive: true, force: true }))
++  const run = promisify(execFile)
++  const volume = join(dir, 'volume'), contents = join(volume, 'Notes.app', 'Contents')
++  await mkdir(join(contents, 'MacOS'), { recursive: true })
++  await copyFile('/usr/bin/true', join(contents, 'MacOS', 'Notes'))
++  await writeFile(join(contents, 'Info.plist'), `<?xml version="1.0" encoding="UTF-8"?>
++<plist version="1.0"><dict>
++<key>CFBundleIdentifier</key><string>org.dshu.test.notes</string>
++<key>CFBundlePackageType</key><string>APPL</string>
++<key>CFBundleExecutable</key><string>Notes</string>
++<key>CFBundleVersion</key><string>1</string>
++</dict></plist>`)
++  await run('/usr/bin/codesign', ['--force', '--sign', '-', join(volume, 'Notes.app')])
++  const dmg = join(dir, 'release.dmg')
++  await run('/usr/bin/hdiutil', ['create', '-fs', 'HFS+', '-format', 'UDZO', '-srcfolder', volume, dmg])
++  let transfers = 0
++  const image = await readFile(dmg)
++  const h = await cachedDmg(dir, image, async (_url, destination) => {
++    transfers++
++    await copyFile(dmg, destination)
++    return destination
++  })
++  await writeFile(h.cached, Buffer.alloc(image.length))
++  await h.retry()
++  expect(transfers).toBe(1)
++  await h.retry()
++  expect(transfers).toBe(1)
++  const feed = h.feed()
++  if (!feed) throw new Error('Missing Squirrel.Mac feed')
++  const entry = await (await fetch(feed.url, { headers: feed.headers })).json() as { url: string }
++  const response = await fetch(entry.url)
++  expect(response.status).toBe(200)
++  const zip = join(dir, 'received.zip'), extracted = join(dir, 'received')
++  await writeFile(zip, Buffer.from(await response.arrayBuffer()))
++  await run('/usr/bin/ditto', ['-x', '-k', zip, extracted])
++  await run('/usr/bin/codesign', ['--verify', '--deep', '--strict', join(extracted, 'Notes.app')])
++  expect(await readFile(join(extracted, 'Notes.app', 'Contents', 'MacOS', 'Notes'))).toEqual(await readFile(join(contents, 'MacOS', 'Notes')))
++}, 120_000)
+ 
+ it.each(['ready', 'duplicate', 'signature', 'archive', 'detach'] as const)('handles the signed bundle and volume on %s', async (outcome) => {
+   const dir = await mkdtemp(join(tmpdir(), 'dshu-mac-fixture-'))
+@@ -14,7 +103,7 @@ it.each(['ready', 'duplicate', 'signature', 'archive', 'detach'] as const)('hand
+   let mount = ''
+   const calls: string[] = []
+   const run = async (tool: string, args: string[]) => {
+-    calls.push(tool.split('/').at(-1) + ' ' + args[0])
++    calls.push([tool.split('/').at(-1), args[0]].join(' '))
+     if (args[0] === 'attach') {
+       expect(args.slice(1, 4)).toEqual(['-readonly', '-nobrowse', '-mountpoint'])
+       expect(args.at(-1)).toBe(dmg)

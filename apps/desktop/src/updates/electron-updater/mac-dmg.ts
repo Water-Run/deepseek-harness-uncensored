@@ -21,7 +21,7 @@ const run = promisify(execFile)
 export async function prepareMacUpdateArchive(dmg: string, execute: (program: string, args: string[]) => Promise<unknown> = run):
 Promise<{ path: string; size: number }> {
   const mount = await mkdtemp(join(tmpdir(), 'dshu-update-volume-'))
-  const work = await mkdtemp(join(dirname(dmg), 'dshu-update-')).catch(async (error) => { await rmdir(mount); throw error })
+  const work = await mkdtemp(join(dirname(dmg), 'dshu-update-')).catch(async (error: unknown) => { await rmdir(mount); throw error })
   const temporary = join(work, 'update.zip'), path = join(dirname(dmg), 'squirrel-update.zip')
   try {
     await execute('/usr/bin/hdiutil', ['attach', '-readonly', '-nobrowse', '-mountpoint', mount, dmg])
@@ -40,8 +40,9 @@ Promise<{ path: string; size: number }> {
   } finally {
     await rm(work, { recursive: true, force: true })
     // Never recursively remove a volume if detaching it failed.
-    await rmdir(mount).catch((error: NodeJS.ErrnoException) => {
-      if (error.code !== 'ENOENT' && error.code !== 'EBUSY' && error.code !== 'ENOTEMPTY') throw error
+    await rmdir(mount).catch((error: unknown) => {
+      if (!(error instanceof Error && 'code' in error
+        && (error.code === 'ENOENT' || error.code === 'EBUSY' || error.code === 'ENOTEMPTY'))) throw error
     })
   }
 }
@@ -53,6 +54,8 @@ export class DmgMacUpdater extends MacUpdater {
     if (!(provider instanceof GithubInstallerProvider)) return super.doDownloadUpdate(options)
     const [file] = provider.resolveFiles(info)
     if (!file?.url.pathname.endsWith('.dmg')) throw new Error('desktop update: macOS release has no DMG')
+    // A fresh cache helper rechecks the on-disk SHA-512 even when the previous attempt ran in this process.
+    this.downloadedUpdateHelper = null
     // electron-updater 6.x owns the authenticated loopback server and its native update state.
     const native = this as object as {
       httpExecutor: ElectronHttpExecutor
