@@ -49,7 +49,7 @@ it.each([
       expect(brand.x).toBeCloseTo(frame.x, 0)
       expect(brand.y).toBeCloseTo(frame.y, 0)
       expect(brand.height).toBeCloseTo(frame.height, 0)
-      await dialog.screenshot({ path: join(shots, labels.locale + '-' + viewport.width + '.png') })
+      await dialog.screenshot({ path: join(shots, `${labels.locale}-${viewport.width}.png`) })
     }
     await page.setViewportSize({ width: 390, height: 760 })
     await scaffold.ctx.settings.update('ui-theme', { preference: 'dark' })

@@ -1,5 +1,7 @@
 import { spawnSync } from 'node:child_process'
+import { globSync } from 'node:fs'
 import { resolve } from 'node:path'
+import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 import { buildGates, parseBuildArguments } from './build.ts'
 
@@ -21,6 +23,20 @@ function graph(gates: ReturnType<typeof buildGates>): Record<string, string[] | 
 }
 
 describe('repository build CLI', () => {
+  it('checks each Web e2e file in exactly one compiler project', () => {
+    const projects = ['tsconfig.host.json', 'apps/web/tsconfig.json'].map((name) => {
+      const project = ts.getParsedCommandLineOfConfigFile(resolve(root, name), {}, {
+        ...ts.sys,
+        onUnRecoverableConfigFileDiagnostic(error) { throw new Error(ts.flattenDiagnosticMessageText(error.messageText, '\n')) },
+      })
+      if (!project) throw new Error(`Cannot read ${name}`)
+      return new Set(project.fileNames.map(file => resolve(file)))
+    })
+    const tests = globSync('apps/web/tests/**/*.e2e.ts', { cwd: root })
+    expect(tests.length).toBeGreaterThan(0)
+    expect(tests.filter(file => projects.filter(project => project.has(resolve(root, file))).length !== 1)).toEqual([])
+  })
+
   // The sentinel makes parseArgs fail fast if the check ever stops running first.
   it('rejects a Node process without TypeScript type stripping before any build step', () => {
     const result = spawnSync(

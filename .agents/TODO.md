@@ -1,5 +1,7 @@
 # 开发项目进度
 
+当前下一正式版以 `v2026.11.24.3` 为功能基线。接手顺序、最终平台验收和可编辑的 Release 说明集中在[下一正式版入口](HANDOFF.md#下一正式版)。
+
 [暂停提示与额度设置](requirements/2026-11-25-release-handoff.md#从超额暂停的会话打开额度设置)记录缺失入口、修复和真实会话恢复测试。Windows 打包与安装验收的存储处理见 [D 盘开发目录与验收资料](requirements/2026-11-25-release-handoff.md#d-盘开发目录与验收资料)。
 
 [会话费用与额度恢复](requirements/2026-11-25-release-handoff.md#会话费用的实时入账与额度恢复)记录输入预测入账后页脚和明细的自动刷新，以及写作会话在额度重设后实际发送的请求数。Windows x64 安装包已用相同的旧版旁问资料分别复现和复验。
@@ -18,7 +20,7 @@
 
 [新版发行条件](requirements/2026-11-25-release-handoff.md#正式版接手清单)以 `v2026.11.24.3` 为完整功能基线。[逐项差异表](requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表)记录旧版与最终包的实际行为、权限和限额；[合并后的关于页](requirements/2026-11-25-release-handoff.md#合并后的关于页)列出正式包需要复核的内容。[候选文档与接口目录](requirements/2026-11-25-release-handoff.md#候选文档与接口目录)列出中英文记忆、余额参考和已复验的源码树。
 
-下一版的完整勾选清单（含 `v2026.11.23.0` 之后 10 个提交、破甲升级、关于页与 Credit、分平台发布）见 [下一版 TODO 清单](requirements/2026-11-24-next-release-todo.md)；破甲逐项明细见 [破甲升级 TODO 清单](requirements/2026-11-24-armor-todo.md)，排期与落点见[总计划](requirements/2026-11-24-armor-next-release-plan.md)。
+11 月 24 日的[历史勾选清单](requirements/2026-11-24-next-release-todo.md)以 `v2026.11.23.0` 为当时的基线，保存该轮提交与组件变更记录。
 
 **2026.11.18.11 已保留资料安装并正常启动。** 本版修复更新请求并核验差分索引。当前公开正式版为 [2026.11.24.3](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.24.3)。[本地交付与恢复](requirements/2026-11-18.11-delivery.md)
 

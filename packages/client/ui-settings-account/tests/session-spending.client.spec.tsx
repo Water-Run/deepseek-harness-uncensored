@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, expect, it } from 'vitest'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
@@ -10,7 +10,7 @@ import { en } from '../src/client/locales.ts'
 
 afterEach(cleanup)
 
-it('summarizes and expands only enabled windows, ignoring a fuller disabled window', () => {
+it('shows partial costs and enabled spending windows in the main conversation footer', () => {
   const sessionId = SessionId('cost-test')
   const session = createSnapshotStore({ sessionId, running: false, blank: false, pendingSubmissions: [],
     removed: false, subagent: null, openState: 'open' as const, openError: null, hasMore: false, loadingOlder: false,
@@ -24,14 +24,28 @@ it('summarizes and expands only enabled windows, ignoring a fuller disabled wind
       { period: '7d', enabled: true, limit: 500, spent: 50, reserved: 0, remaining: 450, uncertain: 0 },
     ],
   } })
+  const cost = { total: 0.22, requests: 1, unpricedRequests: 0, points: [{ time: 1000, total: 0.22 }] }
   const props = { sessionId, useSession: bindSnapshotSelector(session), useSpending: bindSnapshotSelector(state),
     useProjection: () => undefined,
     useSessions: bindSnapshotSelector(createSnapshotStore({ ids: [], byId: {}, phase: 'ready' as const, projectionsBySession: {} })),
-    useResource: () => ({ status: 'ready', value: { total: 0.22, requests: 1, unpricedRequests: 0, points: [{ time: 1000, total: 0.22 }] } }),
+    useResource: () => ({ status: 'ready', value: cost }),
     t: makeTranslate(en),
   } as Parameters<typeof SessionSpending>[0]
   const view = render(<SessionSpending {...props} />)
   expect(screen.getByRole('button', { name: 'Conversation cost: ￥0.22' })).toBeTruthy()
+  cost.requests++
+  cost.unpricedRequests++
+  view.rerender(<SessionSpending {...props} />)
+  const partial = screen.getByRole('button', { name: 'Conversation cost: ≥ ￥0.22' })
+  fireEvent.click(partial)
+  const details = within(screen.getByRole('dialog', { name: 'Conversation cost' }))
+  const openTotal = details.getByText('≥ ￥0.22')
+  cost.total = 0.25
+  cost.points.push({ time: 2000, total: 0.25 })
+  cost.unpricedRequests = 0
+  view.rerender(<SessionSpending {...props} />)
+  expect(openTotal.textContent).toBe('￥0.25')
+  fireEvent.click(screen.getByRole('button', { name: 'Conversation cost: ￥0.25' }))
   fireEvent.click(screen.getByRole('button', { name: 'Spending limits: 5h 98%' }))
   expect(screen.getAllByRole('progressbar')).toHaveLength(2)
   expect(screen.queryByRole('progressbar', { name: '15 minutes' })).toBeNull()

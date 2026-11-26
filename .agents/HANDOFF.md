@@ -1,6 +1,12 @@
 # DSHU 开发交接
 
-接手下一正式版请从[发行条件](requirements/2026-11-25-release-handoff.md#正式版接手清单)开始，再填写[上一正式版逐项差异表](requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表)。合并后按[关于页字段和更新入口](requirements/2026-11-25-release-handoff.md#合并后的关于页)与[发布前核对](requirements/2026-11-25-release-handoff.md#发布前最后一次核对)复验最终安装包。当前新内核包仅含缺省与写作，完整四模式发行仍待验收。
+## 下一正式版
+
+线上基准为 `v2026.11.24.3`。当前 DSH `0.2.3-alpha.2` 候选覆盖缺省和写作，两者均有旧资料升级记录。接手者从[固定候选清单](../kernel/0.2.3-alpha.2/source.json)取得源码身份，按以下顺序交付。
+
+1. **对齐功能。** 以[上一版逐项对照](requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表)和[专项待办](requirements/2026-11-25-release-handoff.md#专项维护者待办)登记余下差异、负责人和证据。正式发行范围为四模式。关于页的组件状态须与实际安装内容一致。[关于页验收](requirements/2026-11-25-release-handoff.md#合并后的关于页)
+2. **验收最终安装文件。** 对同一源码树，从首发版和上一正式版分别升级，核对旧资料、旁问计费、签名和实际在线更新。Windows 静置问题保留独立结论。已有回执按平台和候选树索引，可直接复用其中的测试资料与步骤。[平台矩阵](requirements/2026-11-25-release-handoff.md#桌面与平台验收) · [Windows 静置](requirements/2026-11-25-release-handoff.md#issue-26-的-windows-静置卡死)
+3. **准备发行正文。** 编辑[下一版 Release 说明](../发布稿/Release-下一版.md)。逐条核实后，将正文置于本次五个安装包生成的下载表之前，完整保留下方摘要。确认 README、关于页、下载链接和实际版本一致。[发布前核对](requirements/2026-11-25-release-handoff.md#发布前最后一次核对)
 
 下列为 2026-11-18 至 19 日的历史交付记录。
 

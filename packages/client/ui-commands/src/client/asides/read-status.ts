@@ -60,7 +60,7 @@ export class AsideReads {
 /** @param list - Session summaries. @param child - side identity. @returns the Host's latest side result metadata. */
 export function sideMetadata(list: SessionListState, child: SessionId | undefined) {
   if (child === undefined) return undefined
-  return (list.projectionsBySession[child]?.values?.sessionListMetadata ?? list.byId[child]?.projectionValues?.sessionListMetadata)?.side
+  return (list.projectionsBySession[child]?.values.sessionListMetadata ?? list.byId[child]?.projectionValues?.sessionListMetadata)?.side
 }
 
 /** @param list - Session summaries. @param parent - main Session. @returns its newest side generation, including an empty successor. */

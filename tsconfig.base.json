@@ -85,6 +85,7 @@
       "@deepseek-ai/dsh-client-ui-security-proxy": ["./packages/client/ui-security-proxy/src/index.ts"],
       "@deepseek-ai/dsh-client-ui-security-proxy/client": ["./packages/client/ui-security-proxy/src/client/index.ts"],
       "@deepseek-ai/dsh-api-gateway/stream-protocol": ["./packages/api/gateway/src/stream-protocol.ts"],
+      "@deepseek-ai/dsh-balance/types": ["./packages/credentials/balance/src/types.ts"],
       "@deepseek-ai/dsh-deepseek-account": ["./packages/credentials/deepseek-account/src/index.ts"],
       "@deepseek-ai/dsh-deepseek-account/types": ["./packages/credentials/deepseek-account/src/types.ts"],
       "@deepseek-ai/dsh-deepseek-account/client-metadata": ["./packages/credentials/deepseek-account/src/client-metadata.ts"],

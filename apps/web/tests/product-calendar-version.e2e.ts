@@ -3,6 +3,8 @@ import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it } from 'vitest'
+import { parseCalendarVersion } from '@deepseek-ai/dsh-product-version/bootstrap'
+import { readClientBuildRecord } from '../../../scripts/client-build-environment.ts'
 import { launchWebScaffold, watchConsole } from './scaffold.ts'
 import { configureConversationReplay, saveFailureShot } from './support.ts'
 
@@ -28,7 +30,10 @@ it.each([
     const dialog = page.getByRole('dialog', { name: labels.about, exact: true })
     await dialog.waitFor()
     const version = dialog.getByText(labels.version, { exact: true }).locator('..').locator('dd')
-    expect(await version.textContent()).toMatch(/^\d{4}\.\d{2}\.\d{2}\.[1-9]\d*$/u)
+    const displayed = await version.innerText()
+    const build = readClientBuildRecord(fileURLToPath(new URL('../../..', import.meta.url)))
+    expect(displayed).toBe(build.environment.DSH_CLIENT_FORK_VERSION)
+    expect(parseCalendarVersion(displayed)?.display).toBe(displayed)
     const repository = 'https://github.com/Water-Run/deepseek-harness-uncensored'
     const source = await dialog.locator(`a[href^="${repository}/commit/"]`).getAttribute('href')
     const commit = source?.split('/').at(-1)

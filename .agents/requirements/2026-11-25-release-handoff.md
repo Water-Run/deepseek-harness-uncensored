@@ -140,9 +140,27 @@ Windows 安装包 `fc81c3d7…` 的关于页信息正确，但工作区标题仍
 3. 从两个旧正式版复验安装、冷启动、设置和资料，核对新版检查更新、下载、签名与恢复。仍使用旧索引的客户端按发行说明手动安装一次。根 README、手册、升级指南及截图与最终产物对齐。
 4. 验收齐全后，由发行负责人将 `v<版本>` 标为正式版和 Latest。公开后逐项回读附件及摘要。验收缺项时继续保留上一正式版为 Latest。
 
+[可编辑的 Release 说明](../../发布稿/Release-下一版.md)只含面向用户的文字。逐条对照最终安装文件，核实 #22 的文件头识别及实际随包组件后再补写对应变更。保留 #23、#26 的已知问题，除非有对应服务或系统上的新证据。将定稿放在本次生成的 `release-notes.md` 的「安装包」标题之前。正文末尾应有且仅有一个 `dshu-installers-v1` 注释，五个文件名、大小与摘要来自本次交付目录。已有演练的摘要只适用于当时的安装包。
+
+若最终安装包通过下文的[文件头识别验收](#issue-22-的首轮文件头识别)，可把这条加入用户说明：“在启用 REA 的逆向对话中，直接贴入 ELF、PE 或单架构 Mach-O 文件头即可询问格式与 CPU 架构，也支持从偏移零开始的 xxd 输出。”组件版本号从最终安装包的清单读取。
+
 固定候选 `b284268c88db` 已接入五附件整理和新版更新读取逻辑。正式打包预设使用 `DSH_DESKTOP_AUTO_UPDATE_ENV=production`。演练用上一候选的五个实际安装文件执行 `deliver` 与 `deliver:github`，逐一核对了文件名、字节及正文摘要。清单和正文归档在 `%USERPROFILE%/DSHU-Deliveries/20261126/new-release-layout/`。最终安装包须从当前树重建，并完成签名和在线更新验收。
 
 Debian 13 实机使用 `DSH_PACKAGING_PRESET=production` 和独立预设目录，从 `b284268c88db` 运行 `pnpm --dir apps/desktop run package:linux:x64 --build-version 2026.1125.0`。从 DEB 和 RPM 存档分别读回 `package-type` 及 GitHub 正式更新地址，验证包内应用启用了 GitHub 更新读取。安装后的在线更新仍待复验。[逐包摘要与回执](../../kernel/0.2.3-alpha.2/verification/linux-production-b284268c.json)
+
+### Linux 桌面检查正式更新源
+
+在 Debian 13 实机上，分别解开正式打包预设生成的 x64 DEB 和 RPM，从各自的载荷启动桌面程序，使用独立的 X11、D-Bus 会话与空资料。两个程序均到达工作区。「关于」左栏显示 DSHU `2026.11.25.0`，右栏显示 DSH `0.2.3-alpha.2` 和与清单一致的完整源码树。[候选清单](../../kernel/0.2.3-alpha.2/source.json) · [本次安装包与更新结果](../../kernel/0.2.3-alpha.2/verification/linux-production-3727e1fb.json)
+
+两次运行的后台更新器都从 GitHub 读到当日 Latest 的运行时版本 `2026.1124.3`，应用版本为 `2026.1125.0`。更新器日志明确记录禁止降级，进程日志中工作区已就绪，最后一次更新状态为空闲，未出现下载或安装。普通后台检查可以持续处于空闲，单独看到空闲不足以确认网络请求成功。复验时同时核对实际返回的版本、包内 `package-type`、工作区和进程日志。遇到更高版本时，另行核对下载、签名、安装和重启后的旧资料。
+
+用同一批安装文件另做包管理器升级。Debian 13 容器中的 DEB 和 Rocky 实机上 Fedora 44 容器中的 RPM，都从 `2026.11.23.0`、`2026.11.24.3` 分别完成覆盖升级与同版重装。每组都由 UID 1001 续写旧版生成的普通 JSONL 和 zstd 会话，重启后重开。四份回执按安装文件 SHA-256 对应到上面的更新源验收。
+
+从仓库根目录运行下列命令。`binary` 指向所验 DEB 解包或安装后的 `opt/DeepSeek Harness Uncensored/deepseek-harness-uncensored`。验 RPM 时指定该包的可执行文件并把 `deb` 换为 `rpm`。后两个参数依次取本地包和当日 GitHub Latest 的三段运行时版本。脚本使用独立临时资料，匹配更新器实际返回的版本和日志状态，并在退出时清理测试资料。
+
+```sh
+dbus-run-session -- xvfb-run -a python3 kernel/0.2.3-alpha.2/verification/linux-update-check.py "$binary" deb 2026.1125.0 2026.1124.3
+```
 
 ## 版本身份
 
@@ -170,6 +188,12 @@ Debian 13 实机使用 `DSH_PACKAGING_PRESET=production` 和独立预设目录�
 ## 从干净目录复现
 
 ### 主线
+
+验主线 Web 前先执行一次 `pnpm run build`。独立的 `build:web` 只构建网页外壳，可能继续加载旧的客户端插件。例如旧输入框没有向底栏传递 `occurrence` 时，旁问会同时出现费用和额度。主线的 `apps/web/tests/side-clear.e2e.ts` 从页面发送带图旁问，检查主线累计金额、旁问底栏与清理后的费用。若有未定价请求，主线底栏和展开的明细都显示已知金额的下限。
+
+之前有七份 Web 用例被客户端编译配置排除，又未列入 Host 配置，包括关于页版本、余额清理、键盘调整额度和桌面更新。主线现对每个 Web e2e 文件检查编译归属，并在中英文关于页将实际显示的 DSHU 版本与构建记录对照。Windows 安装包名另用当日序号 `.0` 和 `.3` 复验。新添浏览器用例时，运行 `scripts/build.spec.ts` 与对应的真实浏览器测试。
+
+2026-11-26 主线的完整构建通过 10 项检查。修订前 `pnpm run lint` 有 79 条诊断，复验仍有 40 条，均能在原输出中找到。全库 `verify-tsconfig-paths` 仍报告既有生成清单差异。当前改动的定向检查、完整构建与全库静态检查须分别记录。
 
 先用 `git status --short --branch` 确认没有把本机资料或交付物混入提交。通过 `git ls-remote origin refs/heads/main` 核对远端分支。根目录使用本项目 [package.json](../../package.json) 指定的 Node、pnpm 和锁文件。下面的 Web 场景使用测试资料目录和本地测试适配器，无需真实账户。
 
@@ -1015,7 +1039,7 @@ node_bin="$runtime/primary-runtime/dependencies/node/bin/node"
 | 目标 | 对照安装形式 | 本轮发行候选验收 |
 | --- | --- | --- |
 | Windows x64 | exe | `c048b2e78877` 的缺省与写作候选已从两个正式版覆盖升级。两种格式的旧会话均通过续写与同版重装后重开。四模式包、正式签名与真实在线更新仍待验收。[实装回执](#回放修正后的-windows-x64-重建) |
-| Linux x64 | deb、rpm 分别验证 | `c048b2e78877` 已从两个正式版分别覆盖升级，验过同版重装和两种格式的旧会话。Debian 实机已在独立 X11 会话验证 GTK 目录选择门户。直接登录图形桌面的验证及正式四模式包仍待完成。[逐包摘要与回执](#回放修正后的-linux-x64-重建) |
+| Linux x64 | deb、rpm 分别验证 | `3727e1fb510f` 的两种包均从两个正式版完成覆盖升级、同版重装及两种旧会话的续写。两种包内的桌面程序均已查询实际 GitHub 正式版。直接登录图形桌面、安装更高版本及最终四模式包待验收。[当前回执](#linux-桌面检查正式更新源) · [GTK 门户实测](#linux-x64-的-gtk-目录选择门户) |
 | Linux arm64 | deb | DGX Spark 已构建 DEB、tar.gz。两个正式旧版分别在 Debian ARM64 容器覆盖升级及同版重装，通过 CLI 与两种旧会话复验。直接登录图形桌面的验证仍待完成。[原生 ARM64 回执](#原生-arm64-候选) |
 | macOS arm64 | DMG 手动安装，新客户端从正式 DMG 应用内更新 | Mac Studio 已验证包内 CLI、两种旧会话和旧 profile 覆盖后随包 Host 的启动。正式签名、公证、Gatekeeper、登录图形桌面及新版 DMG 在线更新仍待验。[原生 ARM64 回执](#原生-arm64-候选) |
 

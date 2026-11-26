@@ -72,7 +72,7 @@ export function SidebarAsidePanel({ sessionId, useSessions, useTabInfo, useResou
     const acknowledge = () => { if (document.visibilityState === 'visible') markRead(child, seq) }
     acknowledge()
     document.addEventListener('visibilitychange', acknowledge)
-    return () => document.removeEventListener('visibilitychange', acknowledge)
+    return () => { document.removeEventListener('visibilitychange', acknowledge) }
   }, [child, seq, tab.visible, resource.status, markRead])
   return <section className={css.sidebar} aria-label={t('aside.side')} data-aside="side">
     <div className={css.context}>

@@ -35,7 +35,7 @@ PropsRuntime<'conversation.composer.dock'> & InjectFace<SpendingInjected> & Prop
   const sideRevision = useSessions(list => list.ids.flatMap((id) => {
     const side = list.byId[id]
     if (side?.parentId !== sessionId || side.projectionValues?.sessionListMetadata?.side === undefined) return []
-    return [id + ':' + (side.projectionValues.sessionSpendRevision ?? side.updatedAt)]
+    return [`${id}:${side.projectionValues.sessionSpendRevision ?? side.updatedAt}`]
   }).sort().join(','))
   const result = useResource<'session-cost'>(blank ? '' : `dsh-resource://session-cost/${encodeURIComponent(sessionId)}?v=${costRevision}-${revision}&side=${encodeURIComponent(sideRevision)}`)
   const limitState = useSpending(value => value)
@@ -43,7 +43,7 @@ PropsRuntime<'conversation.composer.dock'> & InjectFace<SpendingInjected> & Prop
   if (blank) return null
   const cost = result.value
   const partial = cost !== undefined && cost.unpricedRequests > 0
-  const label = cost === undefined ? '—' : amount(cost.total)
+  const label = cost === undefined ? '—' : (partial ? '≥ ' : '') + amount(cost.total)
   const activeWindows = limits?.windows.filter(window => window.enabled) ?? []
   const enabled = activeWindows.length > 0
   const paused = enabled && (limits?.paused === true || limits?.pausedSessions.some(value => value.state === 'blocked') === true)
@@ -55,7 +55,7 @@ PropsRuntime<'conversation.composer.dock'> & InjectFace<SpendingInjected> & Prop
   return <div className={css.pills}>
     <StatPopover title={t('spending.sessionCost')} label={label} icon={<ExpenseIcon />} onOpen={() => { refresh(value => value + 1) }}>
       {cost === undefined ? <p className={css.hint}>{t(result.status === 'failed' ? 'spending.sessionFailed' : 'spending.loading')}</p> : <>
-        <div className={css.total}>{partial ? '≥ ' : ''}{amount(cost.total)}</div>
+        <div className={css.total}>{label}</div>
         <BalanceHistory samples={cost.points.map(point => ({ time: point.time, value: point.total }))} symbol="¥"
           label={t('spending.sessionCurve')} help={t('balance.historyHelp')} formatValue={amount} />
         <p className={css.hint}>{t('spending.sessionRequests', { count: cost.requests })}</p>

@@ -99,11 +99,12 @@ describe('Windows update publisher', () => {
     })
   })
 
-  it.each([true, false])('supplies publisher metadata with explicit Windows target = %s', async (explicitTarget) => {
+  it.each([{ explicitTarget: true, sequence: 0 }, { explicitTarget: false, sequence: 3 }])('supplies publisher metadata with explicit Windows target = $explicitTarget', async ({ explicitTarget, sequence }) => {
     const { createElectronBuilderConfig } = await import('../electron-builder.config.mjs')
     await withCertificate({ CN: 'Publisher', O: 'Company', C: 'CN' }, async (file, signTool) => {
       const config = createElectronBuilderConfig({
         DSH_DESKTOP_APP_ID: 'com.example.publisher-test',
+        DSH_DESKTOP_BUILD_VERSION: `2026.1124.${sequence}`,
         DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://policy.example.com',
         DSH_DESKTOP_MANDATORY_UPDATE_PROD_ORIGIN: 'https://policy.example.com',
         ...(explicitTarget ? { DSH_DESKTOP_TARGET_PLATFORM: 'win32' } : {}),
@@ -114,7 +115,7 @@ describe('Windows update publisher', () => {
         DSH_DESKTOP_AUTO_UPDATE_ENV: 'production',
       }, 'win32', 'x64')
       expect(config.win.forceCodeSigning).toBe(true)
-      expect(config.artifactName).toMatch(/^deepseek-harness-uncensored-\d{4}\.\d{2}\.\d{2}\.[1-9]\d*-\$\{os\}-\$\{arch\}\.\$\{ext\}$/u)
+      expect(config.artifactName).toBe(`deepseek-harness-uncensored-2026.11.24.${sequence}-` + '${os}-${arch}.${ext}')
       expect(typeof config.win.signtoolOptions.sign).toBe('function')
       const manager = new WindowsSignToolManager({ platformSpecificBuildOptions: config.win, getCscLink: () => undefined })
       expect(await manager.computedPublisherName.value).toEqual(['CN=Publisher,O=Company,C=CN'])

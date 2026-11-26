@@ -38,7 +38,7 @@ export function registerSpending(ctx: Context): void {
         name: 'conversation.input.dock', id: 'spending-pause', order: -30, locale: 'settings.account',
         inject: () => {
           const settings = scope.get('settingsNavigation')
-          return { ...inject(), ...settings === undefined ? {} : { openBudgetSettings: () => settings.openSection('budget') } }
+          return { ...inject(), ...settings === undefined ? {} : { openBudgetSettings: () => { settings.openSection('budget') } } }
         },
       }, SpendingBanner))
       const resources = scope.inject(['resources'], (child) => {

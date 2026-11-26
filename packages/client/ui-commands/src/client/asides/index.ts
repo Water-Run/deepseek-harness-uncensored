@@ -85,9 +85,9 @@ export function registerAsides(ctx: Context): void {
     const lastSide = new Map<SessionId, SessionId>()
     const reads = new AsideReads()
     if (typeof window !== 'undefined') scope.effect(() => {
-      const sync = (event: StorageEvent) => reads.sync(event)
+      const sync = (event: StorageEvent) => { reads.sync(event) }
       window.addEventListener('storage', sync)
-      return () => window.removeEventListener('storage', sync)
+      return () => { window.removeEventListener('storage', sync) }
     }, 'conversation: side read positions')
     const openingSides = new Map<SessionId, Promise<SessionForkValue>>()
     const resets = new Map<SessionId, Promise<SubmitOutcome>>()
@@ -142,7 +142,7 @@ export function registerAsides(ctx: Context): void {
           await resets.get(parent)
           const child = typeof target === 'string' ? target : (await target).sessionId
           if (isClosed()) return { kind: 'error', text: t('aside.clearFailed') }
-          let result = await scope.remote.session.resetAside({ sessionId: child, cause }).catch(_replyUnavailable => undefined)
+          let result = await scope.remote.session.resetAside({ sessionId: child, cause }).catch((_replyUnavailable: unknown) => undefined)
           if (result?.ok !== true) {
             if (cause === 'close' || isClosed()) return { kind: 'error', text: t('aside.clearFailed') }
             // The Host may have published a successor before the reset reply failed.
@@ -283,7 +283,7 @@ export function registerAsides(ctx: Context): void {
     }, AsideHeaderAction))
     scope.slots.inject('sidebar.right.pane.tab', () => scope.slots.register({ name: 'sidebar.right.pane.tab', key: TYPE, locale: 'command',
       inject: (parent: SessionId) => ({
-        markRead: (child: SessionId, seq: number) => reads.mark(parent, child, seq),
+        markRead: (child: SessionId, seq: number) => { reads.mark(parent, child, seq) },
         clear: (child: SessionId) => {
           if (isClosed()) return
           void resetSide(parent, child, 'manual').then((outcome) => {
