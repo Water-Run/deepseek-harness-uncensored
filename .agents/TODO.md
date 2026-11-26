@@ -40,7 +40,7 @@
 
 旧会话升级已补测输入建议。两个正式版分别调用原版输入建议写入器生成压缩 v4 会话，候选 `6283464b` 续写后冷重开，两组各 30 个原文件的 SHA-256 均一致。缺省与写作的 Windows 安装器 `ad437c3b…` 也已从两个正式版实装升级，用安装后的应用续写旧会话并在同版重装后重新读取。[漏检原因、安装器摘要与复验步骤](requirements/2026-11-25-release-handoff.md#含输入建议的旧会话)
 
-Linux 候选已接入 x64（deb、rpm、tar.gz）与 arm64（deb、tar.gz）的原生打包。Debian 13 已从当前源码树生成 x64 三种未签名包并核对显示和 CLI。DEB 与 RPM 均从两个正式版覆盖升级，普通用户启动及旧会话续写、同版重装后重开全部通过。实体桌面门户、arm64 原生安装及正式四模式包仍待验。[当前 Linux x64 候选回执](requirements/2026-11-25-release-handoff.md#当前-linux-x64-候选的实装升级)
+Linux 候选已接入 x64（deb、rpm、tar.gz）与 arm64（deb、tar.gz）的原生打包。Debian 13 已从当前源码树生成 x64 三种未签名包并核对显示和 CLI。DEB 与 RPM 均从两个正式版覆盖升级，普通用户启动及旧会话续写、同版重装后重开全部通过。Debian 实机的独立 X11 会话已通过 GTK 目录选择门户测试。直接登录图形桌面的验证、arm64 原生安装及正式四模式包仍待完成。[当前 Linux x64 候选回执](requirements/2026-11-25-release-handoff.md#当前-linux-x64-候选的实装升级)
 
 当前交付为[Windows x64 首发打包交接](requirements/windows-x64-first-release.md)。应交付功能须在同一候选逐项验证，缺项或待验均使首发保持待交付。
 
@@ -121,7 +121,7 @@ Linux 候选已接入 x64（deb、rpm、tar.gz）与 arm64（deb、tar.gz）的�
 
 ## 后续版本（4 项）
 
-- [ ] **Linux x64 Desktop**（02.09、17.07）：历史归档复验了启动 404 修复、X11/Wayland 主界面和重载。此前的 rc.5 检查停在 `musl-gcc`。新版缺省与写作候选已在 Fedora 45 生成并核验三种归档，deb 和 RPM 均通过安装及同版重装。原生门户、实体桌面交互及完整发行验收仍待完成。[测试记录](requirements/2026-11-18-linux-test-host.md)
+- [ ] **Linux x64 Desktop**（02.09、17.07）：历史归档复验了启动 404 修复、X11/Wayland 主界面和重载。新版缺省与写作候选已在 Debian 13 核验三种归档，DEB 和 RPM 均通过覆盖升级及同版重装。GTK 目录选择门户已在独立 X11 会话验证，直接登录图形桌面的验证及完整发行验收仍待完成。[测试记录](requirements/2026-11-18-linux-test-host.md)
 - [ ] **macOS ARM Desktop**。
 - [ ] **Android＋PRoot Fedora**。
 - [ ] **全新独立安装器**；当前继续维护现有 DSHU NSIS 安装器。[计划](requirements/desktop-installer-plan.md)

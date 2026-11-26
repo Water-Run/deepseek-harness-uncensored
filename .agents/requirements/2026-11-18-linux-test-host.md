@@ -15,6 +15,8 @@ Windows 是首要桌面平台。Linux x86_64 验收有 Fedora、Debian 和 Rocky
 
 Debian 实机的 Debian 13 容器通过 apt 验证了从两个正式版覆盖升级。Rocky 实机上的 Rocky 10.3 容器使用默认软件源时，公开版 `2026.11.24.3` 的 RPM 因缺少 `libXScrnSaver` 停在安装阶段。在同一实机的 Fedora 44 容器中，RPM 从两个正式版覆盖升级均通过。四组都核对了普通用户运行、未压缩 JSONL 和 zstd 会话的续写与重开。[当前 Linux x64 候选的实装升级](2026-11-25-release-handoff.md#当前-linux-x64-候选的实装升级)
 
+Debian 实机的 Xvfb 与独立 D-Bus 会话已走通 GTK 目录选择门户。窗口取消后可再次打开，选定目录在工作区列表中保留，重载后仍可见。[GTK 门户复验](2026-11-25-release-handoff.md#linux-x64-的-gtk-目录选择门户)
+
 ## Fedora 测试入口
 
 连接通过用户给定的 Windows SSH 跳板，再使用该设备已有的 `fedora` 别名；账号、端口及部署路径保存在本机 `%USERPROFILE%/DSHU-Deliveries/20261118/linux-test-connection.json`，不复制或改写 SSH 私钥。

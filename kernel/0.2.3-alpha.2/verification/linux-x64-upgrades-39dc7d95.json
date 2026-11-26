@@ -57,6 +57,22 @@
     "options": 4,
     "default": "Sunrise & sunset"
   },
+  "directoryPicker": {
+    "display": "Xvfb X11 with a private D-Bus session on the Debian 13 host",
+    "backend": "xdg-desktop-portal-gtk 1.15.3-1",
+    "fileChooserVersion": 4,
+    "openFileCalls": 2,
+    "directoryRequests": 2,
+    "escapeResponseCode": 2,
+    "selectionResponseCode": 0,
+    "workspaceVisibleAfterReload": true,
+    "matchedDebSha256": {
+      "deepseek-harness-uncensored": "25ab04dfd586b5061ff2250fcb5f587764e0327f263e34111e14733f5b4fd149",
+      "resources/app.asar": "f6b6e90d990d1450030977c817555eb4388a452524d2beacebd8e6e20dc43b0a"
+    },
+    "traceSha256": "bc2ded92ba1b6cc0940e5c17f2d0bb3871a7885b43d56a5e6c235b73e328fe58",
+    "screenshotSha256": "1c23eb8c234a02a10a5fa261436a6aea6a6fec2dc90781fadf8edb2e345c5b8d"
+  },
   "inPlaceUpgrades": [
     {
       "kind": "deb",

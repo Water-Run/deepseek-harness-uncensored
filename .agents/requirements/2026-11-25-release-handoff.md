@@ -944,6 +944,12 @@ python3 upgrade.py deb 2026.11.23.0 --candidate "$candidate" --candidate-sha256 
 
 复现首发版 DEB 的缓存场景时，在 `reproduction/` 中保留 `apt-signed-lists.tar`，将 `qualified-apt-cache.tar` 解到 `packages/`。核对 `apt-verified-inputs.json` 中的包名、字节数和 SHA-256，再用 `upgrade-debian-cached.py` 执行同一命令并加上 `--apt-cache packages`。脚本在独立容器中使用这组 APT 输入。
 
+### Linux x64 的 GTK 目录选择门户
+
+Debian 13 实机用独立 Xvfb 和 D-Bus 会话启动候选。Electron 可执行文件及 `app.asar` 的 SHA-256 均与 DEB 内的对应文件一致。第一次点侧栏的“添加工作区”后按 Esc，原生窗口关闭。再次点击并选定测试目录，新工作区显示在侧栏，重载后仍可见。D-Bus 记录有两次 `FileChooser.OpenFile` 调用，均带 `directory=true`。两次响应码依序为 `2` 和 `0`，后者返回所选目录的 URI。实机使用 GTK 后端，`FileChooser` 接口版本为 4。直接登录图形桌面的验证仍待完成。[运行结果及摘要](../../kernel/0.2.3-alpha.2/verification/linux-x64-upgrades-39dc7d95.json)
+
+同一交付归档的 `verification/portal-x11/` 保存运行日志、D-Bus 记录、截图和三个复验脚本。把脚本放到 Debian 构建作业目录，`run-portal.sh` 中的 `job_dir` 指向保有原候选 `source/` 和构建身份文件的目录。作业依赖 Xvfb、D-Bus、GTK 门户、XTest 和候选工作区依赖中的 Playwright。运行 `bash run-portal.sh` 后，命令输出本次隔离目录。核对其中 `result.json` 的 `passed`、两次响应及重载结果。测试用独立 D-Bus 和应用资料目录，不接入当前图形桌面会话。
+
 ### 在 Linux 安装目录复验旧会话
 
 从两个正式版的受控测试资料各取一份压缩 v4 会话及其 `prediction-events.json`，每个版本使用独立副本。原始写入提交为 `95325688c913` 和 `7eaeddc6050e`。测试会话保存了用户的第一句话、输入建议的请求与结果。先记录两个原件的 SHA-256。安装后以普通用户操作副本，从应用安装目录启动[会话检查](../../kernel/0.2.3-alpha.2/verification/installed-composer-session.mjs)。
@@ -964,7 +970,7 @@ node_bin="$runtime/primary-runtime/dependencies/node/bin/node"
 | 目标 | 对照安装形式 | 本轮发行候选验收 |
 | --- | --- | --- |
 | Windows x64 | exe | 缺省与写作的未签名安装器、保留资料及冷启动结果见上表。四模式包、正式签名与真实在线更新仍待验收。 |
-| Linux x64 | deb、rpm 分别验证 | 当前候选已从两个正式版分别覆盖升级，验过同版重装和两种格式的旧会话。Debian 实机已在独立 X11 会话启动桌面。实体桌面门户和正式四模式包仍待验。[逐包摘要与回执](#当前-linux-x64-候选的实装升级) |
+| Linux x64 | deb、rpm 分别验证 | 当前候选已从两个正式版分别覆盖升级，验过同版重装和两种格式的旧会话。Debian 实机已在独立 X11 会话验证 GTK 目录选择门户。直接登录图形桌面的验证及正式四模式包仍待完成。[逐包摘要与回执](#当前-linux-x64-候选的实装升级) |
 | Linux arm64 | deb | 已接入 deb 和 tar.gz 打包入口。待原生构建、在包管理器中安装并验证启动与已有资料。 |
 | macOS arm64 | DMG 手动安装，按旧版实际更新索引验证应用内升级 | 记录签名、公证及 Gatekeeper 结果，再做 Issue #20 的保留资料场景。过渡版本的旧更新器仍可能下载 ZIP。 |
 
