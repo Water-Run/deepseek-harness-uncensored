@@ -2851,15 +2851,32 @@ describe('Workspace tree grouping', () => {
     expect(within(section('Team')).getByText('Child')).toBeTruthy()
   })
 
+  it('moves the folder highlight directly to the destination conversation mode', () => {
+    const first = summary('root-session', 1, { projectionValues: { agentPreset: 'standard' } })
+    const destination = summary('child-session', 2, { projectionValues: { agentPreset: 'reverse' } })
+    const sessions = [first, destination]
+    const b = mount({
+      useWorkspaces: hook(workspaceState([root, team, child])),
+      useSessions: hook(sessionState(sessions, { main: first.id })),
+    })
+    expect(section('Projects').querySelector('[data-active-mode="standard"]')).not.toBeNull()
+    expect(section('Team').querySelector('[data-active-mode]')).toBeNull()
+
+    rerender(b, { useSessions: hook(sessionState(sessions, { main: destination.id })) })
+
+    expect(section('Projects').querySelector('[data-active-mode="standard"]')).toBeNull()
+    expect(section('Team').querySelector('[data-active-mode="reverse"]')).not.toBeNull()
+  })
+
   it('keeps a saved ancestor collapse and highlights the current descendant', () => {
     const b = mount({ useWorkspaces: hook(workspaceState([root, team, child])) })
     fireEvent.click(screen.getByText('Projects'))
     rerender(b, {
-      useSessions: hook(sessionState([summary('child-session', 1)], { main: sid('child-session') })),
+      useSessions: hook(sessionState([summary('child-session', 1, { projectionValues: { agentPreset: 'reverse' } })], { main: sid('child-session') })),
     })
     expect(screen.queryByText('Child')).toBeNull()
     expect(b.store.getSnapshot().groupExpansion.root).toBe(false)
-    expect(section('Projects').querySelector('[class*="folderActive"]')).not.toBeNull()
+    expect(section('Projects').querySelector('[data-active-mode="reverse"]')).not.toBeNull()
   })
 
   it('reveals a search hit without persisting default-expanded ancestors', () => {

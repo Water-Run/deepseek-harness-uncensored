@@ -26,10 +26,11 @@ it('summarizes and expands only enabled windows, ignoring a fuller disabled wind
   } })
   const props = { sessionId, useSession: bindSnapshotSelector(session), useSpending: bindSnapshotSelector(state),
     useProjection: () => undefined,
+    useSessions: bindSnapshotSelector(createSnapshotStore({ ids: [], byId: {}, phase: 'ready' as const, projectionsBySession: {} })),
     useResource: () => ({ status: 'ready', value: { total: 0.22, requests: 1, unpricedRequests: 0, points: [{ time: 1000, total: 0.22 }] } }),
     t: makeTranslate(en),
   } as Parameters<typeof SessionSpending>[0]
-  render(<SessionSpending {...props} />)
+  const view = render(<SessionSpending {...props} />)
   expect(screen.getByRole('button', { name: 'Conversation cost: ￥0.22' })).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: 'Spending limits: 5h 98%' }))
   expect(screen.getAllByRole('progressbar')).toHaveLength(2)
@@ -42,4 +43,7 @@ it('summarizes and expands only enabled windows, ignoring a fuller disabled wind
   })
   expect(screen.getByRole('button', { name: 'Spending limits: Off' })).toBeTruthy()
   expect(screen.queryAllByRole('progressbar')).toHaveLength(0)
+  view.rerender(<SessionSpending {...props} occurrence="embedded" />)
+  expect(screen.queryByRole('button', { name: /^Conversation cost:/u })).toBeNull()
+  expect(screen.queryByRole('button', { name: /^Spending limits:/u })).toBeNull()
 })

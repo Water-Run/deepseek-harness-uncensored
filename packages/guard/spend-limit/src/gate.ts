@@ -7,7 +7,7 @@ import { SpendLedger } from './ledger.ts'
 import { reserveCost, usageCost } from './pricing.ts'
 import type { SessionSpendUsage, SpendPauseId, SpendRate, SpendReservationId } from './types.ts'
 import type { SessionEvent, SessionLogOffset } from '@deepseek-ai/dsh-session'
-import { sessionSpendUsage } from './session-usage.ts'
+import { sessionSpendUsage, type SessionSpendLog } from './session-usage.ts'
 
 /** One process's admission waiters and active requests; the ledger coordinates other processes. */
 export class SpendGate {
@@ -30,10 +30,12 @@ export class SpendGate {
    * Estimate recorded responses independently of the limit switch.
    * @param events - This Session's durable history.
    * @param inheritedEventCount - Exact inherited prefix length from the same observation.
-   * @returns Its own response and retry estimates at configured rates.
+   * @param related - Native side histories owned by this conversation.
+   * @returns Response and retry estimates at configured rates.
    */
-  sessionUsage(events: readonly SessionEvent[], inheritedEventCount: SessionLogOffset): SessionSpendUsage {
-    return sessionSpendUsage(events, this.rates, inheritedEventCount)
+  sessionUsage(events: readonly SessionEvent[], inheritedEventCount: SessionLogOffset,
+    related: readonly SessionSpendLog[]): SessionSpendUsage {
+    return sessionSpendUsage(events, this.rates, inheritedEventCount, related)
   }
 
   private async admit(cost: number, signal?: AbortSignal, onWait?: () => void): Promise<SpendReservationId | undefined> {

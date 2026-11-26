@@ -17,7 +17,11 @@ const amount = (value: number): string => `￥${value.toFixed(value > 0 && value
 const occupancy = (window: SpendWindow): number => (window.spent + window.reserved) / window.limit * 100
 
 /** @param props - Current Session, cost resource and global limit snapshot. @returns Two expandable footer readings. */
-export function SessionSpending({ sessionId, useSession, useProjection, useResource, useSpending, t }:
+export function SessionSpending(props: PropsRuntime<'conversation.composer.dock'> & InjectFace<SpendingInjected> & PropsLocale<'settings.account'>) {
+  return props.occurrence === 'embedded' ? null : <MainSessionSpending {...props} />
+}
+
+function MainSessionSpending({ sessionId, useSession, useSessions, useProjection, useResource, useSpending, t }:
 PropsRuntime<'conversation.composer.dock'> & InjectFace<SpendingInjected> & PropsLocale<'settings.account'>) {
   const blank = useSession(value => value.blank)
   const recorded = useProjection('sessionSpendRevision')
@@ -28,7 +32,12 @@ PropsRuntime<'conversation.composer.dock'> & InjectFace<SpendingInjected> & Prop
   const costRevision = recorded ?? [
     usage?.uncachedInputTokens, usage?.outputTokens, usage?.cacheReadTokens, usage?.cacheWriteTokens, running,
   ].join('-')
-  const result = useResource<'session-cost'>(blank ? '' : `dsh-resource://session-cost/${encodeURIComponent(sessionId)}?v=${costRevision}-${revision}`)
+  const sideRevision = useSessions(list => list.ids.flatMap((id) => {
+    const side = list.byId[id]
+    if (side?.parentId !== sessionId || side.projectionValues?.sessionListMetadata?.side === undefined) return []
+    return [id + ':' + (side.projectionValues.sessionSpendRevision ?? side.updatedAt)]
+  }).sort().join(','))
+  const result = useResource<'session-cost'>(blank ? '' : `dsh-resource://session-cost/${encodeURIComponent(sessionId)}?v=${costRevision}-${revision}&side=${encodeURIComponent(sideRevision)}`)
   const limitState = useSpending(value => value)
   const limits = limitState.data
   if (blank) return null

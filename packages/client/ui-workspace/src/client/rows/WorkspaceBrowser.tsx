@@ -338,6 +338,8 @@ function SessionTree({
   const current = panelActive
     ? undefined
     : Object.values(list.byId).find(session => (session.retainedBy.mainView ?? 0) > 0)?.id
+  const currentMode = current === undefined ? undefined : list.projectionsBySession[current]?.values.agentPreset
+    ?? list.byId[current]?.projectionValues?.agentPreset ?? undefined
   const revealGroup = revealSessionId === undefined || !workspaceReady
     ? undefined
     : owningGroupKey(workspaces, revealSessionId)
@@ -573,6 +575,7 @@ function SessionTree({
           renderFactorySlot={renderFactorySlot} useContextMenu={useContextMenu} useContextMenuTarget={useContextMenuTarget}
           useWorkspaceAccess={useWorkspaceAccess} useRemoteAccess={useRemoteAccess}
           containsCurrentDescendant={currentAncestors.has(group.key)}
+          currentMode={currentMode}
           home={home}
           t={t}
           onToggle={() => {

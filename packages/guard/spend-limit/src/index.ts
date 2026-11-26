@@ -11,6 +11,7 @@ import { SpendRecovery, type SpendContinuationHandler } from './continuation.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import { SpendLedger } from './ledger.ts'
 import { SpendGate } from './gate.ts'
+import type { SessionSpendLog } from './session-usage.ts'
 import { DEFAULT_RATES } from './pricing.ts'
 import type { SessionSpendUsage, SpendPeriod, SpendPreferences, SpendRate, SpendSnapshot, SpendWindowUpdate } from './types.ts'
 export type * from './types.ts'
@@ -70,7 +71,7 @@ export class SpendLimitRemote extends TypertRemoteService {
   @Remote
   async get(): Promise<SpendSnapshot> { const gate = await this.runtime.ready; return gate.ledger.snapshot(gate.waiting) }
   /**
-   * Read estimates from recorded model usage, including when spending limits are off.
+   * Read recorded estimates for a conversation and all its side generations, even when limits are off.
    * @param sessionId - Conversation to inspect; only the application owner may read it.
    * @returns CNY estimate and bounded cumulative history, with missing usage or rates counted explicitly.
    */
@@ -80,7 +81,12 @@ export class SpendLimitRemote extends TypertRemoteService {
     const query = this.ctx.get('sessionQuery')
     if (query === undefined) throw new RemoteError('gateway/internal', 'Session history is unavailable.', {})
     using source = await query.observeSession(sessionId, { projectionMode: 'none' })
-    return (await this.runtime.ready).sessionUsage(source.events, source.inheritedEventCount)
+    const related: SessionSpendLog[] = []
+    for (const id of await query.listSideSessions(sessionId)) {
+      using side = await query.observeSession(id, { projectionMode: 'none' })
+      related.push({ events: side.events, inheritedEventCount: side.inheritedEventCount })
+    }
+    return (await this.runtime.ready).sessionUsage(source.events, source.inheritedEventCount, related)
   }
   /**
    * Save user preferences across local processes.
@@ -173,7 +179,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
       key: 'sessionSpendRevision', stateVersion: 1, stateSchema: sequence,
       init: () => -1,
       apply: (previous, event) => billingEvents.has(event.type) ? event.seq : previous,
-      wire: { viewSchema: sequence, view: value => value, summary: false },
+      wire: { viewSchema: sequence, view: value => value, summary: true },
     })
   })
   let closing = false

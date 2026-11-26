@@ -4,6 +4,7 @@ import SessionStore, { SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-ses
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import { RetryId } from '@deepseek-ai/dsh-llm-retry'
 import { sessionSpendUsage } from '../src/session-usage.ts'
+import SessionQueryEngine, { sideIdentity } from '@deepseek-ai/dsh-session-query'
 import SessionProjections from '@deepseek-ai/dsh-session-projection'
 import * as spending from '../src/index.ts'
 import { DEFAULT_RATES } from '../src/pricing.ts'
@@ -65,7 +66,7 @@ it('excludes inherited work and reports unknown routes without inventing fees', 
   expect(sessionSpendUsage(events, DEFAULT_RATES, SessionLogOffset(2))).toMatchObject({ total: 0.00036, requests: 2, unpricedRequests: 1 })
 })
 
-it('refreshes fees on recorded usage and excludes the revision from session summaries', async () => {
+it('publishes the recorded billing revision in session summaries', async () => {
   const ctx = new Context()
   try {
     await ctx.plugin(SessionStore)
@@ -91,7 +92,7 @@ it('refreshes fees on recorded usage and excludes the revision from session summ
     session.append('request/header', header(0).data)
     expect(read()).toBe(receipt.seq)
     expect(projection.viewCheckpoint(projection.checkpoint(session)).sessionSpendRevision).toBe(receipt.seq)
-    expect(projection.snapshot(session, projection.summaryKeys()).values).not.toHaveProperty('sessionSpendRevision')
+    expect(projection.snapshot(session, projection.summaryKeys()).values).toHaveProperty('sessionSpendRevision', receipt.seq)
     await plugin.dispose()
     expect(read()).toBeUndefined()
   } finally { await ctx.fiber.dispose() }
@@ -111,6 +112,41 @@ it('charges only the grandchild after two real forks and keeps the inherited rou
     const usage = sessionSpendUsage(child.snapshotEvents(), DEFAULT_RATES, child.inheritedEventCount)
     expect(usage).toMatchObject({ total: 0.00036, requests: 1, unpricedRequests: 0 })
     expect(usage.points).toHaveLength(1)
+  } finally { await ctx.fiber.dispose() }
+})
+
+class BillingSessionQuery extends SessionQueryEngine {
+  override searchSessions(): never { throw new Error('Search is not used for billing') }
+  override searchEvents(): never { throw new Error('Search is not used for billing') }
+}
+
+it('counts every native side generation once and preserves the separate cost of a normal fork', async () => {
+  const ctx = new Context()
+  try {
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjections)
+    await ctx.plugin(BillingSessionQuery)
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(spending, { path: ':memory:', pollMs: 1000, rates: DEFAULT_RATES })
+    const root = ctx.sessions.create()
+    root.append('request/header', header(0).data)
+    root.append('assistant/attempt', attempt(1).data)
+
+    const seed = root.snapshotEvents()
+    const side = ctx.sessions.create(sideIdentity(root.id), {
+      seed, inheritedEventCount: SessionLogOffset(seed.length), meta: { isSeeded: true, parentSession: root.id },
+    })
+    side.append('assistant/attempt', attempt(1).data)
+    const cleared = ctx.sessions.create(sideIdentity(root.id, 1), { meta: { parentSession: root.id } })
+    cleared.append('request/header', header(0).data)
+    cleared.append('assistant/attempt', attempt(1).data)
+    const fork = ctx.sessions.fork(root)
+    fork.append('assistant/attempt', attempt(1).data)
+
+    const total = await ctx.spendLimit.sessionUsage(root.id)
+    expect(total).toMatchObject({ total: .00108, requests: 3, unpricedRequests: 0 })
+    expect(total.points.map(point => point.total)).toEqual([.00036, .00072, .00108])
+    expect(await ctx.spendLimit.sessionUsage(fork.id)).toMatchObject({ total: .00036, requests: 1 })
   } finally { await ctx.fiber.dispose() }
 })
 

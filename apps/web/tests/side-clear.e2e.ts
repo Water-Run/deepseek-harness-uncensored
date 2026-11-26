@@ -16,7 +16,10 @@ class SideFixtureAdapter extends MockAdapter {
 }
 
 it('sends side images and clears only the side context', async () => {
-  const scaffold = await launchWebScaffold({ extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
+  const scaffold = await launchWebScaffold({ extraOverlayPath: [
+    fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)),
+    fileURLToPath(new URL('./side-spending.overlay.yml', import.meta.url)),
+  ] })
   try {
     const png = await readFile(new URL('../../../snapshots/session/read-image/workspace/red.png', import.meta.url))
     const adapter = new SideFixtureAdapter(Array.from({ length: 30 }, () => textResponse('Side fixture answer')))
@@ -36,6 +39,7 @@ it('sends side images and clears only the side context', async () => {
     const browser = await chromium.launch()
     try {
       const page = await newEnglishPage(browser), console = watchConsole(page)
+      await page.addInitScript(() => { localStorage.setItem('dsh.uncensored.prediction', '0') })
       await page.goto(scaffold.authenticatedUrl)
       const group = page.getByRole('treeitem').filter({ has: page.getByText('Side fixture workspace', { exact: true }) })
       await group.waitFor()
@@ -71,6 +75,8 @@ it('sends side images and clears only the side context', async () => {
       await mainInput.press('Enter')
       const side = page.locator('[data-aside="side"]:visible')
       await side.getByText('Side fixture answer', { exact: true }).waitFor()
+      expect(await side.getByRole('button', { name: /^(Conversation cost|Spending limits):/u }).count()).toBe(0)
+      await dock.getByRole('button', { name: 'Conversation cost: ￥0.04', exact: true }).waitFor()
       const clearHistory = side.getByRole('button', { name: 'Clear conversation history', exact: true })
       await expect.poll(() => clearHistory.isEnabled()).toBe(true)
       await mkdir(fileURLToPath(new URL('../../../.artifacts/screenshots/side-clear-history', import.meta.url)), { recursive: true })
@@ -106,6 +112,7 @@ it('sends side images and clears only the side context', async () => {
       await side.locator('button[aria-busy="false"]', { has: page.getByRole('img', { name: 'side.png' }) }).waitFor()
       await sideInput.press('Enter')
       await side.getByText('Side fixture answer', { exact: true }).waitFor()
+      await dock.getByRole('button', { name: 'Conversation cost: ￥0.06', exact: true }).waitFor()
       const freshRequest = adapter.requests.findLast(request => JSON.stringify(request.messages).includes('NEW_SIDE_593'))
       expect(JSON.stringify(freshRequest?.messages)).toContain('MAIN_CONTEXT_265')
       expect(JSON.stringify(freshRequest?.messages)).not.toContain('OLD_SIDE_732')
@@ -152,6 +159,7 @@ it('sends side images and clears only the side context', async () => {
       await page.reload()
       await sideInput.waitFor()
       await expect.poll(() => side.getByText('NEW_SIDE_593', { exact: true }).count()).toBe(0)
+      await dock.getByRole('button', { name: 'Conversation cost: ￥0.06', exact: true }).waitFor()
       expect(main.session.deriveMessages()).toEqual(historyBefore)
       expect(main.session.snapshotEvents().slice(before.length).filter(event => event.type !== 'input/prediction')).toEqual([])
       expect(console.pageErrors).toEqual([])

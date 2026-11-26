@@ -3909,6 +3909,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'deterministic newest-first cloned session records.',
       },
       {
+        signature: 'async listSideSessions(parent: SessionId): Promise<SessionId[]>',
+        description: 'Find the published native side conversations owned by a parent, including cleared generations.',
+        parameters: [{ name: 'parent', description: 'Owning conversation identity.' }],
+        returns: 'Unique child identities from the live-preferred catalog.',
+      },
+      {
         signature: 'async readSession(sessionId: SessionId): Promise<SessionLogSnapshot>',
         description: 'Read and replay-validate one complete logical session log without making it live.',
         parameters: [{ name: 'sessionId', description: 'live or persisted session id to read.' }],
@@ -4436,7 +4442,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: '@Remote async sessionUsage(sessionId: SessionId): Promise<SessionSpendUsage>',
-        description: 'Read estimates from recorded model usage, including when spending limits are off.',
+        description: 'Read recorded estimates for a conversation and all its side generations, even when limits are off.',
         parameters: [{ name: 'sessionId', description: 'Conversation to inspect; only the application owner may read it.' }],
         returns: 'CNY estimate and bounded cumulative history, with missing usage or rates counted explicitly.',
       },

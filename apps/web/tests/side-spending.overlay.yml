@@ -1,0 +1,13 @@
+- id: spend-limit
+  config:
+    path: !!js dshHomePath('storages', 'spending.sqlite')
+    rates:
+      - providers: ['side-clear-fixture']
+        models: ['mock']
+        input: 2000
+        cachedInput: 0
+        cacheWrite: 0
+        output: 0
+        contextTokens: 128000
+        maxOutputTokens: 4096
+        searchRequest: 0

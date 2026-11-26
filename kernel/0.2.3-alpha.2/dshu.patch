@@ -61805,3 +61805,779 @@ index 1204c58bdab8402aae7dad0869360085371ef6d5..7c5c665493e4e1b4bcebc168233cb38e
        electron-updater:
          specifier: ^6.8.9
          version: 6.8.9(supports-color@9.4.0)
+diff --git a/apps/web/tests/persistent-side.e2e.ts b/apps/web/tests/persistent-side.e2e.ts
+index 8466a1d1..7780de92 100644
+--- a/apps/web/tests/persistent-side.e2e.ts
++++ b/apps/web/tests/persistent-side.e2e.ts
+@@ -17,7 +17,10 @@ class SideAdapter extends MockAdapter {
+ }
+ 
+ it.each(['standard', 'writing'])('opens, continues, clears and explicitly reads a side discussion in the %s preset', async (agentPreset) => {
+-  const scaffold = await launchWebScaffold({ extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
++  const scaffold = await launchWebScaffold({ extraOverlayPath: [
++    fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)),
++    fileURLToPath(new URL('./side-spending.overlay.yml', import.meta.url)),
++  ] })
+   try {
+     const adapter = new SideAdapter([textResponse('The market opens at dawn.'), 'hang',
+       textResponse('The cover is red.'), textResponse('Keep the red cover.'), textResponse('Discuss the spine next.'),
+@@ -53,6 +56,8 @@ it.each(['standard', 'writing'])('opens, continues, clears and explicitly reads
+       await group.waitFor()
+       if (await group.getAttribute('aria-expanded') === 'false') await group.press('ArrowRight')
+       await page.getByRole('treeitem').filter({ hasText: 'Market notebook' }).click()
++      const cost = page.getByRole('button', { name: /^Conversation cost:/u })
++      await page.getByRole('button', { name: 'Conversation cost: ￥0.02', exact: true }).waitFor()
+       const header = page.getByRole('button', { name: 'Side question', exact: true }).first()
+       const panel = page.locator('[data-aside="side"]:visible')
+       const composer = '[data-composer-input][contenteditable="true"]'
+@@ -69,6 +74,9 @@ it.each(['standard', 'writing'])('opens, continues, clears and explicitly reads
+       await page.locator('button[aria-busy="false"]', { has: page.getByRole('img', { name: 'cover.png' }) }).waitFor()
+       await mainInput.press('Enter')
+       await panel.getByText('The cover is red.', { exact: true }).waitFor()
++      expect(await panel.getByRole('button', { name: /^(Conversation cost|Spending limits):/u }).count()).toBe(0)
++      await page.getByRole('button', { name: 'Conversation cost: ￥0.04', exact: true }).waitFor()
++      expect(await cost.count()).toBe(1)
+       const sent = adapter.requests[2]?.messages
+       expect(JSON.stringify(sent)).toContain('The market opens at dawn.')
+       expect(JSON.stringify(sent)).not.toContain('UNFINISHED CHAPTER')
+@@ -94,6 +102,7 @@ it.each(['standard', 'writing'])('opens, continues, clears and explicitly reads
+       await expect.poll(() => [...childIds].every(id => ctx.agents.get(id) === undefined)).toBe(true)
+       await panel.locator(composer).waitFor()
+       expect(await panel.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
++      expect(await panel.getByRole('button', { name: /^(Conversation cost|Spending limits):/u }).count()).toBe(0)
+       expect(JSON.stringify(adapter.requests[3]?.messages)).toContain('Which color is on the notebook cover?')
+       expect(childIds.size).toBe(1)
+       expect(main.status).toBe('running')
+@@ -113,6 +122,7 @@ it.each(['standard', 'writing'])('opens, continues, clears and explicitly reads
+       await panel.locator(composer).fill('What should we discuss next?')
+       await panel.locator(composer).press('Enter')
+       await panel.getByText('Discuss the spine next.', { exact: true }).waitFor()
++      await page.getByRole('button', { name: 'Conversation cost: ￥0.08', exact: true }).waitFor()
+       expect(lostReply).toHaveBeenCalledTimes(1)
+       lostReply.mockRestore()
+       const freshRequest = JSON.stringify(adapter.requests.at(-1)?.messages)
+diff --git a/apps/web/tests/side-spending.overlay.yml b/apps/web/tests/side-spending.overlay.yml
+new file mode 100644
+index 00000000..fd502920
+--- /dev/null
++++ b/apps/web/tests/side-spending.overlay.yml
+@@ -0,0 +1,13 @@
++- id: spend-limit
++  config:
++    path: !!js dshHomePath('storages', 'spending.sqlite')
++    rates:
++      - providers: ['side-fixture']
++        models: ['mock']
++        input: 2000
++        cachedInput: 0
++        cacheWrite: 0
++        output: 0
++        contextTokens: 128000
++        maxOutputTokens: 4096
++        searchRequest: 0
+diff --git a/packages/client/ui-conversation/src/client/contract/slots.ts b/packages/client/ui-conversation/src/client/contract/slots.ts
+index eeb7d4b1..33b32f96 100644
+--- a/packages/client/ui-conversation/src/client/contract/slots.ts
++++ b/packages/client/ui-conversation/src/client/contract/slots.ts
+@@ -312,7 +312,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
+      * Ambient entries below the composer card; fixed overlays must portal to the document body
+      * because the docked composer contains them.
+      */
+-    'conversation.composer.dock': { kind: 'list'; scope: 'session' }
++    'conversation.composer.dock': { kind: 'list'; scope: 'session'; owner: { occurrence?: ComposerBarOwnerProps['occurrence'] } }
+     /**
+      * Compact controls at the left of the composer tool row; fixed overlays must portal to the
+      * document body because the docked composer contains them.
+diff --git a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx b/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
+index 87183bb4..f292e81a 100644
+--- a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
++++ b/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
+@@ -649,7 +649,7 @@ export const InputBar = memo(function InputBar({
+       </div>
+       <div className={css.dock} data-composer-dock>
+         {variant === 'composer' && input !== undefined && sessionId !== undefined
+-          ? renderSlot('conversation.composer.dock', {})
++          ? renderSlot('conversation.composer.dock', { occurrence })
+           : null}
+         {activity ? null : <ContextMeter useProjection={useProjection} t={t} />}
+       </div>
+diff --git a/packages/client/ui-settings-account/README.i18n.yaml b/packages/client/ui-settings-account/README.i18n.yaml
+index 49e66989..b8c6b363 100644
+--- a/packages/client/ui-settings-account/README.i18n.yaml
++++ b/packages/client/ui-settings-account/README.i18n.yaml
+@@ -9,8 +9,8 @@
+   en: 9ff7ac2d70f70b59
+   zh: ded522c4cfd6e040
+ /deepseek-ai-dsh-client-ui-settings-account/summary:
+-  en: 9b45dd5d16b8c45e
+-  zh: 3da0c720fdd234e8
++  en: 3c504f8a4f68083b
++  zh: c399d7cb3e87d442
+ /deepseek-ai-dsh-client-ui-settings-account/table-of-contents:
+   en: c26f81e8adf0128b
+   zh: e11ab371f51f66bc
+diff --git a/packages/client/ui-settings-account/README.md b/packages/client/ui-settings-account/README.md
+index 4d396595..8f639daf 100644
+--- a/packages/client/ui-settings-account/README.md
++++ b/packages/client/ui-settings-account/README.md
+@@ -15,7 +15,7 @@ Server-expired account credentials clear the displayed account details and emit
+ 
+ Opening About checks this repository’s GitHub releases using the DSHU product version. The dialog shows the result and supports a manual retry. A rate-limited response displays when a retry is available.
+ 
+-An active conversation shows its estimated cost and shared spending limits below the composer. Open a reading to inspect cumulative cost or each enabled window. Unpriced requests are counted separately.
++An active main conversation shows its estimated cost and shared spending limits below the composer. The estimate includes native side questions, including cleared generations. Open a reading to inspect cumulative cost or each enabled window. Unpriced requests are counted separately.
+ 
+ The Account settings section displays DeepSeek login state and offers browser sign-in and cancellation; the sidebar account menu provides Platform sign-out. Desktop users also receive a resumable introduction to account credit and presentation preferences.
+ 
+diff --git a/packages/client/ui-settings-account/README.zh.md b/packages/client/ui-settings-account/README.zh.md
+index 2dc9b921..5df0595f 100644
+--- a/packages/client/ui-settings-account/README.zh.md
++++ b/packages/client/ui-settings-account/README.zh.md
+@@ -15,7 +15,7 @@ kind: "package-reference"
+ 
+ 打开关于页会按 DSHU 产品版本检查本仓库的 GitHub Release。可以在弹窗中查看结果和手动重试。触发 GitHub 限流时，页面显示可再次检查的时间。
+ 
+-有内容的对话在输入框下方显示本对话估算费用及共用额度。点击读数可查看累计费用曲线或各启用窗口的占用，缺少用量或费率的请求单列数量。
++有内容的主对话在输入框下方显示估算费用和共用额度。估算包含旁问及已清理的旁问历史。点击读数可查看累计费用曲线或各启用窗口的占用，缺少用量或费率的请求单列数量。
+ 
+ 设置中的账号页面显示 DeepSeek 登录状态，并提供浏览器登录和取消；侧边栏账号菜单提供 Platform 退出登录。Desktop 用户还会进入可恢复的引导，了解账号额度并选择展示偏好。
+ 
+diff --git a/packages/client/ui-settings-account/src/client/SessionSpending.tsx b/packages/client/ui-settings-account/src/client/SessionSpending.tsx
+index e634ffa6..bb7f4dde 100644
+--- a/packages/client/ui-settings-account/src/client/SessionSpending.tsx
++++ b/packages/client/ui-settings-account/src/client/SessionSpending.tsx
+@@ -18,11 +18,18 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
+ const amount = (value: number): string => `￥${value.toFixed(value > 0 && value < 0.01 ? 6 : 2)}`
+ const occupancy = (window: SpendWindow): number => (window.spent + window.reserved) / window.limit * 100
+ 
+-/** @param props - Current Session, cost resource and global limit snapshot. @returns Two expandable footer readings. */
+-export function SessionSpending({ sessionId, useSession, useProjection, useResource, useSpending, t }:
+-Pick<PropsRuntime<'conversation.composer.dock'>, 'sessionId' | 'useSession' | 'useProjection'> &
+-Pick<InjectFace<SpendingInjected>, 'useSpending'> &
+-{ t: Translate<keyof typeof spendingEn>; useResource: <P extends 'session-cost'>(address: string) => ResourceSnapshot<ResourceProtocolMap[P]> }) {
++type SessionSpendingProps = Pick<PropsRuntime<'conversation.composer.dock'>, 'occurrence' | 'sessionId' | 'useSession' | 'useSessions' | 'useProjection'> &
++  Pick<InjectFace<SpendingInjected>, 'useSpending'> & {
++    t: Translate<keyof typeof spendingEn>
++    useResource: <P extends 'session-cost'>(address: string) => ResourceSnapshot<ResourceProtocolMap[P]>
++  }
++
++/** @param props - Conversation occurrence, cost resource and global limits. @returns Main conversation spending readings. */
++export function SessionSpending(props: SessionSpendingProps) {
++  return props.occurrence === 'embedded' ? null : <MainSessionSpending {...props} />
++}
++
++function MainSessionSpending({ sessionId, useSession, useSessions, useProjection, useResource, useSpending, t }: SessionSpendingProps) {
+   const blank = useSession(value => value.blank)
+   const recorded = useProjection('sessionSpendRevision')
+   const usage = useProjection('tokenUsage')
+@@ -32,7 +39,12 @@ Pick<InjectFace<SpendingInjected>, 'useSpending'> &
+   const costRevision = recorded ?? [
+     usage?.uncachedInputTokens, usage?.outputTokens, usage?.cacheReadTokens, usage?.cacheWriteTokens, running,
+   ].join('-')
+-  const result = useResource<'session-cost'>(blank ? '' : `dsh-resource://session-cost/${encodeURIComponent(sessionId)}?v=${costRevision}-${revision}`)
++  const sideRevision = useSessions(list => list.ids.flatMap((id) => {
++    const side = list.byId[id]
++    if (side?.parentId !== sessionId || side.projectionValues?.sessionListMetadata?.side === undefined) return []
++    return [id + ':' + (side.projectionValues.sessionSpendRevision ?? side.updatedAt)]
++  }).sort().join(','))
++  const result = useResource<'session-cost'>(blank ? '' : `dsh-resource://session-cost/${encodeURIComponent(sessionId)}?v=${costRevision}-${revision}&side=${encodeURIComponent(sideRevision)}`)
+   const limitState = useSpending(value => value)
+   const limits = limitState.data
+   if (blank) return null
+diff --git a/packages/client/ui-settings-account/src/client/spending-locales.ts b/packages/client/ui-settings-account/src/client/spending-locales.ts
+index 094883ee..2f67b1f2 100644
+--- a/packages/client/ui-settings-account/src/client/spending-locales.ts
++++ b/packages/client/ui-settings-account/src/client/spending-locales.ts
+@@ -22,7 +22,7 @@ export const spendingEn = {
+   'spending.sessionFailed': 'Could not read this conversation’s usage',
+   'spending.sessionRequests': 'Model attempts ({count})',
+   'spending.sessionPartial': '{count} requests have incomplete request details, usage or rates. The total includes known costs.',
+-  'spending.sessionHint': 'Uses current rates for this conversation’s recorded responses, retries, composer predictions and memory extractions. Forks and side questions have their own totals.',
++  'spending.sessionHint': 'Uses current rates for this conversation’s recorded responses, retries, composer predictions and memory extractions. Includes side question costs, including cleared history. Independent forks have their own totals.',
+   'spending.occupancy': 'Limits · {percent}%',
+   'spending.limitUnknown': 'Limits unavailable', 'spending.pausedShort': 'Limits paused',
+   'spending.offShort': 'Off',
+@@ -67,7 +67,7 @@ export const spendingZh: Record<keyof typeof spendingEn, string> = {
+   'spending.sessionFailed': '无法读取本对话用量',
+   'spending.sessionRequests': '模型调用尝试 {count} 次',
+   'spending.sessionPartial': '{count} 次请求缺少请求信息、用量或费率。总额包含已知费用',
+-  'spending.sessionHint': '按当前费率估算本对话已记录的回答、重试、输入预测和记忆提炼费用。分叉与旁问的费用分别统计。',
++  'spending.sessionHint': '按当前费率估算本对话已记录的回答、重试、输入预测和记忆提炼费用。包含旁问费用及已清理的旁问历史。独立分叉的费用单独统计。',
+   'spending.occupancy': '限额 · {percent}%',
+   'spending.limitUnknown': '限额状态未知', 'spending.pausedShort': '限额暂停',
+   'spending.offShort': '未启用',
+diff --git a/packages/client/ui-settings-account/tests/session-spending.client.spec.tsx b/packages/client/ui-settings-account/tests/session-spending.client.spec.tsx
+index 77f223f0..54e71aa7 100644
+--- a/packages/client/ui-settings-account/tests/session-spending.client.spec.tsx
++++ b/packages/client/ui-settings-account/tests/session-spending.client.spec.tsx
+@@ -24,10 +24,11 @@ it('summarizes and expands only enabled windows, ignoring a fuller disabled wind
+   } })
+   const props = { sessionId, useSession: bindSnapshotSelector(session), useSpending: bindSnapshotSelector(state),
+     useProjection: () => undefined,
++    useSessions: bindSnapshotSelector(createSnapshotStore({ ids: [], byId: {}, phase: 'ready' as const, projectionsBySession: {} })),
+     useResource: () => ({ status: 'live' as const, failure: undefined, value: { total: 0.22, requests: 1, unpricedRequests: 0, points: [{ time: 1000, total: 0.22 }] } }),
+     t: makeTranslate(spendingEn),
+   } satisfies Parameters<typeof SessionSpending>[0]
+-  render(<SessionSpending {...props} />)
++  const view = render(<SessionSpending {...props} />)
+   expect(screen.getByRole('button', { name: 'Conversation cost: ￥0.22' })).toBeTruthy()
+   fireEvent.click(screen.getByRole('button', { name: 'Spending limits: 5h 98%' }))
+   expect(screen.getAllByRole('progressbar')).toHaveLength(2)
+@@ -40,4 +41,7 @@ it('summarizes and expands only enabled windows, ignoring a fuller disabled wind
+   })
+   expect(screen.getByRole('button', { name: 'Spending limits: Off' })).toBeTruthy()
+   expect(screen.queryAllByRole('progressbar')).toHaveLength(0)
++  view.rerender(<SessionSpending {...props} occurrence="embedded" />)
++  expect(screen.queryByRole('button', { name: /^Conversation cost:/u })).toBeNull()
++  expect(screen.queryByRole('button', { name: /^Spending limits:/u })).toBeNull()
+ })
+diff --git a/packages/client/ui-workspace/README.i18n.yaml b/packages/client/ui-workspace/README.i18n.yaml
+index 99720f7e..926ab0f5 100644
+--- a/packages/client/ui-workspace/README.i18n.yaml
++++ b/packages/client/ui-workspace/README.i18n.yaml
+@@ -21,8 +21,8 @@
+   en: a77f25e9153d6782
+   zh: 7f60489e53305d20
+ /deepseek-ai-dsh-client-ui-workspace/use-this-package/workspace-hierarchy:
+-  en: cd8635fa6516441d
+-  zh: c06e251fe3dd895b
++  en: 4bdc38a39170d1bd
++  zh: 8a78414b337c5d78
+ /deepseek-ai-dsh-client-ui-workspace/use-this-package/search:
+   en: 1a1e90c2ed1fd3c1
+   zh: b57fedcec1f00367
+diff --git a/packages/client/ui-workspace/README.md b/packages/client/ui-workspace/README.md
+index 758ca995..3529023f 100644
+--- a/packages/client/ui-workspace/README.md
++++ b/packages/client/ui-workspace/README.md
+@@ -51,7 +51,7 @@ Every non-blank, unarchived Session row in the tree and the single list also dra
+ 
+ ### Workspace hierarchy
+ 
+-Choose **Add workspace** and select a directory to register it and open a Session. **View options → Group by** defaults to **WorkSpace**, which lists Workspaces as sibling sections. Select **Workspace Tree** to nest each Workspace under its nearest registered ancestor, including Workspaces added later. Each Workspace keeps its own Sessions and row actions. Child Workspaces appear before the parent's own Sessions. Ancestors start expanded unless a saved collapsed state exists. A saved collapse also hides the current Session; ancestor folder icons stay highlighted when a descendant Workspace contains it. Row fills and hit targets span the same width at every level; only the contents indent. Workspace dragging reorders siblings; dropping on a descendant targets the nearest compatible ancestor, so an expanded parent can be moved past without collapsing it. Search-result navigation expands every ancestor. Grouping and expansion are saved in the current browser; switching modes preserves each Workspace's expansion preference, and the single-list view stays flat.
++Choose **Add workspace** and select a directory to register it and open a Session. **View options → Group by** defaults to **WorkSpace**, which lists Workspaces as sibling sections. Select **Workspace Tree** to nest each Workspace under its nearest registered ancestor, including Workspaces added later. Each Workspace keeps its own Sessions and row actions. Child Workspaces appear before the parent's own Sessions. Ancestors start expanded unless a saved collapsed state exists. A saved collapse also hides the current Session; ancestor folder icons stay highlighted when a descendant Workspace contains it. Highlighted folder icons take their color from the selected conversation’s recorded mode. Row fills and hit targets span the same width at every level; only the contents indent. Workspace dragging reorders siblings; dropping on a descendant targets the nearest compatible ancestor, so an expanded parent can be moved past without collapsing it. Search-result navigation expands every ancestor. Grouping and expansion are saved in the current browser; switching modes preserves each Workspace's expansion preference, and the single-list view stays flat.
+ 
+ Hierarchy uses registered canonical paths only. It does not scan for projects or resolve symlink aliases. Nesting does not change Session working directories, logs, or Workspace membership. Deleting a parent Workspace leaves its child Workspaces registered and places them under their next registered ancestor, or at the root.
+ 
+diff --git a/packages/client/ui-workspace/README.zh.md b/packages/client/ui-workspace/README.zh.md
+index 14be1421..46d21bae 100644
+--- a/packages/client/ui-workspace/README.zh.md
++++ b/packages/client/ui-workspace/README.zh.md
+@@ -51,7 +51,7 @@ kind: "package-reference"
+ 
+ ### 工作区层级
+ 
+-选择**添加工作区**并选取目录，即可注册工作区并打开 Session。**视图选项 → 分组方式**默认为**按工作区**，将工作区作为同级分组显示。选择**按工作区树**后，每个 Workspace 会位于最近的已注册祖先之下，之后添加的 Workspace 也会自动归入。每个 Workspace 保留自己的 Session 和行操作，子 Workspace 显示在父级自己的 Session 之前。祖先默认展开，已有的折叠偏好除外。保存的折叠状态也会隐藏当前 Session；如果后代 Workspace 包含当前 Session，祖先文件夹图标仍保持高亮。各层级的高亮和点击区域保持整行同宽，仅内容缩进。拖拽 Workspace 仅重排同级项目；落在后代行上时，由最近的兼容祖先接收，因此无需先折叠父级就能将其他工作区拖到其后。选择搜索结果会展开全部祖先。分组方式和展开状态保存在当前浏览器中；切换模式会保留各 Workspace 的展开偏好，单列表视图保持平铺。
++选择**添加工作区**并选取目录，即可注册工作区并打开 Session。**视图选项 → 分组方式**默认为**按工作区**，将工作区作为同级分组显示。选择**按工作区树**后，每个 Workspace 会位于最近的已注册祖先之下，之后添加的 Workspace 也会自动归入。每个 Workspace 保留自己的 Session 和行操作，子 Workspace 显示在父级自己的 Session 之前。祖先默认展开，已有的折叠偏好除外。保存的折叠状态也会隐藏当前 Session；如果后代 Workspace 包含当前 Session，祖先文件夹图标仍保持高亮。高亮文件夹图标采用所选对话已记录的模式色。各层级的高亮和点击区域保持整行同宽，仅内容缩进。拖拽 Workspace 仅重排同级项目；落在后代行上时，由最近的兼容祖先接收，因此无需先折叠父级就能将其他工作区拖到其后。选择搜索结果会展开全部祖先。分组方式和展开状态保存在当前浏览器中；切换模式会保留各 Workspace 的展开偏好，单列表视图保持平铺。
+ 
+ 层级仅使用已注册的规范路径，不扫描项目，也不解析符号链接别名。嵌套不会改变 Session 的工作目录、日志或 Workspace 归属。删除父 Workspace 后，子 Workspace 仍保持注册，并归入下一个已注册祖先；没有祖先时显示在根层级。
+ 
+diff --git a/packages/client/ui-workspace/src/client/rows/Rows.module.css b/packages/client/ui-workspace/src/client/rows/Rows.module.css
+index 876e9f09..befccd1d 100644
+--- a/packages/client/ui-workspace/src/client/rows/Rows.module.css
++++ b/packages/client/ui-workspace/src/client/rows/Rows.module.css
+@@ -148,9 +148,14 @@
+   white-space: nowrap;
+ }
+ 
+-.folderActive {
+-  color: var(--dsw-alias-state-business-primary);
+-}
++.folder[data-active-mode='standard'] { color: var(--dsw-mode-standard-accent); }
++.folder[data-active-mode='security'] { color: var(--dsw-mode-security-accent); }
++.folder[data-active-mode='reverse'] { color: var(--dsw-mode-reverse-accent); }
++.folder[data-active-mode='writing'] { color: var(--dsw-mode-writing-accent); }
++:global(body[data-ds-dark-theme]) .folder[data-active-mode='standard'] { color: var(--dsw-mode-standard-accent-dark); }
++:global(body[data-ds-dark-theme]) .folder[data-active-mode='security'] { color: var(--dsw-mode-security-accent-dark); }
++:global(body[data-ds-dark-theme]) .folder[data-active-mode='reverse'] { color: var(--dsw-mode-reverse-accent-dark); }
++:global(body[data-ds-dark-theme]) .folder[data-active-mode='writing'] { color: var(--dsw-mode-writing-accent-dark); }
+ 
+ 
+ /* Project leading slot: folder by default, expand arrow on row hover. */
+diff --git a/packages/client/ui-workspace/src/client/rows/Rows.tsx b/packages/client/ui-workspace/src/client/rows/Rows.tsx
+index ae4baf02..bf7d5920 100644
+--- a/packages/client/ui-workspace/src/client/rows/Rows.tsx
++++ b/packages/client/ui-workspace/src/client/rows/Rows.tsx
+@@ -136,6 +136,7 @@ type ProjectRowItemProps = {
+   group: GroupNode
+   newShortcut?: ShortcutCatalogEntry | undefined
+   containsCurrentDescendant?: boolean
++  currentMode?: string | undefined
+   onToggle: () => void
+   onCreate: (workspaceId: WorkspaceId) => void
+   /** Present only for real Workspace rows in the grouped view. */
+@@ -161,6 +162,7 @@ interface ProjectRowActions {
+  * their access checks; the ungrouped bucket has no Workspace menu.
+  * @param props.group - derived group node.
+  * @param props.containsCurrentDescendant - highlight an ancestor even when its subtree is collapsed.
++ * @param props.currentMode - Recorded mode of the selected conversation.
+  * @param props.onToggle - expand/collapse the group.
+  * @param props.onCreate - start a frontend Session inside the given Workspace.
+  * @param props.drag - optional workspace-row drag wiring.
+@@ -192,7 +194,7 @@ function WorkspaceProjectRow({ workspaceId, ...props }: ProjectRowItemProps & {
+ }
+ 
+ function ProjectRow({
+-  group, containsCurrentDescendant = false, onToggle, drag: offeredDrag, home, newShortcut, t, actions,
++  group, containsCurrentDescendant = false, currentMode, onToggle, drag: offeredDrag, home, newShortcut, t, actions,
+   renderFactorySlot, useContextMenuTarget, useContextMenu,
+ }: Omit<ProjectRowItemProps, 'onCreate'> & { actions: ProjectRowActions }) {
+   const { getTriggerProps } = useContextMenu()
+@@ -225,7 +227,7 @@ function ProjectRow({
+         }}
+       onDragEnd={() => { if (dragPreview.clear()) drag?.end() }}
+     >
+-      <span className={clsx(css.slot, css.folder, active && css.folderActive)}>
++      <span className={clsx(css.slot, css.folder)} data-active-mode={active ? currentMode : undefined}>
+         {row.expanded ? <IconFolderOpenRegular /> : <IconFolderCloseRegular />}
+       </span>
+       <span className={clsx(css.slot, css.chevron)}>
+diff --git a/packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx b/packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx
+index ece24461..200f1cce 100644
+--- a/packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx
++++ b/packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx
+@@ -327,6 +327,8 @@ function SessionTree({
+   const current = panelActive
+     ? undefined
+     : Object.values(list.byId).find(session => (session.retainedBy.mainView ?? 0) > 0)?.id
++  const currentMode = current === undefined ? undefined : list.projectionsBySession[current]?.values.agentPreset
++    ?? list.byId[current]?.projectionValues?.agentPreset ?? undefined
+   const revealGroup = revealSessionId === undefined || !workspaceReady
+     ? undefined
+     : owningGroupKey(workspaces, revealSessionId)
+@@ -557,6 +559,7 @@ function SessionTree({
+           renderFactorySlot={renderFactorySlot} useContextMenu={useContextMenu} useContextMenuTarget={useContextMenuTarget}
+           useWorkspaceAccess={useWorkspaceAccess}
+           containsCurrentDescendant={currentAncestors.has(group.key)}
++          currentMode={currentMode}
+           home={home}
+           t={t}
+           onToggle={() => {
+diff --git a/packages/client/ui-workspace/tests/workspace-browser.client.spec.tsx b/packages/client/ui-workspace/tests/workspace-browser.client.spec.tsx
+index 499c48fc..218aafcb 100644
+--- a/packages/client/ui-workspace/tests/workspace-browser.client.spec.tsx
++++ b/packages/client/ui-workspace/tests/workspace-browser.client.spec.tsx
+@@ -2823,15 +2823,32 @@ describe('Workspace tree grouping', () => {
+     expect(within(section('Team')).getByText('Child')).toBeTruthy()
+   })
+ 
++  it('moves the folder highlight directly to the destination conversation mode', () => {
++    const first = summary('root-session', 1, { projectionValues: { agentPreset: 'standard' } })
++    const destination = summary('child-session', 2, { projectionValues: { agentPreset: 'reverse' } })
++    const sessions = [first, destination]
++    const b = mount({
++      useWorkspaces: hook(workspaceState([root, team, child])),
++      useSessions: hook(sessionState(sessions, { main: first.id })),
++    })
++    expect(section('Projects').querySelector('[data-active-mode="standard"]')).not.toBeNull()
++    expect(section('Team').querySelector('[data-active-mode]')).toBeNull()
++
++    rerender(b, { useSessions: hook(sessionState(sessions, { main: destination.id })) })
++
++    expect(section('Projects').querySelector('[data-active-mode="standard"]')).toBeNull()
++    expect(section('Team').querySelector('[data-active-mode="reverse"]')).not.toBeNull()
++  })
++
+   it('keeps a saved ancestor collapse and highlights the current descendant', () => {
+     const b = mount({ useWorkspaces: hook(workspaceState([root, team, child])) })
+     fireEvent.click(screen.getByText('Projects'))
+     rerender(b, {
+-      useSessions: hook(sessionState([summary('child-session', 1)], { main: sid('child-session') })),
++      useSessions: hook(sessionState([summary('child-session', 1, { projectionValues: { agentPreset: 'reverse' } })], { main: sid('child-session') })),
+     })
+     expect(screen.queryByText('Child')).toBeNull()
+     expect(b.store.getSnapshot().groupExpansion.root).toBe(false)
+-    expect(section('Projects').querySelector('[class*="folderActive"]')).not.toBeNull()
++    expect(section('Projects').querySelector('[data-active-mode="reverse"]')).not.toBeNull()
+   })
+ 
+   it('reveals a search hit without persisting default-expanded ancestors', () => {
+diff --git a/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts b/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
+index 72d09ba0..71a2ec7b 100644
+--- a/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
++++ b/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
+@@ -997,8 +997,13 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+         doc: 'Display text where the owner projects one (nav rows, tabs). A thunk is re-read on every projection, so localized text follows the active locale without re-registering.',
+       },
+     ],
+-    ownerProps: [],
+-    ownerPropsReferences: [],
++    ownerProps: [
++      '/** Owner share of the resident composer bar. */\nexport interface ComposerBarOwnerProps {\n  /** Hero uses centered placement; composer uses the active bottom placement. */\n  variant: \'hero\' | \'composer\'\n  /** Conversation content occurrence rendering this composer; an unaddressed document paste reaches the main one. */\n  occurrence: ConversationContentInputProps[\'variant\']\n  /** A feature-owned reason that makes message input inert while leaving model selection live. */\n  blocked?: { readonly reason: string }\n  /** Lock all message actions while preserving the resident composer surface. */\n  disabled?: boolean\n  /** Whether the shared Workspace picker is expanded. */\n  workspacePickerOpen?: boolean\n  /** Open the Workspace picker from the inert composer surface. */\n  onRequestWorkspace?: () => void\n  placeholder?: string\n  /** Optional content rendered above the composer surface. */\n  accessory?: ReactNode\n}',
++    ],
++    ownerPropsReferences: [
++      'ConversationContentInputProps',
++      'Workspace',
++    ],
+     standardProps: [
+       'useRemoteAccess: (action: RemoteEndpoint) => boolean',
+       'useResource: UseResource',
+diff --git a/packages/guard/spend-limit/README.md b/packages/guard/spend-limit/README.md
+index 22312259..69683469 100644
+--- a/packages/guard/spend-limit/README.md
++++ b/packages/guard/spend-limit/README.md
+@@ -20,7 +20,7 @@ Enable rolling budgets in Settings. A request may proceed when all enabled windo
+ 
+ The local SQLite ledger serializes reservations across processes. Set the ledger path, polling interval, per-provider rates, context size and search cost in the plugin configuration. The ledger estimates input and output cost before dispatch and settles against reported usage. An incomplete response retains the reserved cost. A recovered process reservation starts its rolling period at recovery. Unknown rates or ledger failures block chargeable requests when limits apply.
+ 
+-The session estimate covers its own model responses, retries, composer predictions and memory extractions. Predictions and extractions use the provider and model recorded with each request and the current CNY rates. A missing request ID, route, result, usage or matching rate counts as an unpriced request. Inherited requests belong to their original session. The cumulative curve displays up to 240 points and retains the full priced total. Open sessions publish the sequence of the last billing event to refresh the displayed estimate. Amounts and rates stay in the owner-only usage RPC. The attempt count includes interrupted attempts with no usage receipt. Those attempts add no amount to the known total.
++The conversation estimate covers its model responses, retries, composer predictions and memory extractions across the main history and all native side generations. Predictions and extractions use the provider and model recorded with each request and the current CNY rates. A missing request ID, route, result, usage or matching rate counts as an unpriced request. Inherited requests belong to their original session. The cumulative curve displays up to 240 points and retains the full priced total. Open sessions publish the sequence of the last billing event to refresh the displayed estimate. Amounts and rates stay in the owner-only usage RPC. The attempt count includes interrupted attempts with no usage receipt. Those attempts add no amount to the known total.
+ 
+ ### Recovery and upgrades
+ 
+diff --git a/packages/guard/spend-limit/src/gate.ts b/packages/guard/spend-limit/src/gate.ts
+index 6063a78a..55788cc5 100644
+--- a/packages/guard/spend-limit/src/gate.ts
++++ b/packages/guard/spend-limit/src/gate.ts
+@@ -7,7 +7,7 @@ import { SpendLedger } from './ledger.ts'
+ import { reserveCost, usageCost } from './pricing.ts'
+ import type { SessionSpendUsage, SpendPauseId, SpendRate, SpendReservationId } from './types.ts'
+ import type { SessionEvent, SessionLogOffset } from '@deepseek-ai/dsh-session'
+-import { sessionSpendUsage } from './session-usage.ts'
++import { sessionSpendUsage, type SessionSpendLog } from './session-usage.ts'
+ 
+ /** One process's admission waiters and active requests; the ledger coordinates other processes. */
+ export class SpendGate {
+@@ -30,10 +30,12 @@ export class SpendGate {
+    * Estimate recorded responses independently of the limit switch.
+    * @param events - This Session's durable history.
+    * @param inheritedEventCount - Exact inherited prefix length from the same observation.
+-   * @returns Its own response and retry estimates at configured rates.
++   * @param related - Native side histories owned by this conversation.
++   * @returns Response and retry estimates at configured rates.
+    */
+-  sessionUsage(events: readonly SessionEvent[], inheritedEventCount: SessionLogOffset): SessionSpendUsage {
+-    return sessionSpendUsage(events, this.rates, inheritedEventCount)
++  sessionUsage(events: readonly SessionEvent[], inheritedEventCount: SessionLogOffset,
++    related: readonly SessionSpendLog[]): SessionSpendUsage {
++    return sessionSpendUsage(events, this.rates, inheritedEventCount, related)
+   }
+ 
+   private async admit(cost: number, signal?: AbortSignal, onWait?: () => void): Promise<SpendReservationId | undefined> {
+diff --git a/packages/guard/spend-limit/src/index.ts b/packages/guard/spend-limit/src/index.ts
+index 4a0b7f22..f80aff94 100644
+--- a/packages/guard/spend-limit/src/index.ts
++++ b/packages/guard/spend-limit/src/index.ts
+@@ -11,6 +11,7 @@ import { SpendRecovery, type SpendContinuationHandler } from './continuation.ts'
+ import type { SessionId } from '@deepseek-ai/dsh-session'
+ import { SpendLedger } from './ledger.ts'
+ import { SpendGate } from './gate.ts'
++import type { SessionSpendLog } from './session-usage.ts'
+ import { DEFAULT_RATES } from './pricing.ts'
+ import type { SessionSpendUsage, SpendPeriod, SpendPreferences, SpendRate, SpendSnapshot, SpendWindowUpdate } from './types.ts'
+ export type * from './types.ts'
+@@ -74,7 +75,7 @@ export class SpendLimitRemote extends TypertRemoteService {
+     return gate.ledger.snapshot(gate.waiting)
+   }
+   /**
+-   * Read estimates from recorded model usage, including when spending limits are off.
++   * Read recorded estimates for a conversation and all its side generations, even when limits are off.
+    * @param sessionId - Conversation to inspect; only the application owner may read it.
+    * @returns CNY estimate and bounded cumulative history, with missing usage or rates counted explicitly.
+    */
+@@ -84,7 +85,12 @@ export class SpendLimitRemote extends TypertRemoteService {
+     const query = this.ctx.get('sessionQuery')
+     if (query === undefined) throw new RemoteError('gateway/internal', 'Session history is unavailable.', {})
+     using source = await query.observeSession(sessionId, { projectionMode: 'none' })
+-    return (await this.runtime.ready).sessionUsage(source.events, source.inheritedEventCount)
++    const related: SessionSpendLog[] = []
++    for (const id of await query.listSideSessions(sessionId)) {
++      using side = await query.observeSession(id, { projectionMode: 'none' })
++      related.push({ events: side.events, inheritedEventCount: side.inheritedEventCount })
++    }
++    return (await this.runtime.ready).sessionUsage(source.events, source.inheritedEventCount, related)
+   }
+   /**
+    * Save user preferences across local processes.
+@@ -177,7 +183,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
+       key: 'sessionSpendRevision', stateVersion: 1, stateSchema: sequence,
+       init: () => -1,
+       apply: (previous, event) => billingEvents.has(event.type) ? event.seq : previous,
+-      wire: { viewSchema: sequence, view: value => value, summary: false },
++      wire: { viewSchema: sequence, view: value => value, summary: true },
+     })
+   })
+   let closing = false
+diff --git a/packages/guard/spend-limit/src/session-usage.ts b/packages/guard/spend-limit/src/session-usage.ts
+index 5f79eed3..d966ef0f 100644
+--- a/packages/guard/spend-limit/src/session-usage.ts
++++ b/packages/guard/spend-limit/src/session-usage.ts
+@@ -24,16 +24,48 @@ type PredictionUsageEvent = Pick<SessionEvent, 'seq' | 'time'> & {
+   }
+ }
+ 
++/** One exact session history cut and the prefix it inherited from another session. */
++export interface SessionSpendLog {
++  readonly events: readonly (SessionEvent | PredictionUsageEvent)[]
++  readonly inheritedEventCount: SessionLogOffset
++}
++
+ /**
+- * Estimate this Session's answers, retries, memory extractions and composer predictions.
++ * Estimate answers, retries, memory extractions and composer predictions across related sessions.
+  * @param events - Durable events including route headers and optional inherited prefix.
+  * @param rates - Current deployment rates; missing rates remain explicitly unpriced.
+  * @param inheritedEventCount - Session-validated length of the full inherited prefix, including ancestors.
++ * @param related - Independently recorded side-conversation histories.
+  * @returns CNY totals, coverage counts and a bounded cumulative curve.
+  */
+ export function sessionSpendUsage(
+   events: readonly (SessionEvent | PredictionUsageEvent)[], rates: readonly SpendRate[], inheritedEventCount: SessionLogOffset,
++  related: readonly SessionSpendLog[] = [],
+ ): SessionSpendUsage {
++  const primary = collectSpend({ events, inheritedEventCount }, rates)
++  const settled = [...primary.settled]
++  let unknown = primary.unknown
++  for (const log of related) {
++    const additional = collectSpend(log, rates)
++    unknown += additional.unknown
++    for (const entry of additional.settled) settled.push(entry)
++  }
++  if (related.length > 0) settled.sort((a, b) => a.time - b.time)
++  let total = 0
++  const requests = settled.length + unknown
++  let points: SessionSpendUsage['points'] = settled.map((entry) => {
++    if (entry.cost === undefined) unknown++
++    else total += entry.cost
++    return { time: entry.time, total: total / 1_000_000 }
++  })
++  if (points.length > MAX_POINTS) {
++    const keep = new Set(Array.from({ length: MAX_POINTS }, (_, index) => Math.round(index * (points.length - 1) / (MAX_POINTS - 1))))
++    points = points.filter((_, index) => keep.has(index))
++  }
++  return { total: total / 1_000_000, requests, unpricedRequests: unknown, points }
++}
++
++function collectSpend({ events, inheritedEventCount }: SessionSpendLog, rates: readonly SpendRate[]) {
+   let route: ModelRoute | undefined
+   let last: { turn: number; step: number; seq: number } | undefined
+   let missingId = 0
+@@ -68,18 +100,5 @@ export function sessionSpendUsage(
+     last = { turn: event.data.turn, step: event.data.step, seq: event.seq }
+   }
+ 
+-  let total = 0
+-  let unknown = pending.size + missingId
+-  const requests = settled.size + unknown
+-  let points: SessionSpendUsage['points'] = []
+-  for (const entry of settled.values()) {
+-    if (entry.cost === undefined) unknown++
+-    else total += entry.cost
+-    points.push({ time: entry.time, total: total / 1_000_000 })
+-  }
+-  if (points.length > MAX_POINTS) {
+-    const keep = new Set(Array.from({ length: MAX_POINTS }, (_, index) => Math.round(index * (points.length - 1) / (MAX_POINTS - 1))))
+-    points = points.filter((_, index) => keep.has(index))
+-  }
+-  return { total: total / 1_000_000, requests, unpricedRequests: unknown, points }
++  return { settled: settled.values(), unknown: pending.size + missingId }
+ }
+diff --git a/packages/guard/spend-limit/src/types.ts b/packages/guard/spend-limit/src/types.ts
+index 030263de..e0b849c1 100644
+--- a/packages/guard/spend-limit/src/types.ts
++++ b/packages/guard/spend-limit/src/types.ts
+@@ -1,12 +1,12 @@
+ /** Client-safe preferences and observations for the shared CNY spending ledger. */
+ import type { Branded } from '@deepseek-ai/dsh-brand'
+ import type { SessionId } from '@deepseek-ai/dsh-session/types'
+-import type { SessionProjectionSummaryExcluded } from '@deepseek-ai/dsh-session-projection/types'
++import type {} from '@deepseek-ai/dsh-session-projection/types'
+ 
+ declare module '@deepseek-ai/dsh-session-projection/types' {
+   interface SessionProjectionMap {
+     /** Sequence of the latest recorded request or usage that can change this session's estimate. */
+-    sessionSpendRevision: SessionProjectionSummaryExcluded<number>
++    sessionSpendRevision: number
+   }
+ }
+ 
+diff --git a/packages/guard/spend-limit/tests/session-usage.spec.ts b/packages/guard/spend-limit/tests/session-usage.spec.ts
+index 93b291c5..b64b2bbc 100644
+--- a/packages/guard/spend-limit/tests/session-usage.spec.ts
++++ b/packages/guard/spend-limit/tests/session-usage.spec.ts
+@@ -4,6 +4,7 @@ import SessionStore, { SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-ses
+ import type { SessionEvent } from '@deepseek-ai/dsh-session'
+ import { RetryId } from '@deepseek-ai/dsh-llm-retry'
+ import { sessionSpendUsage } from '../src/session-usage.ts'
++import SessionQueryEngine, { sideIdentity } from '@deepseek-ai/dsh-session-query'
+ import SessionProjections from '@deepseek-ai/dsh-session-projection'
+ import * as spending from '../src/index.ts'
+ import { DEFAULT_RATES } from '../src/pricing.ts'
+@@ -80,7 +81,7 @@ it('excludes inherited work and reports unknown routes without inventing fees',
+   expect(sessionSpendUsage(events, DEFAULT_RATES, SessionLogOffset(2))).toMatchObject({ total: 0.00036, requests: 2, unpricedRequests: 1 })
+ })
+ 
+-it('refreshes fees on recorded usage and excludes the revision from session summaries', async () => {
++it('publishes the recorded billing revision in session summaries', async () => {
+   const ctx = new Context()
+   try {
+     await ctx.plugin(SessionStore)
+@@ -106,7 +107,7 @@ it('refreshes fees on recorded usage and excludes the revision from session summ
+     session.append('request/header', header(0).data)
+     expect(read()).toBe(receipt.seq)
+     expect(projection.viewCheckpoint(projection.checkpoint(session)).sessionSpendRevision).toBe(receipt.seq)
+-    expect(projection.snapshot(session, projection.summaryKeys()).values).not.toHaveProperty('sessionSpendRevision')
++    expect(projection.snapshot(session, projection.summaryKeys()).values).toHaveProperty('sessionSpendRevision', receipt.seq)
+     await plugin.dispose()
+     expect(read()).toBeUndefined()
+   } finally { await ctx.fiber.dispose() }
+@@ -129,6 +130,41 @@ it('charges only the grandchild after two real forks and keeps the inherited rou
+   } finally { await ctx.fiber.dispose() }
+ })
+ 
++class BillingSessionQuery extends SessionQueryEngine {
++  override searchSessions(): never { throw new Error('Search is not used for billing') }
++  override searchEvents(): never { throw new Error('Search is not used for billing') }
++}
++
++it('counts every native side generation once and preserves the separate cost of a normal fork', async () => {
++  const ctx = new Context()
++  try {
++    await ctx.plugin(SessionStore)
++    await ctx.plugin(SessionProjections)
++    await ctx.plugin(BillingSessionQuery)
++    await ctx.plugin(LlmRuntime)
++    await ctx.plugin(spending, { path: ':memory:', pollMs: 1000, rates: DEFAULT_RATES })
++    const root = ctx.sessions.create()
++    root.append('request/header', header(0).data)
++    root.append('assistant/attempt', attempt(1).data)
++
++    const seed = root.snapshotEvents()
++    const side = ctx.sessions.create(sideIdentity(root.id), {
++      seed, inheritedEventCount: SessionLogOffset(seed.length), meta: { isSeeded: true, parentSession: root.id },
++    })
++    side.append('assistant/attempt', attempt(1).data)
++    const cleared = ctx.sessions.create(sideIdentity(root.id, 1), { meta: { parentSession: root.id } })
++    cleared.append('request/header', header(0).data)
++    cleared.append('assistant/attempt', attempt(1).data)
++    const fork = ctx.sessions.fork(root)
++    fork.append('assistant/attempt', attempt(1).data)
++
++    const total = await ctx.spendLimit.sessionUsage(root.id)
++    expect(total).toMatchObject({ total: .00108, requests: 3, unpricedRequests: 0 })
++    expect(total.points.map(point => point.total)).toEqual([.00036, .00072, .00108])
++    expect(await ctx.spendLimit.sessionUsage(fork.id)).toMatchObject({ total: .00036, requests: 1 })
++  } finally { await ctx.fiber.dispose() }
++})
++
+ it('bounds curve payloads while preserving the exact total and end points', () => {
+   const events = [header(0), ...Array.from({ length: 1000 }, (_, index) => attempt(index + 1, index + 1))]
+   const result = sessionSpendUsage(events, DEFAULT_RATES, SessionLogOffset(0))
+diff --git a/packages/session-query/session-query/src/index.ts b/packages/session-query/session-query/src/index.ts
+index 53a3fd52..f6120a26 100644
+--- a/packages/session-query/session-query/src/index.ts
++++ b/packages/session-query/session-query/src/index.ts
+@@ -64,6 +64,7 @@ import {
+ import * as tracing from './tracing.ts'
+ 
+ export type * from './types.ts'
++import { sideGeneration } from './side-identity.ts'
+ export { sideGeneration, sideIdentity } from './side-identity.ts'
+ export { SessionSearchCursor } from './cursor.ts'
+ export type { Config, SessionQueryErrorCode } from './config.ts'
+@@ -195,6 +196,17 @@ export abstract class SessionQueryEngine extends Service {
+     return this._corpus.listSessions(signal)
+   }
+ 
++  /**
++   * Find the published native side conversations owned by a parent, including cleared generations.
++   * @param parent - Owning conversation identity.
++   * @returns Unique child identities from the live-preferred catalog.
++   */
++  async listSideSessions(parent: SessionId): Promise<SessionId[]> {
++    const records = await this.listSessions()
++    return records.flatMap(({ header }) => header.parentSession === parent && sideGeneration(header.id, parent) !== undefined
++      ? [header.id] : [])
++  }
++
+   /**
+    * Read and replay-validate one complete logical session log without making it live.
+    * @param sessionId - live or persisted session id to read.
+diff --git a/docs/subsystems/llm-streaming.md b/docs/subsystems/llm-streaming.md
+index ff556120..71e696fc 100644
+--- a/docs/subsystems/llm-streaming.md
++++ b/docs/subsystems/llm-streaming.md
+@@ -1227,7 +1227,7 @@ async forgetSession(sessionId: SessionId): Promise<void>
+ @Remote async get(): Promise<SpendSnapshot>
+ 
+ /**
+- * Read estimates from recorded model usage, including when spending limits are off.
++ * Read recorded estimates for a conversation and all its side generations, even when limits are off.
+  * @param sessionId - Conversation to inspect; only the application owner may read it.
+  * @returns CNY estimate and bounded cumulative history, with missing usage or rates counted explicitly.
+  */
+diff --git a/docs/subsystems/llm-streaming.zh.md b/docs/subsystems/llm-streaming.zh.md
+index dc194219..2a2dbbdc 100644
+--- a/docs/subsystems/llm-streaming.zh.md
++++ b/docs/subsystems/llm-streaming.zh.md
+@@ -1227,7 +1227,7 @@ async forgetSession(sessionId: SessionId): Promise<void>
+ @Remote async get(): Promise<SpendSnapshot>
+ 
+ /**
+- * Read estimates from recorded model usage, including when spending limits are off.
++ * Read recorded estimates for a conversation and all its side generations, even when limits are off.
+  * @param sessionId - Conversation to inspect; only the application owner may read it.
+  * @returns CNY estimate and bounded cumulative history, with missing usage or rates counted explicitly.
+  */
+diff --git a/docs/subsystems/session-query.md b/docs/subsystems/session-query.md
+index 1de45c10..6268affe 100644
+--- a/docs/subsystems/session-query.md
++++ b/docs/subsystems/session-query.md
+@@ -419,6 +419,13 @@ abstract searchEvents( request: SessionEventSearchRequest, exec?: SessionSearchE
+  */
+ listSessions(signal?: AbortSignal): Promise<SessionRecord[]>
+ 
++/**
++ * Find the published native side conversations owned by a parent, including cleared generations.
++ * @param parent - Owning conversation identity.
++ * @returns Unique child identities from the live-preferred catalog.
++ */
++async listSideSessions(parent: SessionId): Promise<SessionId[]>
++
+ /**
+  * Read and replay-validate one complete logical session log without making it live.
+  * @param sessionId - live or persisted session id to read.
+diff --git a/docs/subsystems/session-query.zh.md b/docs/subsystems/session-query.zh.md
+index e8740f00..34779a7b 100644
+--- a/docs/subsystems/session-query.zh.md
++++ b/docs/subsystems/session-query.zh.md
+@@ -419,6 +419,13 @@ abstract searchEvents( request: SessionEventSearchRequest, exec?: SessionSearchE
+  */
+ listSessions(signal?: AbortSignal): Promise<SessionRecord[]>
+ 
++/**
++ * Find the published native side conversations owned by a parent, including cleared generations.
++ * @param parent - Owning conversation identity.
++ * @returns Unique child identities from the live-preferred catalog.
++ */
++async listSideSessions(parent: SessionId): Promise<SessionId[]>
++
+ /**
+  * Read and replay-validate one complete logical session log without making it live.
+  * @param sessionId - live or persisted session id to read.
+diff --git a/packages/extensions/tool-cordis/src/api-catalog.ts b/packages/extensions/tool-cordis/src/api-catalog.ts
+index 17f112b3..4c9a4c72 100644
+--- a/packages/extensions/tool-cordis/src/api-catalog.ts
++++ b/packages/extensions/tool-cordis/src/api-catalog.ts
+@@ -4010,6 +4010,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
+         parameters: [{ name: 'signal', description: 'optional cancellation for persistence listing.' }],
+         returns: 'deterministic newest-first cloned session records.',
+       },
++      {
++        signature: 'async listSideSessions(parent: SessionId): Promise<SessionId[]>',
++        description: 'Find the published native side conversations owned by a parent, including cleared generations.',
++        parameters: [{ name: 'parent', description: 'Owning conversation identity.' }],
++        returns: 'Unique child identities from the live-preferred catalog.',
++      },
+       {
+         signature: 'async readSession(sessionId: SessionId): Promise<SessionLogSnapshot>',
+         description: 'Read and replay-validate one complete logical session log without making it live.',
+@@ -4558,7 +4564,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
+       },
+       {
+         signature: '@Remote async sessionUsage(sessionId: SessionId): Promise<SessionSpendUsage>',
+-        description: 'Read estimates from recorded model usage, including when spending limits are off.',
++        description: 'Read recorded estimates for a conversation and all its side generations, even when limits are off.',
+         parameters: [{ name: 'sessionId', description: 'Conversation to inspect; only the application owner may read it.' }],
+         returns: 'CNY estimate and bounded cumulative history, with missing usage or rates counted explicitly.',
+       },

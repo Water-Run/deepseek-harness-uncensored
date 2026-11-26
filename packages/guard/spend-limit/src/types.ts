@@ -1,12 +1,12 @@
 /** Client-safe preferences and observations for the shared CNY spending ledger. */
 import type { Branded } from '@deepseek-ai/dsh-brand'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { SessionProjectionSummaryExcluded } from '@deepseek-ai/dsh-session-projection/types'
+import type {} from '@deepseek-ai/dsh-session-projection/types'
 
 declare module '@deepseek-ai/dsh-session-projection/types' {
   interface SessionProjectionMap {
     /** Sequence of the latest recorded request or usage that can change this session's estimate. */
-    sessionSpendRevision: SessionProjectionSummaryExcluded<number>
+    sessionSpendRevision: number
   }
 }
 

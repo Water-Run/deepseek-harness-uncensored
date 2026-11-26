@@ -4,6 +4,8 @@
  * @module @deepseek-ai/dsh-session-query
  */
 
+import { sideGeneration } from './side-identity.ts'
+export { sideGeneration, sideIdentity } from './side-identity.ts'
 import { currentSessionMessageProjections } from '@deepseek-ai/dsh-session-format-catalog/message-projections'
 import { Context, Service } from '@deepseek-ai/cordis'
 import {
@@ -197,6 +199,17 @@ export abstract class SessionQueryEngine extends Service {
    */
   listSessions(signal?: AbortSignal): Promise<SessionRecord[]> {
     return this._corpus.listSessions(signal)
+  }
+
+  /**
+   * Find the published native side conversations owned by a parent, including cleared generations.
+   * @param parent - Owning conversation identity.
+   * @returns Unique child identities from the live-preferred catalog.
+   */
+  async listSideSessions(parent: SessionId): Promise<SessionId[]> {
+    const records = await this.listSessions()
+    return records.flatMap(({ header }) => header.parentSession === parent && sideGeneration(header.id, parent) !== undefined
+      ? [header.id] : [])
   }
 
   /**

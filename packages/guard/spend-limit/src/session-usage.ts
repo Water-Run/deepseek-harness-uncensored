@@ -24,16 +24,48 @@ type PredictionUsageEvent = Pick<SessionEvent, 'seq' | 'time'> & {
   }
 }
 
+/** One exact session history cut and the prefix it inherited from another session. */
+export interface SessionSpendLog {
+  readonly events: readonly (SessionEvent | PredictionUsageEvent)[]
+  readonly inheritedEventCount: SessionLogOffset
+}
+
 /**
- * Estimate this Session's answers, retries, memory extractions and composer predictions.
+ * Estimate answers, retries, memory extractions and composer predictions across related sessions.
  * @param events - Durable events including route headers and optional inherited prefix.
  * @param rates - Current deployment rates; missing rates remain explicitly unpriced.
  * @param inheritedEventCount - Session-validated length of the full inherited prefix, including ancestors.
+ * @param related - Independently recorded side-conversation histories.
  * @returns CNY totals, coverage counts and a bounded cumulative curve.
  */
 export function sessionSpendUsage(
   events: readonly (SessionEvent | PredictionUsageEvent)[], rates: readonly SpendRate[], inheritedEventCount: SessionLogOffset,
+  related: readonly SessionSpendLog[] = [],
 ): SessionSpendUsage {
+  const primary = collectSpend({ events, inheritedEventCount }, rates)
+  const settled = [...primary.settled]
+  let unknown = primary.unknown
+  for (const log of related) {
+    const additional = collectSpend(log, rates)
+    unknown += additional.unknown
+    for (const entry of additional.settled) settled.push(entry)
+  }
+  if (related.length > 0) settled.sort((a, b) => a.time - b.time)
+  let total = 0
+  const requests = settled.length + unknown
+  let points: SessionSpendUsage['points'] = settled.map((entry) => {
+    if (entry.cost === undefined) unknown++
+    else total += entry.cost
+    return { time: entry.time, total: total / 1_000_000 }
+  })
+  if (points.length > MAX_POINTS) {
+    const keep = new Set(Array.from({ length: MAX_POINTS }, (_, index) => Math.round(index * (points.length - 1) / (MAX_POINTS - 1))))
+    points = points.filter((_, index) => keep.has(index))
+  }
+  return { total: total / 1_000_000, requests, unpricedRequests: unknown, points }
+}
+
+function collectSpend({ events, inheritedEventCount }: SessionSpendLog, rates: readonly SpendRate[]) {
   let route: ModelRoute | undefined
   let last: { turn: number; step: number; seq: number } | undefined
   let missingId = 0
@@ -68,18 +100,5 @@ export function sessionSpendUsage(
     last = { turn: event.data.turn, step: event.data.step, seq: event.seq }
   }
 
-  let total = 0
-  let unknown = pending.size + missingId
-  const requests = settled.size + unknown
-  let points: SessionSpendUsage['points'] = []
-  for (const entry of settled.values()) {
-    if (entry.cost === undefined) unknown++
-    else total += entry.cost
-    points.push({ time: entry.time, total: total / 1_000_000 })
-  }
-  if (points.length > MAX_POINTS) {
-    const keep = new Set(Array.from({ length: MAX_POINTS }, (_, index) => Math.round(index * (points.length - 1) / (MAX_POINTS - 1))))
-    points = points.filter((_, index) => keep.has(index))
-  }
-  return { total: total / 1_000_000, requests, unpricedRequests: unknown, points }
+  return { settled: settled.values(), unknown: pending.size + missingId }
 }

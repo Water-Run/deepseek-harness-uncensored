@@ -1,0 +1,32 @@
+{
+  "date": "2026-11-26",
+  "sourceTree": "b284268c88db77f44170bcf2e34f1954575239b9",
+  "dshuVersion": "2026.11.25.0",
+  "kernelVersion": "0.2.3-alpha.2",
+  "platform": "Linux x64",
+  "buildHost": "Debian 13 physical host",
+  "packagingPreset": "production",
+  "artifacts": [
+    {
+      "name": "deepseek-harness-uncensored-2026.11.25.0-linux-amd64.deb",
+      "size": 298846848,
+      "sha256": "7719caa57e04ea6c92230b3fb7d5c2d2090bad1b6de230e49a16feade3f75a3e",
+      "packageType": "deb"
+    },
+    {
+      "name": "deepseek-harness-uncensored-2026.11.25.0-linux-x86_64.rpm",
+      "size": 249312729,
+      "sha256": "2b9777f5407968af979b711114f73007df39da93e248ff979e92594ecdacdc55",
+      "packageType": "rpm"
+    }
+  ],
+  "packagedApplication": {
+    "runtimeVersion": "2026.1125.0",
+    "releaseSource": "github"
+  },
+  "updateMetadata": {
+    "channel": "stable",
+    "logSha256": "a6d761520f40f647d8738698fe9b72512bf05351043810de73ca56438a7df21b"
+  },
+  "installedUpdaterVerified": false
+}

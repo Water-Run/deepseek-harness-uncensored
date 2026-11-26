@@ -953,8 +953,13 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
         doc: 'Display text where the owner projects one (nav rows, tabs). A thunk is re-read on every projection, so localized text follows the active locale without re-registering.',
       },
     ],
-    ownerProps: [],
-    ownerPropsReferences: [],
+    ownerProps: [
+      '/** Owner share of the resident composer bar. */\nexport interface ComposerBarOwnerProps {\n  /** Hero uses centered placement; composer uses the active bottom placement. */\n  variant: \'hero\' | \'composer\'\n  /** Conversation content occurrence rendering this composer; an unaddressed document paste reaches the main one. */\n  occurrence: ConversationContentInputProps[\'variant\']\n  /** A feature-owned reason that makes message input inert while leaving model selection live. */\n  blocked?: { readonly reason: string }\n  /** Lock all message actions while preserving the resident composer surface. */\n  disabled?: boolean\n  /** Whether the shared Workspace picker is expanded. */\n  workspacePickerOpen?: boolean\n  /** Open the Workspace picker from the inert composer surface. */\n  onRequestWorkspace?: () => void\n  placeholder?: string\n  /** Optional content rendered above the composer surface. */\n  accessory?: ReactNode\n}',
+    ],
+    ownerPropsReferences: [
+      'ConversationContentInputProps',
+      'Workspace',
+    ],
     standardProps: [
       'useRemoteAccess: (action: RemoteEndpoint) => boolean',
       'useResource: UseResource',
@@ -1452,7 +1457,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.input.aside\', () => ctx.slots.register(\n      { name: \'conversation.input.aside\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-commands/src/client/asides/index.ts:35',
+    source: 'packages/client/ui-commands/src/client/asides/index.ts:36',
   },
   {
     key: 'conversation.input.attachments',
@@ -4531,7 +4536,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar.aside.conversation\', () => ctx.slots.register(\n      { name: \'sidebar.aside.conversation\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-commands/src/client/asides/index.ts:41',
+    source: 'packages/client/ui-commands/src/client/asides/index.ts:42',
   },
   {
     key: 'sidebar.brand.mark',
@@ -4851,9 +4856,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     hookContext: '',
     slotInject: '',
     declaredBy: 'an entry in \'sidebar\' (client-ui-sidebar), so it exists while that entry is mounted',
-    occupants: [
-      'client-ui-entry-customization EntryMenuContent id \'entry-customization\'',
-    ],
+    occupants: [],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar.panellist.actions\', () => ctx.slots.register(\n      { name: \'sidebar.panellist.actions\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
     source: 'packages/client/ui-sidebar/src/client/contract/slots.ts:49',
@@ -6283,7 +6286,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'useSessionAccess: (sessionId: SessionId, action: RemoteEndpoint) => boolean',
       'useWorkspaceAccess: (workspaceId: WorkspaceId, action: RemoteEndpoint) => boolean',
     ],
-    keyDomain: 'fixed by the owner\'s key table { [K in ToastKind]: ToastNotice<K> }, already taken: archivedNotOpenable, createFailed, defaultWorkspaceFailed, forkCreated, forkFailed, forkRequiresOpen, pinDragBlocked, pinFailed, sessionIdCopied, sessionIdCopyFailed, unpinFailed',
+    keyDomain: 'fixed by the owner\'s key table { [K in ToastKind]: ToastNotice<K> }, already taken: archivedNotOpenable, createFailed, createWorkspaceAttachFailed, defaultWorkspaceFailed, forkCreated, forkFailed, forkRequiresOpen, pinDragBlocked, pinFailed, sessionIdCopied, sessionIdCopyFailed, unpinFailed',
     hookContext: '',
     slotInject: '',
     declaredBy: 'an entry in \'shell.overlay\' (client-ui-workspace), so it exists while that entry is mounted',
@@ -6298,6 +6301,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'client-ui-workspace ToastEntry<PropsRuntime<\'workspace.toast\', \'forkFailed\'>> key \'forkFailed\'',
       'client-ui-workspace ToastEntry<PropsRuntime<\'workspace.toast\', \'forkCreated\'>> key \'forkCreated\'',
       'client-ui-workspace ToastEntry<PropsRuntime<\'workspace.toast\', \'createFailed\'>> key \'createFailed\'',
+      'client-ui-workspace ToastEntry<PropsRuntime<\'workspace.toast\', \'createWorkspa… key \'createWorkspaceAttachFailed\'',
       'client-ui-workspace ToastEntry<PropsRuntime<\'workspace.toast\', \'forkRequiresO… key \'forkRequiresOpen\'',
       'client-ui-workspace ArchiveToastEntry',
     ],

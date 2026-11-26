@@ -228,6 +228,7 @@ type ProjectRowItemProps = {
   group: GroupNode
   newShortcut?: ShortcutCatalogEntry | undefined
   containsCurrentDescendant?: boolean
+  currentMode?: string | undefined
   onToggle: () => void
   onCreate: (workspaceId: WorkspaceId | null) => void
   /** Open a running conversation without toggling the group. */
@@ -255,6 +256,7 @@ interface ProjectRowActions {
  * their access checks; the ungrouped bucket has no Workspace menu.
  * @param props.group - derived group node.
  * @param props.containsCurrentDescendant - highlight an ancestor even when its subtree is collapsed.
+ * @param props.currentMode - Recorded mode of the selected conversation.
  * @param props.onToggle - expand/collapse the group.
  * @param props.onCreate - start a frontend Session inside the given Workspace.
  * @param props.drag - optional workspace-row drag wiring.
@@ -287,7 +289,7 @@ function WorkspaceProjectRow({ workspaceId, ...props }: ProjectRowItemProps & { 
 }
 
 function ProjectRow({
-  group, containsCurrentDescendant = false, onToggle, onOpenRunning, drag: offeredDrag, home, newShortcut, t, actions,
+  group, containsCurrentDescendant = false, currentMode, onToggle, onOpenRunning, drag: offeredDrag, home, newShortcut, t, actions,
   renderFactorySlot, useContextMenuTarget, useContextMenu,
 }: Omit<ProjectRowItemProps, 'onCreate'> & { actions: ProjectRowActions }) {
   const { getTriggerProps } = useContextMenu()
@@ -320,7 +322,7 @@ function ProjectRow({
         }}
       onDragEnd={() => { if (dragPreview.clear()) drag?.end() }}
     >
-      <span className={clsx(css.slot, css.folder, active && css.folderActive)}>
+      <span className={clsx(css.slot, css.folder)} data-active-mode={active ? currentMode : undefined}>
         {row.expanded ? <IconFolderOpenRegular /> : <IconFolderCloseRegular />}
       </span>
       <span className={clsx(css.slot, css.chevron)}>

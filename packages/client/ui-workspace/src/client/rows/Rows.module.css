@@ -187,9 +187,14 @@
   white-space: nowrap;
 }
 
-.folderActive {
-  color: var(--dsw-alias-state-business-primary);
-}
+.folder[data-active-mode='standard'] { color: var(--dsw-mode-standard-accent); }
+.folder[data-active-mode='security'] { color: var(--dsw-mode-security-accent); }
+.folder[data-active-mode='reverse'] { color: var(--dsw-mode-reverse-accent); }
+.folder[data-active-mode='writing'] { color: var(--dsw-mode-writing-accent); }
+:global(body[data-ds-dark-theme]) .folder[data-active-mode='standard'] { color: var(--dsw-mode-standard-accent-dark); }
+:global(body[data-ds-dark-theme]) .folder[data-active-mode='security'] { color: var(--dsw-mode-security-accent-dark); }
+:global(body[data-ds-dark-theme]) .folder[data-active-mode='reverse'] { color: var(--dsw-mode-reverse-accent-dark); }
+:global(body[data-ds-dark-theme]) .folder[data-active-mode='writing'] { color: var(--dsw-mode-writing-accent-dark); }
 
 
 /* Project leading slot: folder by default, expand arrow on row hover. */

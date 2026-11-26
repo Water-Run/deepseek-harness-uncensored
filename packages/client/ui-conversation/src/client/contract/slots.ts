@@ -314,7 +314,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * Ambient entries below the composer card; fixed overlays must portal to the document body
      * because the docked composer contains them.
      */
-    'conversation.composer.dock': { kind: 'list'; scope: 'session' }
+    'conversation.composer.dock': { kind: 'list'; scope: 'session'; owner: { occurrence?: ComposerBarOwnerProps['occurrence'] } }
     /**
      * Compact controls at the left of the composer tool row; fixed overlays must portal to the
      * document body because the docked composer contains them.
