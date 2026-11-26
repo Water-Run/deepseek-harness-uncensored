@@ -57,13 +57,18 @@ it('stages five installers from a collection without update metadata', async () 
 
 it('reads the latest release metadata and verifies each platform installer from the five-asset upload', async () => {
   const { source, out, manifest } = await fixture()
-  await stageGithubRelease(source, out)
+  const draft = '## 从旧版升级\r\n\r\n沿用原来的安装格式。  \r\n安装后从「关于」核对版本。'
+  await writeFile(join(source, 'release draft.md'), '\uFEFF' + draft + '\r\n')
+  await stageGithubRelease(source, out, false, join(source, 'release draft.md'))
   const base = 'https://github.com/Water-Run/deepseek-harness-uncensored/releases/download/v' + version + '/'
   const assets = manifest.artifacts.map(file => ({
     name: file.name, size: file.bytes, state: 'uploaded', digest: 'sha256:' + file.sha256, browser_download_url: base + file.name,
   }))
   const release = { tag_name: 'v' + version, published_at: '2026-11-24T00:00:00Z', draft: false, prerelease: false,
     body: await readFile(join(out, 'release-notes.md'), 'utf8'), assets }
+  expect(release.body).toMatch(/^## 从旧版升级/u)
+  expect(release.body).toContain(draft.replaceAll('\r\n', '\n') + '\n\n## 安装包')
+  expect(release.body.match(/^<!-- dshu-installers-v1 /gmu)).toHaveLength(1)
   for (const [platform, arch, expected] of [
     ['win32', 'x64', ['win-x64.exe']], ['darwin', 'arm64', ['mac-arm64.dmg']],
     ['linux', 'x64', ['linux-x64.deb', 'linux-x64.rpm']], ['linux', 'arm64', ['linux-arm64.deb']],
@@ -77,13 +82,13 @@ it('reads the latest release metadata and verifies each platform installer from 
     }
   }
   const requested: string[] = []
-  const executor: ElectronHttpExecutor = Object.assign(Object.create(ElectronHttpExecutor.prototype), {
+  const executor = Object.assign(Object.create(ElectronHttpExecutor.prototype) as ElectronHttpExecutor, {
     request(options: { hostname: string; path: string }) {
       requested.push(options.hostname + options.path)
       return Promise.resolve(JSON.stringify(release))
     },
   })
-  const updater: AppUpdater = Object.assign(Object.create(AppUpdater.prototype), { currentVersion: new SemVer('2026.1123.0') })
+  const updater = Object.assign(Object.create(AppUpdater.prototype) as AppUpdater, { currentVersion: new SemVer('2026.1123.0') })
   const platform = process.arch === 'arm64' ? 'darwin' : 'win32'
   const client = createClient({ provider: 'custom', updateProvider: GithubInstallerProvider }, updater,
     { isUseMultipleRangeRequest: true, executor, platform })
@@ -102,6 +107,18 @@ it('reads the latest release metadata and verifies each platform installer from 
     expect(installerUpdateInfo({ ...release, body: null }, current, 'win32', 'x64').files).toEqual([])
   }
   expect(() => installerUpdateInfo(release, '2026.1123.0', 'darwin', 'x64')).toThrow('unsupported installer')
+})
+
+it.each([
+  ['empty', ' \r\n\t', 'empty release notes'],
+  ['incorrectly encoded', Buffer.from('\uFEFF## 从旧版升级', 'utf16le'), 'save the release notes as UTF-8'],
+  ['already generated', '## 变更\r\n\r\n<!-- dshu-installers-v1 [] -->\r\n', 'installer checksum list'],
+] as const)('withholds the upload directory for an %s draft', async (_name, content, message) => {
+  const { source, out } = await fixture()
+  const file = join(source, 'release draft.md')
+  await writeFile(file, content)
+  await expect(stageGithubRelease(source, out, false, file)).rejects.toThrow(message)
+  await expect(readdir(out)).rejects.toMatchObject({ code: 'ENOENT' })
 })
 
 it('stages ten bridge assets and explains the previous channel setting', async () => {
@@ -146,8 +163,8 @@ it('resolves the bridge after an old installation selects the public channel', a
   const { source, out } = await fixture()
   await stageGithubRelease(source, out, true)
   const require = createRequire(process.env.DSH_RELEASED_DESKTOP_MANIFEST ?? import.meta.url)
-  const { GenericProvider }: typeof import('electron-updater/out/providers/GenericProvider.js') = require('electron-updater/out/providers/GenericProvider.js')
-  const { findFile }: typeof import('electron-updater/out/providers/Provider.js') = require('electron-updater/out/providers/Provider.js')
+  const { GenericProvider } = require('electron-updater/out/providers/GenericProvider.js') as typeof import('electron-updater/out/providers/GenericProvider.js')
+  const { findFile } = require('electron-updater/out/providers/Provider.js') as typeof import('electron-updater/out/providers/Provider.js')
   const paths = new Map<string, string>()
   for (const folder of ['installers', 'updates']) {
     for (const filename of await readdir(join(out, folder))) paths.set('/releases/latest/download/' + filename, join(out, folder, filename))
@@ -166,8 +183,8 @@ it('resolves the bridge after an old installation selects the public channel', a
     const readAsset = async (url: URL) => {
       expect(url.origin).toBe('https://github.com')
       const path = url.pathname.slice('/Water-Run/deepseek-harness-uncensored'.length)
-      const response = await fetch(new URL(path, 'http://127.0.0.1:' + address.port))
-      if (!response.ok) throw new Error('HTTP ' + response.status)
+      const response = await fetch(new URL(path, `http://127.0.0.1:${address.port}`))
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
       return response
     }
     for (const [platform, arch, extension] of [

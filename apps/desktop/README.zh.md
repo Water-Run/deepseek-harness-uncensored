@@ -300,9 +300,9 @@ Windows 卸载默认保留用户资料与更新缓存，静默卸载也适用。
 
 ## 更新
 
-用 `pnpm --dir apps/desktop run deliver` 收集五个平台安装包，再运行 `pnpm --dir apps/desktop run deliver:github --from <收集目录> --out <新目录>`。`upload-files.txt` 列出全部上传附件。使用 `release-notes.md` 作为发行正文，保留其中隐藏的安装包摘要。新客户端查询 GitHub 的最新公开正式版，比较日期版本并校验对应的安装包。macOS 从 DMG 中取出已签名的应用，交给 Squirrel.Mac 更新。
+用 `pnpm --dir apps/desktop run deliver` 收集五个平台安装包。在 DSHU 仓库中运行 `pnpm --dir apps/desktop run deliver:github --from <收集目录> --out <新目录>`。发布说明写在 UTF-8 Markdown 文件中，通过 `--notes-file <草稿绝对路径>` 传入。生成的 `release-notes.md` 包含定稿文字、下载表和本批安装包的校验值，可直接作为发行正文。省略草稿时只生成安装说明与校验值。`upload-files.txt` 列出全部上传附件。新客户端查询 GitHub 最新正式版，比较日期版本并校验对应的安装包。macOS 从 DMG 中取出已签名的应用，交给 Squirrel.Mac 更新。
 
-过渡版另收集四个 `latest*.yml` 索引和 macOS 更新 ZIP，在 `deliver:github` 末尾加 `--bridge`。过渡版标为 Latest 期间，旧客户端可通过这十个附件完成应用内升级。旧版中曾手选开发版的用户，需先在设置中切回正式版。当下一份仅含安装包的发行版成为 Latest 时，仍使用旧更新器的用户可手动安装一次当时的最新版。
+下一正式版使用五个安装包。`2026.11.23.0` 和 `2026.11.24.3` 的桌面更新器仍会查找旧索引，这两个版本的用户需要从 Release 页面下载对应安装包，手动覆盖安装一次。复现旧分发格式时使用 `--bridge`，它额外收集四个 `latest*.yml` 索引和 macOS 更新 ZIP。
 
 安装器接手后、应用退出前，再次请求安装同一版本会返回当前安装状态，并复用已完成的 Host 停止与安装交接。
 

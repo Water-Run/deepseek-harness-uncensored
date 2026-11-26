@@ -48,13 +48,30 @@ async function verifyFile(directory: string, file: z.infer<typeof receipt>): Pro
   return sha512.digest('base64')
 }
 
+async function readDraft(path: string): Promise<string> {
+  const bytes = await readFile(path)
+  let text: string
+  try {
+    text = new TextDecoder('utf-8', { fatal: true }).decode(bytes)
+  } catch (cause) {
+    throw new Error('GitHub release: save the release notes as UTF-8 in ' + path, { cause })
+  }
+  const markdown = text.replace(/\r\n?/gu, '\n').replace(/\n+$/u, '')
+  if (!markdown.trim()) throw new Error('GitHub release: empty release notes in ' + path)
+  if (/^<!-- dshu-installers-v1 /mu.test(markdown)) {
+    throw new Error('GitHub release: remove the generated installer checksum list from ' + path)
+  }
+  return markdown
+}
+
 /**
  * Create a new upload directory from the desktop collector's receipt. Failed validation leaves no upload directory.
  * @param from - Collected files and RELEASE-MANIFEST.json.
  * @param out - New directory for one version's attachments, upload list and release notes.
  * @param bridge - Include the previous client's automatic update indexes and macOS ZIP.
+ * @param notesFile - Optional UTF-8 Markdown draft to place before the generated download table.
  */
-export async function stageGithubRelease(from: string, out: string, bridge = false): Promise<void> {
+export async function stageGithubRelease(from: string, out: string, bridge = false, notesFile?: string): Promise<void> {
   const source = resolve(from), destination = resolve(out)
   const manifest = manifestSchema.parse(JSON.parse(await readFile(join(source, 'RELEASE-MANIFEST.json'), 'utf8')))
   const version = parseCalendarVersion(manifest.version)
@@ -71,6 +88,7 @@ export async function stageGithubRelease(from: string, out: string, bridge = fal
     throw error
   })) throw new Error(`GitHub release: choose a new output directory: ${destination}`)
 
+  const notes = notesFile === undefined ? [] : [await readDraft(notesFile), '']
   await mkdir(dirname(destination), { recursive: true })
   const staging = await mkdtemp(join(dirname(destination), '.' + basename(destination) + '-'))
   try {
@@ -86,7 +104,7 @@ export async function stageGithubRelease(from: string, out: string, bridge = fal
     }
     const tag = 'v' + version.display
     const base = 'https://github.com/Water-Run/deepseek-harness-uncensored/releases/download/' + tag + '/'
-    const notes = ['## 安装包', '', '| 系统 | 下载 |', '| --- | --- |']
+    notes.push('## 安装包', '', '| 系统 | 下载 |', '| --- | --- |')
     for (const [suffix, label] of installers) {
       const filename = name(suffix)
       uploads.push(`installers/${filename}#${label} · 安装包`)
@@ -122,7 +140,9 @@ export async function stageGithubRelease(from: string, out: string, bridge = fal
 }
 
 if (process.argv[1] !== undefined && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
-  const { values } = parseArgs({ options: { from: { type: 'string' }, out: { type: 'string' }, bridge: { type: 'boolean', default: false } } })
-  if (!values.from || !values.out) throw new Error('Usage: stage-github-release --from <collected> --out <new directory> [--bridge]')
-  await stageGithubRelease(values.from, values.out, values.bridge)
+  const { values } = parseArgs({ options: {
+    from: { type: 'string' }, out: { type: 'string' }, bridge: { type: 'boolean', default: false }, 'notes-file': { type: 'string' },
+  } })
+  if (!values.from || !values.out) throw new Error('Usage: stage-github-release --from <collected> --out <new directory> [--notes-file <draft.md>] [--bridge]')
+  await stageGithubRelease(values.from, values.out, values.bridge, values['notes-file'])
 }

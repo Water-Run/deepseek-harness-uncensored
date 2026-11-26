@@ -14,7 +14,7 @@ DSHU uses [its own GitHub Releases](https://github.com/Water-Run/deepseek-harnes
 
 Use the [packaging commands](../packaging/README.md) to prepare and verify local artifacts. Retain the source commit, product and engine versions, build time, hashes and qualification result with each deliverable. Unsigned inspection builds remain distinct from signed releases; changing the filename does not qualify an artifact.
 
-Use the [desktop release staging instructions](../README.md) for the transition release and subsequent installer-only releases. Mark each published public release as Latest. New clients read the release body and asset records, then download a complete installer from the selected tag. The transition release also serves the indexes and macOS ZIP requested by earlier installations.
+Follow the [desktop release staging instructions](../README.md#updates) to combine the edited notes, download table and installer checksums. The upload list names the five public installers. Mark the public release as Latest. New clients read the release body and asset records to download a complete installer from its tag. The release notes explain the one-time manual upgrade for older clients.
 
 ## Retired upstream tools
 
