@@ -9,6 +9,15 @@
   "pnpmVersion": "11.28.5",
   "linux": {
     "host": "NVIDIA DGX Spark",
+    "desktopProbe": {
+      "activeLocalSeat": false,
+      "packageKind": "deb",
+      "launch": "Ordinary user, DEB extracted into a temporary directory on Ubuntu 24.04.5, isolated X11",
+      "result": "Chromium exited during sandbox initialization before creating a window",
+      "installedRuntimeVersion": "2026.1124.3",
+      "packagedAndInstalledAppArmorProfileSha256": "396f470a6af0075160e9d1bc9cd39ba64f69b564965fb538c2357cb37fff46c4",
+      "installedCandidateGui": "pending"
+    },
     "system": "Ubuntu 24.04.5 LTS",
     "kernel": "7.0.0-1025-nvidia",
     "machine": "aarch64",
@@ -103,6 +112,39 @@
       "phases": ["write", "continue", "reopen"],
       "logSha256": "88c505075232b48a1008e5c9f647fc92926b7d3a3d1a5c9e6fc8e8516c00ee02",
       "verifyLogSha256": "44c87f647c95fcf3316f4d51ae0d84e2684a3973e7e7e6f28f18a6f8f1c9ec07"
+    },
+    "loggedInDesktop": {
+      "session": "Logged-in macOS 26.6.2 Aqua console",
+      "nativeWindow": "WindowServer visible layer-zero window owned by candidate PID",
+      "application": "Verified DMG and extracted app.asar from the copy-over installation",
+      "workspaceReadyJournalMatched": true,
+      "about": {
+        "brand": "2026.11.25.0",
+        "kernel": "0.2.3-alpha.2",
+        "sourceTreeMatched": true,
+        "brandFlushTopLeft": true,
+        "escapeClosed": true
+      },
+      "cases": [
+        {
+          "data": "2026.11.23.0",
+          "workspace": "Retained print workshop",
+          "oldMessagesVerifiedInUI": 2,
+          "screenshotSha256": "c34ee9b9ed771218ae61dd92a6788b316bd40e6366eff59d55b85c466463fc9c"
+        },
+        {
+          "data": "2026.11.24.3",
+          "workspace": "Retained print workshop",
+          "oldMessagesVerifiedInUI": 2,
+          "screenshotSha256": "977cbd861c35d7a911e240797626c57defc51d72dc323258a05143bb3ca7ed89"
+        },
+        {
+          "data": "fresh",
+          "workspace": "Default workspace",
+          "oldMessagesVerifiedInUI": 0,
+          "screenshotSha256": "7b21493761a5c001115075da18a5c72b9ff70f8fdd9a2d3ab7bee94e12c7c5f2"
+        }
+      ]
     },
     "packagedHostRetainedProfile": {
       "uid": 501,

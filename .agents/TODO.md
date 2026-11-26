@@ -30,7 +30,7 @@
 
 源码已合入 DSH `0.2.2-rc.5`，接入自动搜索路由、保护配置与网关凭据同源约束。此前通过 Windows 打包预检及四条搜索和抓取完整回放。本机仍为 rc.4，暂缓 rc.5 升级与实装。[内核记录](requirements/2026-11-18-dsh-rc4.md#上游-rc5-对照2026-11-19)
 
-桌面读取旧 profile 时，随应用提供的 DSH 包优先于资料目录中的同名副本。已覆盖 ESM、CommonJS 及第三方插件解析。Windows x64 保留旧 profile 及其 37 个控制器文件。macOS arm64 已分别从两份正式 DMG 覆盖测试应用，随包 Host 保留工作区与旧会话，冷重开后可读取，空资料对照成功。正式包仍需登录图形桌面复验。[复验命令与判据](requirements/2026-11-25-release-handoff.md#旧资料与问题-20) · [用户报告](https://github.com/Water-Run/deepseek-harness-uncensored/issues/20)
+桌面读取旧 profile 时，随应用提供的 DSH 包优先于资料目录中的同名副本。已覆盖 ESM、CommonJS 及第三方插件解析。Windows x64 保留旧 profile 及其 37 个控制器文件。macOS arm64 已分别从两份正式 DMG 覆盖测试应用，随包 Host 保留工作区与旧会话，冷重开后可读取，空资料对照成功。Mac Studio 的登录桌面已逐条打开两份旧资料中的会话，最终签名包仍须复验。[复验命令与判据](requirements/2026-11-25-release-handoff.md#旧资料与问题-20) · [用户报告](https://github.com/Water-Run/deepseek-harness-uncensored/issues/20)
 
 [Issue #22 的只读识别](requirements/2026-11-25-release-handoff.md#issue-22-的首轮文件头识别)已接入主线，模型在用户未提及 REA 时可以从原消息识别 ELF、PE 和单架构 Mach-O 文件头。
 
@@ -44,7 +44,7 @@
 
 Windows x64 已从 `c048b2e78877` 重建未签名 EXE。两个正式版到新包的覆盖升级、同版重装、两种格式旧会话续写与重开，以及具名拒绝恢复均通过。342 个运行时 npm 依赖版本的发布时间和完整性已核对。[重建与实装回执](requirements/2026-11-25-release-handoff.md#回放修正后的-windows-x64-重建)
 
-Linux 候选已接入 x64（deb、rpm、tar.gz）与 arm64（deb、tar.gz）的原生打包。Debian 13 已从 `c048b2e78877` 重建 x64 三种未签名包。DEB 与 RPM 均从两个正式版覆盖升级，普通用户启动及旧会话续写、同版重装后重开全部通过。Debian 实机的独立 X11 会话已通过 GTK 目录选择门户测试。DGX Spark 同树通过 ARM64 打包及两个正式版的 DEB 覆盖升级与重装，Mac Studio 同树通过 DMG 与会话复验。直接登录图形桌面及正式四模式包仍待验。[Linux x64 回执](requirements/2026-11-25-release-handoff.md#回放修正后的-linux-x64-重建) · [原生 ARM64 回执](requirements/2026-11-25-release-handoff.md#原生-arm64-候选)
+Linux 候选已接入 x64（deb、rpm、tar.gz）与 arm64（deb、tar.gz）的原生打包。Debian 13 已从 `c048b2e78877` 重建 x64 三种未签名包。DEB 与 RPM 均从两个正式版覆盖升级，普通用户启动及旧会话续写、同版重装后重开全部通过。Debian 实机的独立 X11 会话已通过 GTK 目录选择门户测试。DGX Spark 同树通过 ARM64 打包及两个正式版的 DEB 覆盖升级与重装，Mac Studio 同树通过 DMG 与会话复验。Linux x64 的两种包和 Mac DMG 都已在登录图形桌面复验。Linux ARM64 登录桌面与正式四模式包仍待验。[桌面实测](requirements/2026-11-25-release-handoff.md#已登录桌面的实机验收)[Linux x64 回执](requirements/2026-11-25-release-handoff.md#回放修正后的-linux-x64-重建) · [原生 ARM64 回执](requirements/2026-11-25-release-handoff.md#原生-arm64-候选)
 
 当前交付为[Windows x64 首发打包交接](requirements/windows-x64-first-release.md)。应交付功能须在同一候选逐项验证，缺项或待验均使首发保持待交付。
 
@@ -125,7 +125,7 @@ Linux 候选已接入 x64（deb、rpm、tar.gz）与 arm64（deb、tar.gz）的�
 
 ## 后续版本（4 项）
 
-- [ ] **Linux x64 Desktop**（02.09、17.07）：历史归档复验了启动 404 修复、X11/Wayland 主界面和重载。新版缺省与写作候选已在 Debian 13 核验三种归档，DEB 和 RPM 均通过覆盖升级及同版重装。GTK 目录选择门户已在独立 X11 会话验证，直接登录图形桌面的验证及完整发行验收仍待完成。[测试记录](requirements/2026-11-18-linux-test-host.md)
+- [ ] **Linux x64 Desktop**（02.09、17.07）：历史归档复验了启动 404 修复、X11/Wayland 主界面和重载。新版缺省与写作候选已在 Debian 13 核验三种归档，DEB 和 RPM 均通过覆盖升级及同版重装。GTK 目录选择门户已在独立 X11 会话验证。DEB 和 RPM 已在登录的 KDE Wayland 桌面打开工作区及关于页，最终四模式包仍待验收。[测试记录](requirements/2026-11-18-linux-test-host.md)
 - [ ] **macOS ARM Desktop**。
 - [ ] **Android＋PRoot Fedora**。
 - [ ] **全新独立安装器**；当前继续维护现有 DSHU NSIS 安装器。[计划](requirements/desktop-installer-plan.md)

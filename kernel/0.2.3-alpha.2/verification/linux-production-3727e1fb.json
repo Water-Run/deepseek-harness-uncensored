@@ -29,6 +29,29 @@
       "sha256": "fcfea60bf935394693ee8593c3351aded2a29d10486eca02ab5afbcf516fc344"
     }
   ],
+  "loggedInDesktop": {
+    "session": "Active local KDE Wayland seat on Debian 13 x86_64",
+    "packageSource": "Each archive extracted separately; embedded package-type checked",
+    "nativeWindow": "Wayland xdg_toplevel configure and xdg_surface ack_configure",
+    "workspace": "Default workspace visible; workspace-ready journal event",
+    "about": {
+      "brand": "2026.11.25.0",
+      "kernel": "0.2.3-alpha.2",
+      "sourceTreeMatched": true,
+      "brandFlushTopLeft": true,
+      "escapeClosed": true
+    },
+    "cases": [
+      {
+        "kind": "deb",
+        "screenshotSha256": "11e870c3d2a883302d5ff0711b978671608e7426e588aeb3c59c9fe71c3faa52"
+      },
+      {
+        "kind": "rpm",
+        "screenshotSha256": "11e870c3d2a883302d5ff0711b978671608e7426e588aeb3c59c9fe71c3faa52"
+      }
+    ]
+  },
   "publicUpdateChecks": [
     {
       "execution": "extracted package, isolated X11 and D-Bus",

@@ -162,6 +162,16 @@ Debian 13 实机使用 `DSH_PACKAGING_PRESET=production` 和独立预设目录�
 dbus-run-session -- xvfb-run -a python3 kernel/0.2.3-alpha.2/verification/linux-update-check.py "$binary" deb 2026.1125.0 2026.1124.3
 ```
 
+### 已登录桌面的实机验收
+
+Debian 13 x64 实机上，普通用户已登录 KDE Wayland。分别从 `3727e1fb510f` 的 DEB、RPM 解出程序，核对安装包 SHA-256 和包内 `package-type`。每次在独立资料目录启动，指定 `--ozone-platform=wayland` 并连接当前用户的 Wayland 套接字。两个窗口都收到了桌面合成器的配置事件并作出确认。实际打开默认工作区和关于页后，左栏贴齐弹窗的上边与左边，显示 DSHU `2026.11.25.0`，右栏显示 DSH `0.2.3-alpha.2` 和本次源码树，Esc 可以关闭。[DEB 和 RPM 回执](../../kernel/0.2.3-alpha.2/verification/linux-production-3727e1fb.json)
+
+macOS 26.6.2 的 Mac Studio 使用 `c048b2e78877` 的 DMG。分别复制首发版、上一正式版写出的旧资料；两份资料各有一个旧工作区、两个无标题写作会话，以及旧 profile 自带的同名控制器。在已登录的 Aqua 桌面启动候选应用，从侧栏点开两个会话，逐条核对旧消息。空资料另行验证默认工作区。三组都在 WindowServer 中查到属于本次应用进程的可见窗口，并在窗口中核对关于页的两个版本、源码树和 Esc 关闭。[三组 DMG 回执](../../kernel/0.2.3-alpha.2/verification/native-arm64-c048b2e7.json)
+
+测试脚本、每组回执和关于页截图保存在维护机 `%USERPROFILE%/DSHU-Deliveries/20261126/logged-desktop/`。两台设备均使用独立的 DSHU 和 Chromium 资料目录。复验时对照新包的摘要与源码树。
+
+Linux ARM64 的 DGX Spark 本次没有已登录的本地图形会话。在 Ubuntu 24.04.5 上将候选 DEB 解到用户临时目录并从隔离 X11 会话启动时，Chromium 在创建窗口前因沙箱初始化失败而退出。DEB 的安装脚本会安装按程序路径匹配的 AppArmor 配置；候选随包配置和这台机器已安装的配置摘要一致。该机仍装有上一正式版。后续应用包管理器把最终 DEB 安装到专用测试系统的正常位置，再用普通用户从登录桌面启动并核对工作区、旧消息和关于页。[ARM64 实测记录](../../kernel/0.2.3-alpha.2/verification/native-arm64-c048b2e7.json)
+
 ## 版本身份
 
 | 要核对的对象 | 当前依据 | 能据此确认的范围 |
@@ -745,7 +755,7 @@ node scripts/verify-kernel-released-data.mjs .artifacts/review-old .artifacts/re
 
 候选桌面沿用已安装 DSHU 的资料目录。默认位置为 `~/.dsh-uncensored`，覆盖路径使用 `DSH_UNCENSORED_HOME`。已安装的 CLI 也接受指向独立目录的 `DSH_HOME`。继承的值恰为官方默认路径时会选用 DSHU 默认目录。对选定的目录，CLI 与桌面在准备 profile 前检查真实路径，拒绝官方目录本身、其子目录、包含它的父目录及指向它的目录链接。命令行查询版本仍可在资料目录不可用时执行。源码启动 `pnpm dsh` 和 `pnpm run dev:web` 同样采用专用目录。桌面开发启动默认使用工作区下的 `apps/desktop/.desktop-dev/home`，单独覆盖用 `DSH_DESKTOP_DEV_HOME`。桌面外部协议为 `dshu://open`。
 
-Mac Studio 上已用两份正式 DMG 各创建一套合成旧资料，再将 `c048b2e78877` 的应用副本覆盖到同一测试安装路径。包内 Electron 启动实际随包的 Desktop Host，两组都保留旧工作区 ID 和两条会话的顺序与原文。创建的新写作会话 ID 在冷重开后仍可从工作区读取。观察插件与 Host 使用同一个控制器，两组的 41 个 profile 插件文件均逐字保留。空资料对照也能启动和创建会话。复验脚本与脱敏日志在 `%USERPROFILE%/DSHU-Deliveries/20261126/macos-issue20-c048b2e7/`。正式签名、公证、Gatekeeper、系统更新器及登录图形桌面的结果待验。[候选回执](../../kernel/0.2.3-alpha.2/verification/native-arm64-c048b2e7.json)
+Mac Studio 上已用两份正式 DMG 各创建一套合成旧资料，再将 `c048b2e78877` 的应用副本覆盖到同一测试安装路径。包内 Electron 启动实际随包的 Desktop Host，两组都保留旧工作区 ID 和两条会话的顺序与原文。创建的新写作会话 ID 在冷重开后仍可从工作区读取。观察插件与 Host 使用同一个控制器，两组的 41 个 profile 插件文件均逐字保留。空资料对照也能启动和创建会话。复验脚本与脱敏日志在 `%USERPROFILE%/DSHU-Deliveries/20261126/macos-issue20-c048b2e7/`。登录桌面已逐条打开旧会话，正式签名、公证、Gatekeeper 与系统更新器仍待验收。[登录桌面实测](#已登录桌面的实机验收) · [候选回执](../../kernel/0.2.3-alpha.2/verification/native-arm64-c048b2e7.json)
 
 重点核对工作区标识、写作资料选择、滚动额度、会话事件和多代分叉。记忆要同时核对模型请求里的来源记录、资料库里的文本与修订号、禁用状态、作用域及总开关。账单里出现过提炼费用只证明历史事件能被计价，还需要证明确实能打开、检索和修改资料库。[记忆服务](../../packages/memory/memory/README.md) · [账单与迁移记录](2026-11-24-dsh-kernel-upgrade.md)
 
@@ -1039,9 +1049,9 @@ node_bin="$runtime/primary-runtime/dependencies/node/bin/node"
 | 目标 | 对照安装形式 | 本轮发行候选验收 |
 | --- | --- | --- |
 | Windows x64 | exe | `c048b2e78877` 的缺省与写作候选已从两个正式版覆盖升级。两种格式的旧会话均通过续写与同版重装后重开。四模式包、正式签名与真实在线更新仍待验收。[实装回执](#回放修正后的-windows-x64-重建) |
-| Linux x64 | deb、rpm 分别验证 | `3727e1fb510f` 的两种包均从两个正式版完成覆盖升级、同版重装及两种旧会话的续写。两种包内的桌面程序均已查询实际 GitHub 正式版。直接登录图形桌面、安装更高版本及最终四模式包待验收。[当前回执](#linux-桌面检查正式更新源) · [GTK 门户实测](#linux-x64-的-gtk-目录选择门户) |
+| Linux x64 | deb、rpm 分别验证 | `3727e1fb510f` 的两种包均从两个正式版完成覆盖升级、同版重装及两种旧会话的续写。两个包均通过 KDE Wayland 桌面与工作区验证，并已查询 GitHub 正式版。安装更高版本及最终四模式包待验收。[更新源](#linux-桌面检查正式更新源) · [登录桌面](#已登录桌面的实机验收) · [GTK 门户](#linux-x64-的-gtk-目录选择门户) |
 | Linux arm64 | deb | DGX Spark 已构建 DEB、tar.gz。两个正式旧版分别在 Debian ARM64 容器覆盖升级及同版重装，通过 CLI 与两种旧会话复验。直接登录图形桌面的验证仍待完成。[原生 ARM64 回执](#原生-arm64-候选) |
-| macOS arm64 | DMG 手动安装，新客户端从正式 DMG 应用内更新 | Mac Studio 已验证包内 CLI、两种旧会话和旧 profile 覆盖后随包 Host 的启动。正式签名、公证、Gatekeeper、登录图形桌面及新版 DMG 在线更新仍待验。[原生 ARM64 回执](#原生-arm64-候选) |
+| macOS arm64 | DMG 手动安装，新客户端从正式 DMG 应用内更新 | Mac Studio 已验证包内 CLI、旧 profile 和两种旧会话。两个旧版本的工作区与会话均已在登录桌面打开并核对原文。正式签名、公证、Gatekeeper 及新版 DMG 在线更新仍待验。[登录桌面](#已登录桌面的实机验收) · [原生 ARM64 回执](#原生-arm64-候选) |
 
 交回平台结果时，每个安装格式单列一行，附上操作系统及架构、原安装版本与候选版本、安装包摘要、首次启动结果、升级后的资料数量和恢复演练结果。若失败，记录首次失败的操作和原始错误，将仍可运行的旧版本与对应备份成对保留。
 
