@@ -869,7 +869,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows-installer-upgr
 
 #### 具名工具拒绝修复的 Windows 实装验收
 
-[当前 Windows 候选的两组安装回执](#保留旧写作会话的-windows-安装包对照)也覆盖本节的旧会话恢复和具名工具拒绝。
+[当前 Windows 候选的两组安装回执](#回放修正后的-windows-x64-重建)也覆盖本节的旧会话恢复和具名工具拒绝。
 
 缺省与写作的未签名 Windows x64 候选来自 [源码里程碑 `d4654e563a`](https://github.com/Water-Run/deepseek-harness-uncensored/commit/d4654e563a9c681d5f09ee14e0e0606cad867801)。安装后的资源内嵌候选树 `5a851855e0f1ad3086f965d3412a4e4ca2a4cc31`。以下摘要标识这一份安装器。
 
@@ -882,6 +882,14 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows-installer-upgr
 | 安装后恢复原对话 | 两处均以安装后的 Electron 运行探针。三种普通投影均能排除已停用工具。具名拒绝单独覆盖：笔记查询从请求中移除，原用户消息、时钟、已停用的笔记列表声明及其正常移除记录保留。 |
 
 验证正式更新时，分别从首发版和上一正式版的原始安装登记开始，通过线上更新渠道下载同一签名候选。记录实际安装器摘要、退出码、原路径、更新前后登记版本及 `resources/app.asar` 摘要，并检查旧资料。上表的本地安装验收未覆盖线上下载和签名。
+
+### 回放修正后的 Windows x64 重建
+
+Windows 安装包与 Linux x64 复用了固定树 `c048b2e78877`。Windows 的 10 项构建检查、包内 CLI 离线安装与移除插件、Office 渲染与文档转换均通过。`2026.11.25.0` 的 EXE 和 `.blockmap` 已核对摘要，并从 EXE 重算差分块。归档目录为 `%USERPROFILE%/DSHU-Deliveries/20261126/windows-x64-candidate/c048b2e78877/`。
+
+打包运行时的 npm 请求重置或超时时，可通过仅用于构建的 HTTPS 中转读取 npm 官方元数据，保留各版本的发布时间及 `dist.integrity`。本次补全了 318 个缓存包的发布时间，再正常生成锁文件并按冻结锁文件安装。归档的 `verification/runtime-dependencies/` 内含原始锁文件与逐版本回执。回执核对 342 个 npm 依赖版本的至少 24 小时发布间隔及完整性值，另记录 358 个本地工作区 tarball。对安装载荷扫描临时中转地址，命中为零。重建时使用候选目录的 Node.js 和 pnpm，按[固定内核候选](#固定内核候选)还原源码，再运行 `pnpm --filter @deepseek-ai/dsh-desktop run package:win:x64:unsigned --build-version 2026.1125.0`。
+
+两台独立的离线 Windows Sandbox `10.0.26100.9882` 分别从 `2026.11.23.0` 和 `2026.11.24.3` 覆盖升级。两组都在原目录完成升级与同版重装，退出码为 0，降级及无效登记返回 2。原版实际写出的未压缩 JSONL 和 zstd 旧会话均已用新安装续写，并在同版重装后冷启动重开。两处安装目录的 `app.asar` 摘要与组装目录一致，安装后的 Electron 也通过三种请求恢复投影和具名拒绝恢复。归档的 `verification/upgrade-from-releases-dual-format/` 保存两台沙盒的原始回执，复验使用[仓库的双格式升级脚本](../../kernel/0.2.3-alpha.2/verification/windows-installer-upgrade.ps1)。[安装器、锁文件与实装摘要](../../kernel/0.2.3-alpha.2/verification/windows-x64-c048b2e7.json)
 
 ## Linux 候选的原生构建
 
@@ -985,7 +993,7 @@ node_bin="$runtime/primary-runtime/dependencies/node/bin/node"
 
 | 目标 | 对照安装形式 | 本轮发行候选验收 |
 | --- | --- | --- |
-| Windows x64 | exe | 缺省与写作的未签名安装器、保留资料及冷启动结果见上表。四模式包、正式签名与真实在线更新仍待验收。 |
+| Windows x64 | exe | `c048b2e78877` 的缺省与写作候选已从两个正式版覆盖升级。两种格式的旧会话均通过续写与同版重装后重开。四模式包、正式签名与真实在线更新仍待验收。[实装回执](#回放修正后的-windows-x64-重建) |
 | Linux x64 | deb、rpm 分别验证 | `c048b2e78877` 已从两个正式版分别覆盖升级，验过同版重装和两种格式的旧会话。Debian 实机已在独立 X11 会话验证 GTK 目录选择门户。直接登录图形桌面的验证及正式四模式包仍待完成。[逐包摘要与回执](#回放修正后的-linux-x64-重建) |
 | Linux arm64 | deb | 已接入 deb 和 tar.gz 打包入口。待原生构建、在包管理器中安装并验证启动与已有资料。 |
 | macOS arm64 | DMG 手动安装，按旧版实际更新索引验证应用内升级 | 记录签名、公证及 Gatekeeper 结果，再做 Issue #20 的保留资料场景。过渡版本的旧更新器仍可能下载 ZIP。 |

@@ -1,0 +1,90 @@
+{
+  "date": "2026-11-26",
+  "sourceTree": "c048b2e788770f0f4068ff96ee50699579c91518",
+  "dshuVersion": "2026.11.25.0",
+  "kernelVersion": "0.2.3-alpha.2",
+  "platform": "Windows x64",
+  "signed": false,
+  "artifacts": [
+    {
+      "name": "deepseek-harness-uncensored-2026.11.25.0-win-x64-unsigned.exe",
+      "size": 325430131,
+      "sha256": "48ebb4f8a7d12bf3afcabcdc96b526766faec7de0311b65ebba39917ea7c507b"
+    },
+    {
+      "name": "deepseek-harness-uncensored-2026.11.25.0-win-x64-unsigned.exe.blockmap",
+      "size": 336420,
+      "sha256": "4aea1e159dc2f271eb5e51501a8e2514dbff0c95763265bf8518b38db18cfa9e"
+    }
+  ],
+  "blockmapVerified": true,
+  "buildGatesPassed": 10,
+  "packagedRuntimeSmokePassed": true,
+  "appAsarSha256": "43cf519e72e3f94e3493937fc3e6a24a4dd40213ee61509d75175a0b162912ac",
+  "buildRegistryPresentInPayload": false,
+  "runtimeDependencies": {
+    "lockSha256": "7d81a2c86081a96f54c8ed142c2a877e368d63e1908a3165d89bb9d225f1c1f8",
+    "registryVersionsVerified": 342,
+    "localTarballs": 358,
+    "minimumReleaseAgeMinutes": 1440,
+    "auditSha256": "f69b44f3510574c80184871b50f7c1067403832c28bb4a411c78623df89db584"
+  },
+  "inPlaceUpgrades": [
+    {
+      "osBuild": "10.0.26100.9882",
+      "startingVersion": "2026.11.23.0",
+      "candidateVersion": "2026.11.25.0",
+      "originalInstallerSha256": "8f54226cc0e43943d4b60c9c5539ee57959d23eb070eee38c2de504f3be66f1a",
+      "candidateInstallerSha256": "48ebb4f8a7d12bf3afcabcdc96b526766faec7de0311b65ebba39917ea7c507b",
+      "retainedInstallLocation": true,
+      "installedAppAsarSha256": "43cf519e72e3f94e3493937fc3e6a24a4dd40213ee61509d75175a0b162912ac",
+      "upgradeExit": 0,
+      "sameVersionExit": 0,
+      "downgradeExit": 2,
+      "invalidVersionExit": 2,
+      "composer": [
+        "write",
+        "continue",
+        "reopen"
+      ],
+      "compression": [
+        "none",
+        "zstd"
+      ],
+      "recoveryModes": [
+        "leading-only",
+        "addition-only",
+        "in-history"
+      ],
+      "namedRejectionRestored": true
+    },
+    {
+      "osBuild": "10.0.26100.9882",
+      "startingVersion": "2026.11.24.3",
+      "candidateVersion": "2026.11.25.0",
+      "originalInstallerSha256": "a84001b8ec3d64ae4452833d8fdd018857900a772be366488de2f219334b5b30",
+      "candidateInstallerSha256": "48ebb4f8a7d12bf3afcabcdc96b526766faec7de0311b65ebba39917ea7c507b",
+      "retainedInstallLocation": true,
+      "installedAppAsarSha256": "43cf519e72e3f94e3493937fc3e6a24a4dd40213ee61509d75175a0b162912ac",
+      "upgradeExit": 0,
+      "sameVersionExit": 0,
+      "downgradeExit": 2,
+      "invalidVersionExit": 2,
+      "composer": [
+        "write",
+        "continue",
+        "reopen"
+      ],
+      "compression": [
+        "none",
+        "zstd"
+      ],
+      "recoveryModes": [
+        "leading-only",
+        "addition-only",
+        "in-history"
+      ],
+      "namedRejectionRestored": true
+    }
+  ]
+}

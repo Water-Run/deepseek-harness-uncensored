@@ -40,6 +40,8 @@
 
 旧会话升级已补测输入建议。两个正式版分别调用原版输入建议写入器生成压缩 v4 会话，候选 `6283464b` 续写后冷重开，两组各 30 个原文件的 SHA-256 均一致。缺省与写作的 Windows 安装器 `ad437c3b…` 也已从两个正式版实装升级，用安装后的应用续写旧会话并在同版重装后重新读取。[漏检原因、安装器摘要与复验步骤](requirements/2026-11-25-release-handoff.md#含输入建议的旧会话)
 
+Windows x64 已从 `c048b2e78877` 重建未签名 EXE。两个正式版到新包的覆盖升级、同版重装、两种格式旧会话续写与重开，以及具名拒绝恢复均通过。342 个运行时 npm 依赖版本的发布时间和完整性已核对。[重建与实装回执](requirements/2026-11-25-release-handoff.md#回放修正后的-windows-x64-重建)
+
 Linux 候选已接入 x64（deb、rpm、tar.gz）与 arm64（deb、tar.gz）的原生打包。Debian 13 已从 `c048b2e78877` 重建 x64 三种未签名包。DEB 与 RPM 均从两个正式版覆盖升级，普通用户启动及旧会话续写、同版重装后重开全部通过。Debian 实机的独立 X11 会话已通过 GTK 目录选择门户测试。直接登录图形桌面的验证、arm64 原生安装及正式四模式包仍待完成。[Linux x64 候选回执](requirements/2026-11-25-release-handoff.md#回放修正后的-linux-x64-重建)
 
 当前交付为[Windows x64 首发打包交接](requirements/windows-x64-first-release.md)。应交付功能须在同一候选逐项验证，缺项或待验均使首发保持待交付。
