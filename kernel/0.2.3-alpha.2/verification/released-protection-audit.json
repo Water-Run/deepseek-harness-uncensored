@@ -1,0 +1,66 @@
+{
+  "auditEvents": [
+    {
+      "type": "target/admission",
+      "data": {
+        "at": 0,
+        "revision": 2,
+        "operation": "file",
+        "effect": "read",
+        "phase": "execution",
+        "fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "peerFingerprint": null,
+        "source": {
+          "sessionId": "sdk-audit",
+          "parentSessionId": "sdk-main"
+        },
+        "id": "1",
+        "decision": "allow",
+        "code": null,
+        "ruleIds": [],
+        "matchedRules": 0
+      }
+    },
+    {
+      "type": "target/admission",
+      "data": {
+        "at": 1795694201112,
+        "revision": 1,
+        "operation": "file",
+        "effect": "read",
+        "phase": "execution",
+        "fingerprint": "6187704f55c23f9f2c315ded786b0ba6a621c916fea9bd192ed20660e67b78a0",
+        "peerFingerprint": "c5fc899effdf604e2a14c82ee00131139bfc25f29a71314357eeb26545ead4d3",
+        "target": "draft.txt",
+        "peers": "localhost",
+        "decision": "deny",
+        "code": "TARGET_FULLY_PROTECTED",
+        "ruleIds": [],
+        "matchedRules": 0,
+        "source": {
+          "sessionId": "composer-upgrade"
+        },
+        "id": "1"
+      }
+    },
+    {
+      "type": "target/admission",
+      "data": {
+        "at": 1795694201119,
+        "revision": null,
+        "operation": "file",
+        "effect": "metadata",
+        "phase": "preflight",
+        "fingerprint": null,
+        "peerFingerprint": null,
+        "target": null,
+        "peers": null,
+        "decision": "cancelled",
+        "code": "TARGET_CHECK_CANCELLED",
+        "ruleIds": [],
+        "matchedRules": 0,
+        "id": "2"
+      }
+    }
+  ]
+}

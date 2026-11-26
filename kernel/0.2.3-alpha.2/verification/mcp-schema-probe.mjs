@@ -1,16 +1,31 @@
 /** Compare tool declarations after removal, and optionally probe DeepSeek with synthetic note labels. */
 import { dirname, join, resolve } from 'node:path'
 import { deepStrictEqual } from 'node:assert'
+import { existsSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
 const args = process.argv.slice(2)
 if (args.length > 1 || (args.length === 1 && !['--provider', '--installed'].includes(args[0]))) {
-  throw new Error('Use --provider from a prepared source tree or --installed with the installed Electron executable.')
+  throw new Error('Use --provider from a prepared source tree or --installed with the packaged runtime.')
 }
 const source = file => import(pathToFileURL(resolve(file)).href)
 const installed = args.includes('--installed')
-if (installed && !process.versions.electron) throw new Error('--installed requires the desktop executable with ELECTRON_RUN_AS_NODE=1.')
-const bundled = name => source(join(dirname(process.execPath), 'resources', 'app.asar', 'dsh', 'node_modules', '@deepseek-ai', name, 'lib', 'index.js'))
+const linuxNode = '/resources/runtime/primary-runtime/dependencies/node/bin/node'
+function installedArchive() {
+  if (process.platform === 'linux' && process.execPath.endsWith(linuxNode)) {
+    const archive = join(process.execPath.slice(0, -linuxNode.length), 'resources', 'app.asar.unpacked')
+    if (!existsSync(join(archive, 'dsh', 'node_modules', '@deepseek-ai', 'dsh-llm', 'lib', 'index.js'))) {
+      throw new Error('This package stores its JS modules in app.asar. Use its Electron executable with ELECTRON_RUN_AS_NODE=1 and --expose-internals.')
+    }
+    return archive
+  }
+  if (!process.versions.electron) throw new Error('--installed requires the packaged Linux Node or the installed Electron with ELECTRON_RUN_AS_NODE=1.')
+  return process.platform === 'darwin'
+    ? join(dirname(process.execPath), '..', 'Resources', 'app.asar')
+    : join(dirname(process.execPath), 'resources', 'app.asar')
+}
+const archive = installed ? installedArchive() : undefined
+const bundled = name => source(join(archive, 'dsh', 'node_modules', '@deepseek-ai', name, 'lib', 'index.js'))
 const { projectToolUpdates, createUserMessage, createDeveloperMessage } = installed
   ? await bundled('dsh-llm') : await source('packages/llm/llm/src/index.ts')
 const { Session } = installed ? await bundled('dsh-session') : await source('packages/core/session/src/index.ts')

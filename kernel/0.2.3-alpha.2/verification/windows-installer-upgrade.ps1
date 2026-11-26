@@ -5,7 +5,8 @@ param(
     [Parameter(Mandatory)][string]$PreviousVersion,
     [Parameter(Mandatory)][string]$CandidateInstaller,
     [Parameter(Mandatory)][string]$CandidateVersion,
-    [string]$ComposerSample = (Join-Path $PSScriptRoot '../../../packages/sdk/client/tests/expected/input-prediction-projection.json')
+    [string]$ComposerSample = (Join-Path $PSScriptRoot '../../../packages/sdk/client/tests/expected/input-prediction-projection.json'),
+    [string]$ProtectionSample = (Join-Path $PSScriptRoot 'released-protection-audit.json')
 )
 $ErrorActionPreference = 'Stop'
 $entry = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\4bbab420-ba6b-5135-af15-70ac616e0cb2'
@@ -15,12 +16,13 @@ if ($env:USERNAME -ne 'WDAGUtilityAccount' -or (Test-Path -LiteralPath $entry)) 
 }
 $composerProbe = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot 'installed-composer-session.mjs')).Path
 $composerSamplePath = (Resolve-Path -LiteralPath $ComposerSample).Path
+$protectionSamplePath = (Resolve-Path -LiteralPath $ProtectionSample).Path
 $composerData = Join-Path $env:TEMP ('dshu-composer-' + [guid]::NewGuid())
 
 function Invoke-Composer($Installation, [string]$Phase, [string]$Compression) {
     $start = New-Object System.Diagnostics.ProcessStartInfo
     $start.FileName = Join-Path $Installation.Location 'DeepSeek Harness Uncensored.exe'
-    $start.Arguments = '--expose-internals "{0}" {1} "{2}" "{3}" {4}' -f $composerProbe, $Phase, ($composerData + '-' + $Compression), $composerSamplePath, $Compression
+    $start.Arguments = '--expose-internals "{0}" {1} "{2}" "{3}" {4} "{5}"' -f $composerProbe, $Phase, ($composerData + '-' + $Compression), $composerSamplePath, $Compression, $protectionSamplePath
     $start.UseShellExecute = $false
     $start.CreateNoWindow = $true
     $start.EnvironmentVariables['ELECTRON_RUN_AS_NODE'] = '1'
@@ -112,4 +114,5 @@ foreach ($compression in $compressions) { Invoke-Composer $candidate 'reopen' $c
     SameVersionExit = 0
     Composer = @('write', 'continue', 'reopen')
     ComposerCompression = $compressions
+    ProtectionDecisions = @('allow', 'deny', 'cancelled')
 } | ConvertTo-Json -Depth 3

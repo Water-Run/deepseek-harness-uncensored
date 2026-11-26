@@ -162,6 +162,16 @@ gh api repos/Water-Run/deepseek-harness-uncensored/releases/latest | node --impo
 
 Debian 13 实机使用 `DSH_PACKAGING_PRESET=production` 和独立预设目录，从 `b284268c88db` 运行 `pnpm --dir apps/desktop run package:linux:x64 --build-version 2026.1125.0`。从 DEB 和 RPM 存档分别读回 `package-type` 及 GitHub 正式更新地址，验证包内应用启用了 GitHub 更新读取。安装后的在线更新仍待复验。[逐包摘要与回执](../../kernel/0.2.3-alpha.2/verification/linux-production-b284268c.json)
 
+### 同一源码树的五件套演练
+
+固定源码树 `0eb8ef6e8e17196ff01d680c4a76f512af5b96ef` 生成了 DSHU `2026.11.25.0` 的 Windows x64 EXE、macOS ARM64 DMG、Linux x64 DEB/RPM 和 Linux ARM64 DEB。这是缺省与写作候选。Windows 沙盒使用未签名测试包，Mac Studio 只读挂载未签名 DMG，Debian 13 和 DGX Spark 上分别运行从对应格式解出的程序。Linux x64 的两种包使用生产打包预设。签名、登录桌面和线上替换的验收范围见[平台矩阵](#桌面与平台验收)。
+
+每种格式都从同格式的 `2026.11.23.0`、`2026.11.24.3` 写入样本，分别核对普通和 zstd 日志。五个安装包的本地工具恢复检查还覆盖三种请求投影、服务商点名拒绝后的工具顺序，以及第二条独立对话。在 Mac Studio 上，较早候选 `c048b2e78877` 读取上一正式版的两种日志时都在序号 2 拒绝 `target/admission`。同一候选在工具重连且字段换序时也会丢失无关的历史声明。最新 DMG 通过了这两组检查。[源码与安装包复验命令](#issue-25-的工具声明与会话恢复) · [两种日志的样本](#含输入建议的旧会话)
+
+本机交付目录 `%USERPROFILE%/DSHU-Deliveries/20261126/schema-preflight/two-mode-rehearsal/` 含五个规范命名的安装文件、`upload-files.txt` 和从可编辑草稿生成的 `release-notes.md`。用本地构造的 GitHub 响应逐个通过更新器核对名称、大小、SHA-256 和 SHA-512。篡改一项附件摘要后校验失败。四模式合并后的正式文件按[发布前最后一次核对](#发布前最后一次核对)重新生成清单及正文。
+
+20 组旧资料全部续写并冷重开。Windows 从两个版本静默覆盖与同版重装均返回 0，降级和无效旧版登记均返回 2。其余四种包分别用随包读取器验证。十份旧安装文件逐件比对了 GitHub 的 SHA-256。本机 `schema-preflight/windows-sandbox/result/` 保留两份沙盒原始回执，各平台的文件摘要和测试范围汇总在[五件套验收记录](../../kernel/0.2.3-alpha.2/verification/installed-recovery-0eb8ef6e.json)。
+
 ### 两个已发布版本如何发现新安装包
 
 在候选树 `292580a791047f4f34dded4909a29a2fd47c45dd` 的 `deliver:github` 中传入可编辑的 Release 草稿，用上面的五个安装文件重新生成了发行正文。另取两个旧正式版各五个安装包，逐一核对 GitHub 附件的 SHA-256，从每个 `app.asar` 读取 `lib/main.js`，并读取与 `app.asar` 同目录的 `app-update.yml`。测试使用包内的更新代码，并用本地生成的发行数据应答更新请求。五个候选安装文件的大小、SHA-256 和 SHA-512 均从文件重新计算。[十个已发布安装包与五个下载目标的回执](../../kernel/0.2.3-alpha.2/verification/published-update-discovery.json)
@@ -611,9 +621,11 @@ pnpm run test:web:built apps/web/tests/about-dialog-fit.e2e.ts apps/web/tests/ag
 | 报告中给出的否定前瞻样例 | 200 | 此端点接受该样例。其他供应商及表达式须分别实测。 |
 | 无工具 | 200 | 普通消息通过。此请求没有用户原会话的历史。 |
 
+**发送前离线排查。** 从 MCP 服务的 `tools/list` 响应复制单个工具的 `inputSchema` 到 `input-schema.json`，在仓库根目录运行 `node kernel/0.2.3-alpha.2/verification/check-mcp-schema.mjs input-schema.json`。输出的 `path` 是相对该声明的 JSON Pointer。例如，上表笔记样本的第二条组合约束位于 `/properties/label/allOf/1/pattern`。退出码 1 表示发现问题，`observed-deepseek-messages-rejection` 专指上表中官方端点实测拒绝的表达式。`invalid-ecmascript-unicode-regex` 表示 Node 的 Unicode 正则编译失败。`pattern-must-be-string` 表示字段类型错误。退出码 0 表示在检查范围内未发现问题，2 表示文件或输入格式有误。检查器只读取本地声明，覆盖嵌套属性、组合、数组、定义和属性名约束。外部引用与其他供应商的实际接受情况须另验。[离线检查器](../../kernel/0.2.3-alpha.2/verification/check-mcp-schema.mjs)
+
 **请求与恢复。** 未遇到无效请求时，`in-history` 路由可保留已停用的历史声明以复用前缀。此前这也会把被拒绝的声明再次发出。主线的回环 HTTP 回归分别走 API Key 和账号两条路由，使用虚构的笔记工具和测试凭据。每条路由在同一会话内连续两次收到 400，停用工具后的两次请求均成功并保留首条消息。用例同时核对账号请求头、账号模型目录声明的工具更新模式及 400 后的凭据状态。其他用例覆盖先停用后被拒、先被拒后停用、从初始声明或历史添加中移除、保留其他工具及用户文字，以及限流时继续使用原前缀。主线的设置保存、关闭后的工具声明和执行资格分别经过验证。[主循环](../../packages/core/agent-loop/src/agent.ts) · [请求投影](../../packages/llm/llm/src/content.ts)
 
-在装好依赖的主线根目录运行以下命令。复验还原的候选时，在同一个 PowerShell 窗口切换到候选根目录，再执行第二行。默认只检查本地投影。追加 `--provider` 会用 `DEEPSEEK_API_KEY` 向官方端点发送六个表达式对照请求，随后发送原会话与恢复后请求各一次。首次请求记录 400，恢复后的请求只声明时钟工具，返回 200 并正确答出此前的笔记标签 `ORCHID`。生产会话及其文件均无需提供。
+在装好依赖的 DSHU 仓库运行 `pnpm run verify-kernel-tool-recovery`，一次检查离线诊断的反例和主线的请求恢复。单独验证还原的内核时，在仓库根目录执行下列第一行，切换到候选目录，再执行第二行。默认只检查本地投影。追加 `--provider` 会用 `DEEPSEEK_API_KEY` 向官方端点发送六个表达式对照请求，随后发送原会话与恢复后请求各一次。首次请求记录 400，恢复后的请求只声明时钟工具，返回 200 并正确答出此前的笔记标签 `ORCHID`。生产会话及其文件均无需提供。
 
 ```powershell
 $probe = (Resolve-Path kernel/0.2.3-alpha.2/verification/mcp-schema-probe.mjs).Path
@@ -850,6 +862,10 @@ Mac Studio 上已用两份正式 DMG 各创建一套合成旧资料，再将 `c0
 **Windows x64 回执。** `95325688c913`（首发版）和 `7eaeddc6050e`（上一正式版）分别写入旧资料，候选 `ddcc6c82954d` 用 Electron 44.11.5 逐组完成上述往返和桌面 Host 读取，每组 48 个原始文件的 SHA-256 均未改变。交付树 `0eb8ef6e8e17` 与该实测树之间仅有 v4 格式参考的中英文索引和配对文件三处差异，对两个正式版的事件名检查均为 66/66。最终签名安装文件沿用本节实装验收条件。
 
 ### 含输入建议的旧会话
+
+安装包复验可把输入预测与保护审计放在同一条写作对话内。用旧包的 Electron 运行 `installed-composer-session.mjs write <新目录> <预测样本> <none 或 zstd> <审计样本>`。再用候选运行同一条命令，将 `write` 依次改为 `continue` 和 `reopen`，每次另起进程。Linux 候选也支持随包的 Node；若旧包仅在 `app.asar` 中提供 JS 模块，使用该包的 Electron。Electron 需要 `ELECTRON_RUN_AS_NODE=1` 与 `--expose-internals`。成功时每次输出对应阶段的 `composer-upgrade` 回执。Windows 沙盒的 `windows-installer-upgrade.ps1` 还会执行原位覆盖与同版重装；单独复制脚本时，同目录放置审计样本，并通过 `-ComposerSample` 传入预测样本路径。[安装检查](../../kernel/0.2.3-alpha.2/verification/installed-composer-session.mjs) · [预测样本](../../packages/sdk/client/tests/expected/input-prediction-projection.json) · [保护审计样本](../../kernel/0.2.3-alpha.2/verification/released-protection-audit.json)
+
+审计样本的第一条来自上一正式版 SDK 的仅指纹记录，后两条由 `v2026.11.24.3` 的实际审计存储在隔离资料库中生成。拒绝记录带有 `draft.txt` 和 `localhost`，取消记录的两个名称均为 `null`。两种格式都逐条核对两条预测、三条审计的序号、时间和载荷，以及原消息和冷重开后的续写内容。[旧版 SDK 样本](../../packages/sdk/client/tests/expected/target-admission-projection.json)
 
 **触发条件。** 正式版输入框曾为草稿请求过建议，即使用户没有采纳，压缩的 v4 日志也会记录 `input/prediction`。在树 `5a851855` 上，`2026.11.23.0` 写出的会话在打开时抛出 `SessionFormatUnsupportedError`，错误指向日志中第一个输入建议事件。旧候选 Windows 桌面载荷也复现了相同错误。此前的资料样本只写入已提交的用户输入，因此漏过了后台输入建议。这是独立复现的兼容性问题，#20 报告者的原始日志未参与测试。
 

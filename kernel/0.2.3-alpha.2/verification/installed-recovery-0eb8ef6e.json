@@ -1,0 +1,89 @@
+{
+  "date": "2026-11-26",
+  "sourceTree": "0eb8ef6e8e17196ff01d680c4a76f512af5b96ef",
+  "productVersion": "2026.11.25.0",
+  "kernelVersion": "0.2.3-alpha.2",
+  "modeIds": [
+    "default",
+    "writing"
+  ],
+  "published": false,
+  "upgradeCases": 20,
+  "caseDimensions": {
+    "releasedVersions": [
+      "v2026.11.23.0",
+      "v2026.11.24.3"
+    ],
+    "compressions": [
+      "none",
+      "zstd"
+    ],
+    "auditDecisions": [
+      "allow",
+      "deny",
+      "cancelled"
+    ],
+    "predictionEvents": 2,
+    "phases": [
+      "write with previous package",
+      "continue with candidate",
+      "reopen with candidate in a new process"
+    ]
+  },
+  "schemaChecks": [
+    "leading-only",
+    "addition-only",
+    "in-history",
+    "named-rejection",
+    "independent-session"
+  ],
+  "releaseDraftSha256": "670e27dc3e289b2e78ec4cc425ac1c011a52aad09171149d7b12cacd048eb686",
+  "stagedReleaseBodySha256": "bfd83f4f85ca3bdaa8acfb79437e6e2dba3ce6f524f4c5794b15c82be3764bfe",
+  "files": {
+    "DSHU-2026.11.25.0-mac-arm64.dmg": {
+      "host": "macOS 26.6.2 arm64",
+      "readFrom": "read-only DMG",
+      "sha256": "ac3bda8a1b90a7b2706a968fb198b8d2723edcb8281186c05384814894e08340",
+      "priorInstallerSha256": {
+        "v2026.11.23.0": "5f66ee5ef5a47d31c3b56346847d1ab226abb340502dacb773b36d59acae7b24",
+        "v2026.11.24.3": "ce723062ee9a0a10468343c3dc3703ac445be8db63a57cb42e2e94c8bb9f639c"
+      }
+    },
+    "DSHU-2026.11.25.0-linux-x64.deb": {
+      "host": "Debian 13 x86_64",
+      "readFrom": "extracted DEB",
+      "sha256": "7edb5bca6710ccaf30d557911f8bcd9b1e75f51cc8cb96a7aa9bfb2b751b8440",
+      "priorInstallerSha256": {
+        "v2026.11.23.0": "8e66234129fd0301b15dee21b6c5328e90324697bd08318c64b7169d442e5170",
+        "v2026.11.24.3": "871f1e23207b6d3aed717ca175adf5963153f48e54a4fca790d21abba15f5807"
+      }
+    },
+    "DSHU-2026.11.25.0-linux-x64.rpm": {
+      "host": "Debian 13 x86_64",
+      "readFrom": "extracted RPM",
+      "sha256": "030d4d4cc04729c1b50e63d7a460ed34c91008dfab364676c52a39af95c56145",
+      "priorInstallerSha256": {
+        "v2026.11.23.0": "0cd044e1290d16fe9d7355a6a93477fa69fe88a0ba44370eddeeb49f06723e78",
+        "v2026.11.24.3": "bebd5e958996c18a77cb8bb9d415cda57daae3400da8eb5ae55a833be6537dc1"
+      }
+    },
+    "DSHU-2026.11.25.0-linux-arm64.deb": {
+      "host": "Ubuntu 24.04.5 aarch64",
+      "readFrom": "extracted DEB",
+      "sha256": "70aac0a3d16483609c84607e93fcaf97b5c42a9c1be08f238efdfd5a08d45168",
+      "priorInstallerSha256": {
+        "v2026.11.23.0": "5b645318ad9c41e28d918be1cddcce982066e27d1b3f14535546b8e0190cefa4",
+        "v2026.11.24.3": "75e288aa37e376cce828dd84979fce975093f7e1aa8f34fc5a44a9fa2ffcadb0"
+      }
+    },
+    "DSHU-2026.11.25.0-win-x64.exe": {
+      "host": "Windows x64 Sandbox",
+      "readFrom": "installed EXE",
+      "sha256": "e5cc4a0aadc2ad423b2036aec6cf502fec76e3ecef516361f6b740c6128aec6b",
+      "priorInstallerSha256": {
+        "v2026.11.23.0": "8f54226cc0e43943d4b60c9c5539ee57959d23eb070eee38c2de504f3be66f1a",
+        "v2026.11.24.3": "a84001b8ec3d64ae4452833d8fdd018857900a772be366488de2f219334b5b30"
+      }
+    }
+  }
+}

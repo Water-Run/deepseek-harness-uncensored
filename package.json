@@ -132,6 +132,7 @@
     "verify-client-packages": "tsx scripts/verify-client-packages.ts",
     "check:i18n": "tsx scripts/run-gates.ts i18n",
     "verify-installer-locales": "node apps/desktop/scripts/installer-locales.mjs",
+    "verify-kernel-tool-recovery": "node --test kernel/0.2.3-alpha.2/verification/check-mcp-schema.test.mjs && node --import tsx/esm kernel/0.2.3-alpha.2/verification/mcp-schema-probe.mjs",
     "verify-locale-metadata": "tsx scripts/verify-locale-metadata.ts",
     "verify-client-ui-i18n": "tsx scripts/verify-client-ui-i18n.ts",
     "verify-client-route-resolution": "tsx scripts/verify-client-route-resolution.ts",
