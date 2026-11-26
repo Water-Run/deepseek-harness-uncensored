@@ -1,0 +1,366 @@
+{
+  "date": "2026-11-26",
+  "sourceTree": "39dc7d95a408e1e043110916d08d3d4647c3be01",
+  "osVersion": "Microsoft Windows NT 10.0.26100.0",
+  "package": {
+    "tree": "39dc7d95a408e1e043110916d08d3d4647c3be01",
+    "blocks": 15501,
+    "artifacts": [
+      {
+        "name": "deepseek-harness-uncensored-2026.11.25.0-win-x64-unsigned.exe",
+        "size": 325429084,
+        "sha256": "05c8b842f71429e3e37c49cb5043c4d729157b567383d474f84dffe14d44126b"
+      },
+      {
+        "name": "deepseek-harness-uncensored-2026.11.25.0-win-x64-unsigned.exe.blockmap",
+        "size": 336674,
+        "sha256": "d5969a9892f233b99e27738dc9843c0e25e6ee0f5f893868b9b47f78db0ce060"
+      }
+    ]
+  },
+  "upgradeExercise": "Windows Sandbox x64 with a fresh test account, network adapter enabled, API key skipped. Installed v2026.11.24.3, copied the retained Session fixture, then upgraded in place before opening the new application.",
+  "installedAsarSha256": "870385a4434315e5a3b6c905d06bf1d4fa6872319211651a58eebbe101dceada",
+  "fixture": [
+    {
+      "path": "sessions/--C-DSHU-workshop--/retained-print-notebook/session.v4.jsonl.zstd",
+      "sha256": "7ff1c0701c2141b2c8ec2444ac2fc325b71a855f698ff702af7d8a7770e36611"
+    },
+    {
+      "path": "sessions/--C-DSHU-workshop--/session-side-b97d2703789f203e0051bea3f6dd891a1be824618392b6483a51aed99dece26d/session.v4.jsonl.zstd",
+      "sha256": "332d1fe5acc30313030f2e09ea2f475a08f86b94af2b0a2f6752e2afe22b44e7"
+    },
+    {
+      "path": "storages/workspace.json",
+      "sha256": "ddba7fd0b4d4ce1ddc29601545117d61412cda8308b4a2b8c4031191e3b7de93"
+    }
+  ],
+  "about": {
+    "product": "2026.11.25.0",
+    "kernel": "0.2.3-alpha.2",
+    "tree": "39dc7d95a408",
+    "outer": {
+      "x": 153,
+      "y": 87.21875,
+      "width": 960,
+      "height": 538.5546875
+    },
+    "brand": {
+      "x": 153,
+      "y": 87.21875,
+      "width": 398.3984375,
+      "height": 538.5546875
+    }
+  },
+  "defaults": {
+    "appearance": "sun",
+    "appearanceChoices": 4,
+    "memoryEnabled": false,
+    "automaticCleanup": "age",
+    "retentionDays": 30,
+    "writingModeVisible": true
+  },
+  "workspaceAfterSampling": {
+    "stage": "verify",
+    "version": "2026.11.25.0",
+    "mainAnswerVisible": true,
+    "sideAnswerVisible": false,
+    "online": true,
+    "ownsHost": true
+  },
+  "phases": {
+    "workspace": {
+      "startUtc": "2026-11-26T01:56:27.3834310Z",
+      "endUtc": "2026-11-26T01:59:26.7745624Z",
+      "checkedLogs": 3,
+      "changed": [],
+      "series": [
+        {
+          "elapsedSeconds": 2,
+          "privateBytes": 767655936,
+          "handles": 2795,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 15.2,
+          "privateBytes": 761057280,
+          "handles": 2795,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 30.2,
+          "privateBytes": 596750336,
+          "handles": 2836,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 45.1,
+          "privateBytes": 595550208,
+          "handles": 2836,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 60.2,
+          "privateBytes": 588374016,
+          "handles": 2826,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 75.2,
+          "privateBytes": 587968512,
+          "handles": 2826,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 90.2,
+          "privateBytes": 582885376,
+          "handles": 2821,
+          "loopbackConnections": 4
+        },
+        {
+          "elapsedSeconds": 105.2,
+          "privateBytes": 583401472,
+          "handles": 2819,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 120.2,
+          "privateBytes": 583266304,
+          "handles": 2815,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 135.2,
+          "privateBytes": 584065024,
+          "handles": 2797,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 150.1,
+          "privateBytes": 584810496,
+          "handles": 2797,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 165.1,
+          "privateBytes": 585662464,
+          "handles": 2797,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 181.4,
+          "privateBytes": 586166272,
+          "handles": 2797,
+          "loopbackConnections": 3
+        }
+      ]
+    },
+    "open": {
+      "startUtc": "2026-11-26T01:59:33.6631601Z",
+      "endUtc": "2026-11-26T02:02:33.6509231Z",
+      "checkedLogs": 3,
+      "changed": [],
+      "series": [
+        {
+          "elapsedSeconds": 0.1,
+          "privateBytes": 560074752,
+          "handles": 2400,
+          "loopbackConnections": 4
+        },
+        {
+          "elapsedSeconds": 15.1,
+          "privateBytes": 549117952,
+          "handles": 2396,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 30.1,
+          "privateBytes": 546627584,
+          "handles": 2401,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 45.1,
+          "privateBytes": 548503552,
+          "handles": 2401,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 60.1,
+          "privateBytes": 543936512,
+          "handles": 2401,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 75.1,
+          "privateBytes": 544067584,
+          "handles": 2401,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 90.1,
+          "privateBytes": 538759168,
+          "handles": 2401,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 105.1,
+          "privateBytes": 540336128,
+          "handles": 2399,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 120.1,
+          "privateBytes": 540991488,
+          "handles": 2399,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 135.2,
+          "privateBytes": 541245440,
+          "handles": 2399,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 150.1,
+          "privateBytes": 542412800,
+          "handles": 2399,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 165.5,
+          "privateBytes": 540676096,
+          "handles": 2416,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 180.1,
+          "privateBytes": 538963968,
+          "handles": 2416,
+          "loopbackConnections": 3
+        }
+      ]
+    },
+    "closed": {
+      "startUtc": "2026-11-26T02:02:35.9118827Z",
+      "endUtc": "2026-11-26T02:05:35.9332870Z",
+      "checkedLogs": 3,
+      "changed": [],
+      "series": [
+        {
+          "elapsedSeconds": 0.1,
+          "privateBytes": 556036096,
+          "handles": 2417,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 15.1,
+          "privateBytes": 550854656,
+          "handles": 2417,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 30.1,
+          "privateBytes": 551137280,
+          "handles": 2417,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 45.1,
+          "privateBytes": 551858176,
+          "handles": 2417,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 60.1,
+          "privateBytes": 550137856,
+          "handles": 2417,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 75.1,
+          "privateBytes": 551649280,
+          "handles": 2417,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 90.2,
+          "privateBytes": 550731776,
+          "handles": 2401,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 105.1,
+          "privateBytes": 551178240,
+          "handles": 2401,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 120.1,
+          "privateBytes": 552042496,
+          "handles": 2401,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 135.1,
+          "privateBytes": 548634624,
+          "handles": 2401,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 150.1,
+          "privateBytes": 549687296,
+          "handles": 2401,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 165.1,
+          "privateBytes": 549179392,
+          "handles": 2401,
+          "loopbackConnections": 3
+        },
+        {
+          "elapsedSeconds": 180.1,
+          "privateBytes": 550137856,
+          "handles": 2401,
+          "loopbackConnections": 3
+        }
+      ]
+    }
+  },
+  "releaseUpgrades": [
+    {
+      "startingVersion": "2026.11.23.0",
+      "startingInstallerSha256": "8f54226cc0e43943d4b60c9c5539ee57959d23eb070eee38c2de504f3be66f1a",
+      "upgradeExit": 0,
+      "sameVersionExit": 0,
+      "downgradeExit": 2,
+      "invalidVersionExit": 2,
+      "composer": [
+        "write",
+        "continue",
+        "reopen"
+      ],
+      "compression": [
+        "none",
+        "zstd"
+      ]
+    },
+    {
+      "startingVersion": "2026.11.24.3",
+      "startingInstallerSha256": "a84001b8ec3d64ae4452833d8fdd018857900a772be366488de2f219334b5b30",
+      "upgradeExit": 0,
+      "sameVersionExit": 0,
+      "downgradeExit": 2,
+      "invalidVersionExit": 2,
+      "composer": [
+        "write",
+        "continue",
+        "reopen"
+      ],
+      "compression": [
+        "none",
+        "zstd"
+      ]
+    }
+  ]
+}
