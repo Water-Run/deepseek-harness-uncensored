@@ -1,2 +1,2 @@
 How to recover this conversation
-Disable the MCP server that provides this tool, then resend your message in this conversation. Other conversations using that server are affected too.
+The provider named this tool in its error. Check the tool name and source in the request details before changing a shared MCP server.

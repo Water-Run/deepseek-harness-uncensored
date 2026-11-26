@@ -133,6 +133,8 @@ export type ModelRetryNode = LlmRetryEventData & {
 export interface TurnErrorNode {
   /** MCP tool named in the provider's schema-validation HTTP 400, when present. */
   rejectedMcpTool?: string
+  /** The effective, loaded request header lists this exact tool name. */
+  rejectedMcpToolInHeader?: true
   kind: 'turn-error'
   /** Seq of the owning turn/end event. */
   seq: number

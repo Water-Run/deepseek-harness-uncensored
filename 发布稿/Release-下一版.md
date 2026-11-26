@@ -25,7 +25,7 @@
 - 修复了含保护审计记录的旧对话升级后无法打开的问题。普通和压缩会话均可继续，原来的允许、拒绝和取消记录会保留，包括旧版写入的指纹及目标名称。
 - 写作模式保留七份写作手册和五份参考资料。升级后可继续使用原有的文风卡与设定集，保留原先的勾选和修订记录。
 - Windows 安装器可以识别以 `.0` 结尾的 DSHU 日期版本，支持从首发版静默覆盖升级，以及同版重装修复。[#24](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24)
-- 如果服务商点名拒绝某个 MCP 工具的声明并返回 HTTP 400，可在设置中停用对应工具服务并保存，再回到原对话重发。已有消息、调用结果和其他仍启用的工具声明都会保留。该设置会影响使用此服务的其他对话。[#25](https://github.com/Water-Run/deepseek-harness-uncensored/issues/25)
+- 遇到点名 MCP 工具的 HTTP 400，可展开原始错误下的恢复指引。若工具名与出错前的请求记录一致，可按指引停用对应服务并回到原对话重发。名称对不上或记录尚未加载时，界面会提示先核对工具来源。已有消息、调用结果和其他仍启用的工具声明都会保留。该设置会影响使用此服务的其他对话。[#25](https://github.com/Water-Run/deepseek-harness-uncensored/issues/25)
 - macOS 应用内更新准备失败后，可以直接重试。应用会重新校验缓存的 DMG，损坏时重新下载，完整的安装包可直接复用。
 - 修复工具重连后仅因 JSON 字段顺序变化就重建声明的问题。支持在消息中记录工具启停的 API 可以沿用原有声明和启停记录。[#23](https://github.com/Water-Run/deepseek-harness-uncensored/issues/23)
 - 桌面安装包精简为五个，覆盖 Windows x64、Apple 芯片 Mac、Linux x64（DEB 和 RPM）及 Linux ARM64（DEB）。仓库首页可直接播放带中文配音和字幕的功能演示。

@@ -181,6 +181,33 @@ it.each([
   else expect(failure).toHaveProperty('rejectedMcpTool', named)
 })
 
+it('checks a named MCP failure against the request header effective at that turn', () => {
+  const named = 'mcp__notes__read'
+  const header = (seq: number, names: string[]) => at(seq, 'request/header', { reason: 'change', header: {
+    config: { provider: 'test', model: 'test' },
+    tools: names.map(name => ({ name, description: '', parameters: {} })),
+  } })
+  const start = at(3, 'turn/start', { turn: 2 })
+  const end = at(4, 'turn/end', { turn: 2, reason: { kind: 'error', error: {
+    status: 400, code: 'INVALID_REQUEST', message: `Invalid schema for function '${named}': invalid pattern`,
+  } } })
+  const previous = header(1, [named])
+  const failure = (value: ConversationNodeAssembler) => node(snapshot(value), 'turn-error')?.data
+  const paged = assembler([start, end], true)
+  expect(failure(paged)).toMatchObject({ rejectedMcpTool: named })
+  expect(failure(paged)).not.toHaveProperty('rejectedMcpToolInHeader')
+  paged.prepend([previous], false)
+  paged.flush()
+  expect(failure(paged)).toMatchObject({ rejectedMcpTool: named, rejectedMcpToolInHeader: true })
+
+  const changed = assembler([previous, header(2, [named + '_archive']), start, end])
+  expect(failure(changed)).toMatchObject({ rejectedMcpTool: named })
+  expect(failure(changed)).not.toHaveProperty('rejectedMcpToolInHeader')
+  changed.append(header(5, [named]))
+  changed.flush()
+  expect(failure(changed)).not.toHaveProperty('rejectedMcpToolInHeader')
+})
+
 function node(value: ChatSnapshot, kind: string): ChatConversationViewNode | undefined {
   return value.nodes.values().find(candidate => candidate.kind === kind)
 }

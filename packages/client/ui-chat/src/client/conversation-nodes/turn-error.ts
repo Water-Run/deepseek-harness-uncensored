@@ -1,6 +1,6 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type {
-  ConversationMatch, ConversationNodeContext, ConversationNodeDefinition, TurnErrorNode,
+  ConversationNodeContext, ConversationNodeDefinition, RequestPromptInspector, TurnErrorNode,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { TurnEndReason } from '@deepseek-ai/dsh-session/types'
 import { rejectedSchemaToolName } from '@deepseek-ai/dsh-llm/schema-error'
@@ -14,16 +14,7 @@ declare module '../contract/chat-nodes.ts' {
   }
 }
 
-interface TurnErrorState {
-  readonly turn: number
-  readonly failure?: {
-    readonly seq: number
-    readonly time: number
-    readonly message: string
-    readonly code?: string
-    readonly rejectedMcpTool?: string
-  }
-}
+type TurnErrorState = Omit<TurnErrorNode, 'kind' | 'step'>
 
 function lastStep(context: ConversationNodeContext<TurnErrorState>): number {
   const location = context.start?.location ?? context.matches[0]?.location
@@ -52,29 +43,6 @@ function endFailure(reason: TurnEndReason): { readonly message: string; readonly
   }
 }
 
-function failureFrom(match: ConversationMatch): TurnErrorState['failure'] | undefined {
-  if (match.event.type !== 'turn/end') return undefined
-  const failure = endFailure(match.event.data.reason)
-  if (failure === undefined) return undefined
-  const display = displayFailure(failure)
-  const named = rejectedSchemaToolName(failure)
-  return {
-    seq: match.event.seq,
-    time: match.event.time,
-    message: display.message,
-    ...(display.code === undefined ? {} : { code: display.code }),
-    ...(named?.startsWith('mcp__') ? { rejectedMcpTool: named } : {}),
-  }
-}
-
-function fallbackState(context: ConversationNodeContext<TurnErrorState>): TurnErrorState | undefined {
-  const end = context.matches.find(match => failureFrom(match) !== undefined)
-  if (end?.event.type !== 'turn/end') return undefined
-  const failure = failureFrom(end)
-  if (failure === undefined) return undefined
-  return { turn: end.event.data.turn, failure }
-}
-
 /**
  * Terminal turn failure Definition. Retries run inside the failing turn, so the
  * turn's `llm/retry` history never suppresses this terminal row; the model-retry
@@ -84,34 +52,28 @@ export const turnErrorDefinition: ConversationNodeDefinition<TurnErrorState> = {
   kind: 'turn-error',
   target: 'chat',
   match: (event) => {
-    if (event.type === 'turn/start') return { id: String(event.data.turn), role: 'start' }
-    if (event.type === 'turn/end' && endFailure(event.data.reason) !== undefined) {
-      return { id: String(event.data.turn), role: 'update' }
+    return event.type === 'turn/end' && endFailure(event.data.reason) !== undefined
+      ? { id: String(event.data.turn), role: 'start' }
+      : null
+  },
+  start: (_context, { event }, reader) => {
+    if (event.type !== 'turn/end') throw new Error('turn-error start requires turn/end')
+    const failure = endFailure(event.data.reason)
+    if (failure === undefined) throw new Error('turn-error start requires a terminal failure')
+    const name = rejectedSchemaToolName(failure)
+    const mcpTool = name?.startsWith('mcp__') ? name : undefined
+    const inHeader = mcpTool !== undefined && reader.previous<ReturnType<RequestPromptInspector>>('request-prompt')
+      ?.state.prompt.tools.some(tool => tool.name === mcpTool)
+    return {
+      seq: event.seq, time: event.time, turn: event.data.turn, ...displayFailure(failure),
+      ...(mcpTool === undefined ? {} : { rejectedMcpTool: mcpTool }),
+      ...(inHeader ? { rejectedMcpToolInHeader: true } : {}),
     }
-    return null
   },
-  start: (_context, match) => {
-    if (match.event.type !== 'turn/start') throw new Error('turn-error start requires turn/start')
-    return { turn: match.event.data.turn }
-  },
-  update: (context, match) => {
-    const failure = failureFrom(match)
-    return failure === undefined ? context.state : { ...context.state, failure }
-  },
+  update: context => context.state,
   buildViewNode: (context) => {
-    const state = context.state ?? fallbackState(context)
-    if (state?.failure === undefined) return null
-    const failure = state.failure
-    const node: TurnErrorNode = {
-      kind: 'turn-error',
-      seq: failure.seq,
-      time: failure.time,
-      turn: state.turn,
-      step: lastStep(context),
-      message: failure.message,
-      ...failure.code === undefined ? {} : { code: failure.code },
-      ...failure.rejectedMcpTool === undefined ? {} : { rejectedMcpTool: failure.rejectedMcpTool },
-    }
+    if (context.state === undefined) return null
+    const node: TurnErrorNode = { kind: 'turn-error', ...context.state, step: lastStep(context) }
     return chatNode(context, 'turn-error', node.seq, node, { groupTree: 'turn' })
   },
 }

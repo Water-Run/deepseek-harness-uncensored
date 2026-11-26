@@ -2678,21 +2678,27 @@ describe('ChatView', () => {
   })
 
   it('opens recovery instructions for the named MCP service in the failed turn', () => {
-    const nodes = ['mcp__notes__lookup', 'mcp__rea__example'].map((name, index) => ({
+    const nodes = ['mcp__notes__lookup', 'mcp__rea__example', 'mcp__rea__unknown'].map((name, index) => ({
       ...turnError(index + 2, 'INVALID_REQUEST'),
       message: `Invalid schema for function '${name}': invalid pattern`, rejectedMcpTool: name,
+      ...(index < 2 ? { rejectedMcpToolInHeader: true as const } : {}),
     }))
-    const h = makeHarness({ nodes: [user(1, 'hello'), ...nodes, turnError(4, 'INVALID_REQUEST')] })
+    const h = makeHarness({ nodes: [user(1, 'hello'), ...nodes, turnError(5, 'INVALID_REQUEST')] })
     const view = render(<h.ChatView {...h.props} />)
     const entries = view.getAllByText('如何恢复此对话')
-    expect(entries).toHaveLength(2)
+    expect(entries).toHaveLength(3)
     for (const [index, summary] of entries.entries()) {
       const details = summary.closest('details')!
       expect(details.open).toBe(false)
       fireEvent.click(summary)
       expect(details.open).toBe(true)
-      expect(details.textContent).toContain(index ? '关闭 REA 并保存' : 'MCP 服务配置')
-      expect(details.textContent).toContain('其他对话')
+      if (index === 2) {
+        expect(details.textContent).toContain('核对工具名称和来源')
+        expect(details.textContent).not.toContain('关闭 REA')
+      } else {
+        expect(details.textContent).toContain(index ? '关闭 REA 并保存' : 'MCP 服务配置')
+        expect(details.textContent).toContain('其他对话')
+      }
     }
   })
 

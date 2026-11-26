@@ -1,0 +1,2 @@
+How to recover this conversation
+Disable the MCP server that provides this tool, then resend your message in this conversation. Other conversations using that server are affected too.

@@ -16,7 +16,7 @@
 | --- | --- | --- |
 | [#20 旧工作区无法启动](https://github.com/Water-Run/deepseek-harness-uncensored/issues/20#issuecomment-7188254129) | 已评论并关闭 | 两个正式旧版的资料均已在 Mac 覆盖安装后打开。冷启动仍能读取原会话，用户插件保留。 |
 | [#24 Windows 安装器拒绝末段为零的版本](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24#issuecomment-7188257670) | 已评论并关闭 | 首发版和上一版分别静默升级并同版重装成功。修复已入主线，现有正式下载仍是旧版。 |
-| [#25 工具声明导致原会话持续返回 400](https://github.com/Water-Run/deepseek-harness-uncensored/issues/25) | 开放，优先处理 | 已验证停用整项服务后能继续原会话。仍需在桌面账号中验证只停用被点名的工具、保留同一服务的其他工具。[实测与验收条件](requirements/2026-11-25-release-handoff.md#issue-25-的工具声明与会话恢复) |
+| [#25 工具声明导致原会话持续返回 400](https://github.com/Water-Run/deepseek-harness-uncensored/issues/25) | 开放，优先处理 | 界面会核对报错与请求记录中的工具名，再提示停用共享服务。已验证停用整项服务后能继续原会话。仍需在桌面账号中验证只停用被点名的工具、保留同一服务的其他工具。[实测与验收条件](requirements/2026-11-25-release-handoff.md#issue-25-的工具声明与会话恢复) |
 | [#22 工具发现](https://github.com/Water-Run/deepseek-harness-uncensored/issues/22) | 开放 | 已验证文件头识别样例。完整发行配置下的报告场景仍待专项维护者确认。 |
 | [#23 动态工具与第三方 API 缓存](https://github.com/Water-Run/deepseek-harness-uncensored/issues/23) | 开放 | 已修复仅字段顺序变化引起的声明重建。报告未指定服务商或模型，实际缓存读写量未知。报告另提到的注册选项仍待处理。 |
 | [#26 Windows 静置卡死](https://github.com/Water-Run/deepseek-harness-uncensored/issues/26) | 报告者已关闭 | 现有对照未复现报告中的连接数和内存增长，根因未确认。[复验环境与采样](requirements/2026-11-25-release-handoff.md#issue-26-的-windows-静置卡死) |

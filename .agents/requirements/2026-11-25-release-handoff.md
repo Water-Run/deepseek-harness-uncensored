@@ -675,7 +675,7 @@ if ($LASTEXITCODE -ne 0) { throw "会话恢复检查失败，退出码 $LASTEXIT
 | 复验入口 | 操作与通过条件 |
 | --- | --- |
 | 会话与 HTTP | 运行下列第一行。笔记查询连续两次被拒绝，停用后原会话连续两次成功。API Key 和测试账号分别检查请求。恢复请求里的时钟、无关的笔记列表声明、声明顺序、原移除消息和用户文字均须保留。认证失败、429 和未知工具名单独对照。 |
-| 用户可见的旧会话 | 先完成构建，再运行第二行。浏览器从 v4 日志重新打开旧会话，在 1280 和 390 像素宽度以键盘展开和收起指引。错误原文保留，提示说明关闭共享服务的影响。复验只用虚构的笔记工具。 |
+| 用户可见的旧会话 | 先完成构建，再运行第二行。浏览器从 v4 日志重新打开旧会话，在 1280 和 390 像素宽度以键盘展开和收起指引。两份会话使用同一个虚构笔记工具报错。最近的请求头中有完全相同的名称时，提示说明停用共享服务的影响。仅有相似名称时，提示先核对工具来源。两种情况均保留服务商原文。界面比对的是已加载的请求头，适配器实际发出的工具集合仍由 HTTP 用例核对。 |
 | 产物和安装器 | 在还原的候选根目录执行上文的 `mcp-schema-probe.mjs`。同一脚本也支持已安装的 Electron。除三条普通恢复结果外，具名拒绝场景须输出 `named-rejection`，并保留 `clock`、`mcp__notes__list`。 |
 | 第三方缓存 | 回环对照已确认请求保留了无关工具声明。报告所用第三方服务的实际缓存用量未知，本轮验收未测量其命中率。[Issue #23](https://github.com/Water-Run/deepseek-harness-uncensored/issues/23) |
 
@@ -683,6 +683,8 @@ if ($LASTEXITCODE -ne 0) { throw "会话恢复检查失败，退出码 $LASTEXIT
 pnpm exec vitest run packages/core/session/tests/tool-history.spec.ts packages/llm/llm-deepseek/tests/adapter.spec.ts packages/client/ui-chat/tests/chat-view.client.spec.tsx packages/client/ui-chat/tests/conversation-node-definitions.client.spec.ts
 pnpm run test:web:built apps/web/tests/mcp-schema-recovery.e2e.ts
 ```
+
+候选树 `d21c5fff46b809d25a0630d9ef8cc43c5d3b17b4` 已从固定补丁重新还原，构建中的源码标识与清单一致。主线与候选分别通过 285 项和 298 项聊天界面测试，Chromium 在两份构建上均复验了上述两种提示及键盘操作。前一树 `0eb8ef6e8e17` 的[五个安装包及旧资料回执](#同一源码树的五件套演练)保留原摘要。含此次界面改动的正式安装包须在合并后验收。
 
 在候选 `971ebe0266acd923d40b57265c6d4c5575e38939` 上使用官方 API Key 复验，带坏声明的原请求返回 400 并点名笔记工具。停用后，同一个会话返回 200，答出先前的标签 `ORCHID`。这一次响应报告 `input_tokens=135`、`cache_read_input_tokens=128`、`cache_creation_input_tokens=0`。探针保留供应商给出的零值，缺失字段输出 `null`。这组数字仅对应这一次官方请求。复核第三方报告时取同一供应商的原始响应，特别注意会话统计显示的是多次请求的累计值。[复验脚本](../../kernel/0.2.3-alpha.2/verification/mcp-schema-probe.mjs)
 
@@ -1193,6 +1195,8 @@ Windows 构建前先读 D 盘的实际可用字节，区分当前候选工作区
 构建期间保留本次使用的依赖、工具链和工作区。安装验证结束后，将需要交接的安装器、blockmap、回执和界面截图归档，再清理校验用的展开副本。操作目录限于这次开发和打包实际创建的路径。正式交付目录、备份、源视频和用户资料各有独立用途。
 
 2026-11-26 在 Windows x64 候选构建期间清理了 52 份旧 Electron 解压目录、20 份安装载荷展开副本、4 个能从已推送源码还原的旧核对目录，以及 4 个空安装检查目录。20 份载荷全部通过归档完整性和逐条目校验，清理后再次确认 20 份压缩包均在。D 盘实际可用空间从 41.0 GiB 增至 90.1 GiB，期间净增 49.1 GiB。各目录、归档摘要、源码树与测量字节数保存在本机 `%USERPROFILE%/DSHU-Deliveries/20261125/verification/development-storage-20261126/`。
+
+本机另保留 `%USERPROFILE%/DSHU-Deliveries/20261126/schema-ui-catalog/clean-source`。它是用公开补丁还原的 `d21c5fff46b8` 校验副本。24,600 个常规文件合计 229,700,499 字节，位于 C 盘。自动审批以 `blocked by policy` 拒绝递归清理，目录仍在。
 
 ### Release 维护记录
 

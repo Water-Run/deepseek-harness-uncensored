@@ -69,7 +69,7 @@ Text and reasoning contribute to Assistant visibility only when they contain a n
 <a id="command-and-failure-rows"></a>
 ## Command and failure rows
 
-A recorded HTTP 400 naming an MCP tool schema offers recovery instructions beside the original error. Expanding them leaves the conversation and server settings untouched.
+For an HTTP 400 that names an MCP tool schema, expand the instructions below the original error. If the last loaded request header before the failure lists that exact name, the instructions explain how disabling the shared server affects other conversations. Otherwise they ask you to verify the name and source in the request details.
 
 Subagent result notices use the Users icon and show only the localized execution outcome in their heading, without a task description or child ID. Completed means that execution ended normally, not that its output passed validation. Historical notices without a readable outcome retain the generic title; unfamiliar outcomes display “Subagent run ended unexpectedly”. Expanded notices preserve their original model-facing body.
 

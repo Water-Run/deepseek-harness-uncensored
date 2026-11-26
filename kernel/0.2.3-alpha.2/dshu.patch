@@ -65672,3 +65672,423 @@ index b3841256b4e3b718d43ba7cf914eb0a09309d325..13289416b641fb266798626a82f77c6a
      const bytes = Buffer.from(prefix + JSON.stringify(event) + '\n')
      const path = await store(bytes)
      const writer = await ctx.sessionPersistence.open(id, 'write')
+diff --git a/apps/web/tests/mcp-schema-recovery.e2e.ts b/apps/web/tests/mcp-schema-recovery.e2e.ts
+index 4e197741dc84f7c6c46afe94de42520a0e7488f0..4d19b2c6634cf2be659092c4f54ba2e2227681d1 100644
+--- a/apps/web/tests/mcp-schema-recovery.e2e.ts
++++ b/apps/web/tests/mcp-schema-recovery.e2e.ts
+@@ -1,4 +1,4 @@
+-/** Reopen a failed conversation and read its server-level recovery instructions without submitting a turn. */
++/** Reopen a failed conversation and read the recovery instructions for its recorded tool declarations without submitting a turn. */
+ import { readFile } from 'node:fs/promises'
+ import { join } from 'node:path'
+ import { fileURLToPath } from 'node:url'
+@@ -12,34 +12,46 @@ const directory = fileURLToPath(new URL('../../../snapshots/web/mcp-schema-recov
+ it('opens the recorded MCP recovery instructions on desktop and a narrow screen', async () => {
+   const scaffold = await launchWebScaffold({ extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
+   try {
+-    await seedSession(scaffold, await readFile(join(directory, 'session.v4.jsonl'), 'utf8'), 'mcp-schema-recovery')
++    const recording = await readFile(join(directory, 'session.v4.jsonl'), 'utf8')
++    const cases = [
++      { id: 'mcp-schema-recovery', tool: 'mcp__notes__lookup_archive', expectedFile: 'recovery.expected.txt' },
++      { id: 'mcp-schema-declared', tool: 'mcp__notes__lookup', expectedFile: 'declared.expected.txt' },
++    ]
++    for (const { id, tool } of cases) {
++      const tools = [{ name: tool, description: 'Look up a note.', parameters: { type: 'object', properties: {} } }]
++      await seedSession(scaffold, recording.replace('"{{tools}}"', JSON.stringify(tools)), id)
++    }
+     const browser = await chromium.launch()
+     try {
+       const page = await newEnglishPage(browser)
+       onTestFailed(() => saveFailureShot(page, 'mcp-schema-recovery'))
+       await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
+       await page.locator('[role="treeitem"]').first().click()
+-      await page.locator('[data-row-key="session:mcp-schema-recovery"]').click()
+-      const summary = page.getByText('How to recover this conversation', { exact: true })
+-      await summary.waitFor()
+-      const details = page.locator('details').filter({ has: summary })
+-      const expected = (await readFile(join(directory, 'recovery.expected.txt'), 'utf8')).trimEnd().split(/\r?\n/u)
+-      for (const width of [1280, 390]) {
+-        await page.setViewportSize({ width, height: 780 })
+-        await summary.click({ trial: true, position: { x: 6, y: 6 } })
+-        await summary.focus()
+-        await summary.press('Enter')
+-        await expect.poll(() => details.getAttribute('open')).not.toBeNull()
+-        expect((await details.innerText()).split(/\n+/u)).toEqual(expected)
+-        const box = await details.boundingBox()
+-        expect(box).not.toBeNull()
+-        expect(box!.x).toBeGreaterThanOrEqual(0)
+-        expect(box!.x + box!.width).toBeLessThanOrEqual(width + 1)
+-        await page.screenshot({ animations: 'disabled', path: join(process.cwd(), '.artifacts', `mcp-schema-recovery-${width}.png`) })
+-        await summary.press('Space')
+-        await expect.poll(() => details.getAttribute('open')).toBeNull()
++      for (const { id, expectedFile } of cases) {
++        await page.setViewportSize({ width: 1280, height: 780 })
++        await page.locator(`[data-row-key="session:${id}"]`).click()
++        await page.getByText("Invalid schema for function 'mcp__notes__lookup': invalid pattern", { exact: true }).waitFor()
++        const summary = page.getByText('How to recover this conversation', { exact: true })
++        await summary.waitFor()
++        const details = page.locator('details').filter({ has: summary })
++        const expected = (await readFile(join(directory, expectedFile), 'utf8')).trimEnd().split(/\r?\n/u)
++        for (const width of [1280, 390]) {
++          await page.setViewportSize({ width, height: 780 })
++          await summary.click({ trial: true, position: { x: 6, y: 6 } })
++          await summary.focus()
++          await summary.press('Enter')
++          await expect.poll(() => details.getAttribute('open')).not.toBeNull()
++          expect((await details.innerText()).split(/\n+/u)).toEqual(expected)
++          const box = await details.boundingBox()
++          expect(box).not.toBeNull()
++          expect(box!.x).toBeGreaterThanOrEqual(0)
++          expect(box!.x + box!.width).toBeLessThanOrEqual(width + 1)
++          await page.screenshot({ animations: 'disabled', path: join(process.cwd(), '.artifacts', `${id}-${width}.png`) })
++          await summary.press('Space')
++          await expect.poll(() => details.getAttribute('open')).toBeNull()
++        }
+       }
+-      await assertFixtureInventory(directory, ['session.v4.jsonl', 'recovery.expected.txt'])
++      await assertFixtureInventory(directory, ['session.v4.jsonl', ...cases.map(item => item.expectedFile)])
+     } finally {
+       await browser.close()
+     }
+diff --git a/packages/client/ui-chat/README.i18n.yaml b/packages/client/ui-chat/README.i18n.yaml
+index c170354905f4dcb2630f657d8f5992e1fa9794a2..ae37a7c0007c15f081a157197ff9f38558ad072b 100644
+--- a/packages/client/ui-chat/README.i18n.yaml
++++ b/packages/client/ui-chat/README.i18n.yaml
+@@ -21,8 +21,8 @@
+   en: 8ca277dc7fed699f
+   zh: 167478dba50f3904
+ /deepseek-ai-dsh-client-ui-chat/command-and-failure-rows:
+-  en: 597b2e376346fe5e
+-  zh: 11c1aa1f5b9df551
++  en: 1d6578aad914cecf
++  zh: 2edc583635538cac
+ /deepseek-ai-dsh-client-ui-chat/inherited-history-divider:
+   en: a191f90e9a64f6fe
+   zh: 8e91b8660f9baa18
+diff --git a/packages/client/ui-chat/README.md b/packages/client/ui-chat/README.md
+index 77f8dde938a743eef93555f51deb29e067f0563f..7ba357255a6d8529bf2b4d2d509709287c9e6055 100644
+--- a/packages/client/ui-chat/README.md
++++ b/packages/client/ui-chat/README.md
+@@ -70,7 +70,7 @@ Text and reasoning contribute to Assistant visibility only when they contain a n
+ 
+ The `conversation.chat.quick-answer` factory renders one question, its Markdown answer, and any request failure. Its caller supplies the child Session.
+ 
+-A recorded HTTP 400 naming an MCP tool schema offers recovery instructions beside the original error. Expanding them leaves the conversation and server settings untouched.
++For an HTTP 400 that names an MCP tool schema, expand the instructions below the original error. If the last loaded request header before the failure lists that exact name, the instructions explain how disabling the shared server affects other conversations. Otherwise they ask you to verify the name and source in the request details.
+ 
+ Subagent result notices use the Users icon and show only the localized execution outcome in their heading, without a task description or child ID. Completed means that execution ended normally, not that its output passed validation. Historical notices without a readable outcome retain the generic title; unfamiliar outcomes display “Subagent run ended unexpectedly”. Expanded notices preserve their original model-facing body.
+ 
+diff --git a/packages/client/ui-chat/README.zh.md b/packages/client/ui-chat/README.zh.md
+index 0a4f579a4db7e9fe2779dac44bf101bd7b7fa7fb..a70403f48ab1b4770eb4da6d99724f3681398013 100644
+--- a/packages/client/ui-chat/README.zh.md
++++ b/packages/client/ui-chat/README.zh.md
+@@ -70,7 +70,7 @@ Assistant 尝试结束且没有可见消息时，Chat 隐藏已发布的 Node，
+ 
+ `conversation.chat.quick-answer` 工厂显示一个问题、Markdown 回答及请求失败原因。调用方为它绑定随问的子会话。
+ 
+-如果记录的 HTTP 400 点名了 MCP 工具声明，用户可以在原始错误下面展开恢复说明。展开说明时不会发送消息或变更服务设置。
++如果 HTTP 400 点名了 MCP 工具声明，可在原始错误下展开恢复说明。若出错前最近一份已加载的请求头中有完全一致的工具名，说明会列出停用共享服务对其他对话的影响。否则，界面会提示先在请求详情中核对名称和来源。
+ 
+ 子智能体结果通知使用 Users 图标，标题仅显示本地化的执行状态，不附加任务描述或子智能体 ID。完成表示执行正常结束，不表示输出已通过验证。历史通知没有可读取的结束状态时保留通用标题；未知状态显示“子智能体异常结束”。展开后的通知保留原始模型可见正文。
+ 
+diff --git a/packages/client/ui-chat/src/client/chat/MessageItem.tsx b/packages/client/ui-chat/src/client/chat/MessageItem.tsx
+index 6aa9c2ce3038f989d236ad8769c8630f0de24e9d..b5ca90f5a4f545257a30096102d2ae23fa0cd438 100644
+--- a/packages/client/ui-chat/src/client/chat/MessageItem.tsx
++++ b/packages/client/ui-chat/src/client/chat/MessageItem.tsx
+@@ -144,8 +144,8 @@ function TurnErrorItem({ node, t }: {
+       {node.code !== undefined && node.code !== 'INTERRUPTED' && <code className={css.turnErrorCode}>{node.code}</code>}
+       {node.rejectedMcpTool !== undefined && <details className={css.turnErrorHint}>
+         <summary>{t('message.failure.recoverConversation')}</summary>
+-        <div>{t('message.failure.mcpSchemaHint')}</div>
+-        {node.rejectedMcpTool.startsWith('mcp__rea__') && <div>{t('message.failure.reaSchemaHint')}</div>}
++        <div>{t(node.rejectedMcpToolInHeader ? 'message.failure.mcpSchemaHint' : 'message.failure.checkToolName')}</div>
++        {node.rejectedMcpToolInHeader && node.rejectedMcpTool.startsWith('mcp__rea__') && <div>{t('message.failure.reaSchemaHint')}</div>}
+       </details>}
+     </div>
+   )
+diff --git a/packages/client/ui-chat/src/client/conversation-nodes/turn-error.ts b/packages/client/ui-chat/src/client/conversation-nodes/turn-error.ts
+index a71f1b225d953285e2187705c0173750ac8ec261..9fbaaf74d8eb2529c10933bdb3bb8b503718ef3d 100644
+--- a/packages/client/ui-chat/src/client/conversation-nodes/turn-error.ts
++++ b/packages/client/ui-chat/src/client/conversation-nodes/turn-error.ts
+@@ -1,6 +1,6 @@
+ import type { Context } from '@deepseek-ai/cordis'
+ import type {
+-  ConversationMatch, ConversationNodeContext, ConversationNodeDefinition, TurnErrorNode,
++  ConversationNodeContext, ConversationNodeDefinition, RequestPromptInspector, TurnErrorNode,
+ } from '@deepseek-ai/dsh-client-ui-conversation/client'
+ import type { TurnEndReason } from '@deepseek-ai/dsh-session/types'
+ import { rejectedSchemaToolName } from '@deepseek-ai/dsh-llm/schema-error'
+@@ -14,16 +14,7 @@ declare module '../contract/chat-nodes.ts' {
+   }
+ }
+ 
+-interface TurnErrorState {
+-  readonly turn: number
+-  readonly failure?: {
+-    readonly seq: number
+-    readonly time: number
+-    readonly message: string
+-    readonly code?: string
+-    readonly rejectedMcpTool?: string
+-  }
+-}
++type TurnErrorState = Omit<TurnErrorNode, 'kind' | 'step'>
+ 
+ function lastStep(context: ConversationNodeContext<TurnErrorState>): number {
+   const location = context.start?.location ?? context.matches[0]?.location
+@@ -52,29 +43,6 @@ function endFailure(reason: TurnEndReason): { readonly message: string; readonly
+   }
+ }
+ 
+-function failureFrom(match: ConversationMatch): TurnErrorState['failure'] | undefined {
+-  if (match.event.type !== 'turn/end') return undefined
+-  const failure = endFailure(match.event.data.reason)
+-  if (failure === undefined) return undefined
+-  const display = displayFailure(failure)
+-  const named = rejectedSchemaToolName(failure)
+-  return {
+-    seq: match.event.seq,
+-    time: match.event.time,
+-    message: display.message,
+-    ...(display.code === undefined ? {} : { code: display.code }),
+-    ...(named?.startsWith('mcp__') ? { rejectedMcpTool: named } : {}),
+-  }
+-}
+-
+-function fallbackState(context: ConversationNodeContext<TurnErrorState>): TurnErrorState | undefined {
+-  const end = context.matches.find(match => failureFrom(match) !== undefined)
+-  if (end?.event.type !== 'turn/end') return undefined
+-  const failure = failureFrom(end)
+-  if (failure === undefined) return undefined
+-  return { turn: end.event.data.turn, failure }
+-}
+-
+ /**
+  * Terminal turn failure Definition. Retries run inside the failing turn, so the
+  * turn's `llm/retry` history never suppresses this terminal row; the model-retry
+@@ -84,34 +52,28 @@ export const turnErrorDefinition: ConversationNodeDefinition<TurnErrorState> = {
+   kind: 'turn-error',
+   target: 'chat',
+   match: (event) => {
+-    if (event.type === 'turn/start') return { id: String(event.data.turn), role: 'start' }
+-    if (event.type === 'turn/end' && endFailure(event.data.reason) !== undefined) {
+-      return { id: String(event.data.turn), role: 'update' }
+-    }
+-    return null
+-  },
+-  start: (_context, match) => {
+-    if (match.event.type !== 'turn/start') throw new Error('turn-error start requires turn/start')
+-    return { turn: match.event.data.turn }
++    return event.type === 'turn/end' && endFailure(event.data.reason) !== undefined
++      ? { id: String(event.data.turn), role: 'start' }
++      : null
+   },
+-  update: (context, match) => {
+-    const failure = failureFrom(match)
+-    return failure === undefined ? context.state : { ...context.state, failure }
++  start: (_context, { event }, reader) => {
++    if (event.type !== 'turn/end') throw new Error('turn-error start requires turn/end')
++    const failure = endFailure(event.data.reason)
++    if (failure === undefined) throw new Error('turn-error start requires a terminal failure')
++    const name = rejectedSchemaToolName(failure)
++    const mcpTool = name?.startsWith('mcp__') ? name : undefined
++    const inHeader = mcpTool !== undefined && reader.previous<ReturnType<RequestPromptInspector>>('request-prompt')
++      ?.state.prompt.tools.some(tool => tool.name === mcpTool)
++    return {
++      seq: event.seq, time: event.time, turn: event.data.turn, ...displayFailure(failure),
++      ...(mcpTool === undefined ? {} : { rejectedMcpTool: mcpTool }),
++      ...(inHeader ? { rejectedMcpToolInHeader: true } : {}),
++    }
+   },
++  update: context => context.state,
+   buildViewNode: (context) => {
+-    const state = context.state ?? fallbackState(context)
+-    if (state?.failure === undefined) return null
+-    const failure = state.failure
+-    const node: TurnErrorNode = {
+-      kind: 'turn-error',
+-      seq: failure.seq,
+-      time: failure.time,
+-      turn: state.turn,
+-      step: lastStep(context),
+-      message: failure.message,
+-      ...failure.code === undefined ? {} : { code: failure.code },
+-      ...failure.rejectedMcpTool === undefined ? {} : { rejectedMcpTool: failure.rejectedMcpTool },
+-    }
++    if (context.state === undefined) return null
++    const node: TurnErrorNode = { kind: 'turn-error', ...context.state, step: lastStep(context) }
+     return chatNode(context, 'turn-error', node.seq, node, { groupTree: 'turn' })
+   },
+ }
+diff --git a/packages/client/ui-chat/src/client/locale.ts b/packages/client/ui-chat/src/client/locale.ts
+index 4100724e76800b6a9e978b14fa7f1fd881ceffce..8f0e69af31dbbd6e732c8d1751d30aa6d7d5a237 100644
+--- a/packages/client/ui-chat/src/client/locale.ts
++++ b/packages/client/ui-chat/src/client/locale.ts
+@@ -187,6 +187,7 @@ export const zh = {
+   'message.failure.auth': 'API 密钥无效',
+   'message.failure.recoverConversation': '如何恢复此对话',
+   'message.failure.mcpSchemaHint': '在 MCP 服务配置中停用提供这个工具的服务，再回到此对话重新发送消息。使用同一服务的其他对话也会受影响。',
++  'message.failure.checkToolName': '这个名称来自服务商的报错。修改共享 MCP 服务前，请先在请求详情中核对工具名称和来源。',
+   'message.failure.reaSchemaHint': '如果工具来自内置 REA，可到设置 → 模式 → 模式配置 → 逆向，关闭 REA 并保存。',
+   'message.taskStopped': '任务已停止',
+   'message.failure.accountSignedOut': '任务已因退出 DeepSeek 登录而停止。',
+@@ -408,6 +409,7 @@ export const en = {
+   'message.failure.auth': 'API key is invalid',
+   'message.failure.recoverConversation': 'How to recover this conversation',
+   'message.failure.mcpSchemaHint': 'Disable the MCP server that provides this tool, then resend your message in this conversation. Other conversations using that server are affected too.',
++  'message.failure.checkToolName': 'The provider named this tool in its error. Check the tool name and source in the request details before changing a shared MCP server.',
+   'message.failure.reaSchemaHint': 'For bundled REA, open Settings → Modes → Mode configuration → Reverse, turn off REA and save.',
+   'message.taskStopped': 'Task stopped',
+   'message.failure.accountSignedOut': 'Stopped because you signed out of DeepSeek.',
+@@ -626,6 +628,7 @@ export const ja = {
+   'message.failure.auth': 'APIキーが無効です',
+   'message.failure.recoverConversation': 'この会話を再開する方法',
+   'message.failure.mcpSchemaHint': 'このツールを提供する MCP サーバーを無効にし、この会話でメッセージを再送してください。同じサーバーを使う他の会話にも影響します。',
++  'message.failure.checkToolName': 'このツール名はプロバイダーのエラーに記載されています。共有 MCP サーバーの設定を変更する前に、リクエストの詳細でツール名と提供元を確認してください。',
+   'message.failure.reaSchemaHint': '内蔵 REA の場合は、設定のモード構成からリバースモードを開き、REA をオフにして保存してください。',
+   'message.taskStopped': 'タスクを停止しました',
+   'message.failure.accountSignedOut': 'DeepSeekからログアウトしたため停止しました。',
+@@ -844,6 +847,7 @@ export const es = {
+   'message.failure.auth': 'La clave API no es válida',
+   'message.failure.recoverConversation': 'Cómo recuperar esta conversación',
+   'message.failure.mcpSchemaHint': 'Desactiva el servidor MCP que ofrece esta herramienta y vuelve a enviar el mensaje en esta conversación. Esto también afecta a otras conversaciones que usan el mismo servidor.',
++  'message.failure.checkToolName': 'El proveedor menciona esta herramienta en el error. Comprueba su nombre y origen en los detalles de la solicitud antes de cambiar un servidor MCP compartido.',
+   'message.failure.reaSchemaHint': 'Para REA integrado, abre la configuración del modo de ingeniería inversa, desactiva REA y guarda los cambios.',
+   'message.taskStopped': 'Tarea detenida',
+   'message.failure.accountSignedOut': 'Se detuvo porque cerró sesión en DeepSeek.',
+@@ -1062,6 +1066,7 @@ export const fr = {
+   'message.failure.auth': "La clé API n'est pas valide",
+   'message.failure.recoverConversation': 'Comment reprendre cette conversation',
+   'message.failure.mcpSchemaHint': 'Désactivez le serveur MCP qui fournit cet outil, puis renvoyez votre message dans cette conversation. Les autres conversations utilisant ce serveur seront également affectées.',
++  'message.failure.checkToolName': 'Le fournisseur a cité cet outil dans son erreur. Vérifiez son nom et sa source dans les détails de la requête avant de modifier un serveur MCP partagé.',
+   'message.failure.reaSchemaHint': 'Pour REA intégré, ouvrez la configuration du mode de rétro-ingénierie, désactivez REA et enregistrez.',
+   'message.taskStopped': 'Tâche arrêtée',
+   'message.failure.accountSignedOut': 'Arrêté car vous vous êtes déconnecté de DeepSeek.',
+@@ -1280,6 +1285,7 @@ export const de = {
+   'message.failure.auth': 'Der API-Schlüssel ist ungültig',
+   'message.failure.recoverConversation': 'Diese Unterhaltung fortsetzen',
+   'message.failure.mcpSchemaHint': 'Deaktiviere den MCP-Server für dieses Werkzeug und sende die Nachricht in dieser Unterhaltung erneut. Dies betrifft auch andere Unterhaltungen, die diesen Server verwenden.',
++  'message.failure.checkToolName': 'Der Anbieter nennt dieses Werkzeug in der Fehlermeldung. Prüfe in den Anfragedetails den Namen und die Quelle, bevor du einen gemeinsam genutzten MCP-Server änderst.',
+   'message.failure.reaSchemaHint': 'Für das integrierte REA öffne die Einstellungen des Reverse-Engineering-Modus, deaktiviere REA und speichere.',
+   'message.taskStopped': 'Aufgabe gestoppt',
+   'message.failure.accountSignedOut': 'Gestoppt, weil Sie sich von DeepSeek abgemeldet haben.',
+@@ -1498,6 +1504,7 @@ export const ru = {
+   'message.failure.auth': 'Ключ API недействителен.',
+   'message.failure.recoverConversation': 'Как продолжить эту беседу',
+   'message.failure.mcpSchemaHint': 'Отключите сервер MCP, предоставляющий этот инструмент, и отправьте сообщение ещё раз в этой беседе. Это затронет и другие беседы, использующие тот же сервер.',
++  'message.failure.checkToolName': 'Поставщик указал этот инструмент в сообщении об ошибке. Перед изменением общего сервера MCP проверьте имя и источник инструмента в сведениях о запросе.',
+   'message.failure.reaSchemaHint': 'Для встроенного REA откройте настройки режима обратной разработки, отключите REA и сохраните изменения.',
+   'message.taskStopped': 'Задача остановлена',
+   'message.failure.accountSignedOut': 'Остановлено, поскольку вы вышли из DeepSeek.',
+@@ -1716,6 +1723,7 @@ export const pt = {
+   'message.failure.auth': 'A chave API é inválida',
+   'message.failure.recoverConversation': 'Como retomar esta conversa',
+   'message.failure.mcpSchemaHint': 'Desative o servidor MCP que fornece a ferramenta e reenvie a mensagem nesta conversa. A mudança também afeta outras conversas que usam o mesmo servidor.',
++  'message.failure.checkToolName': 'O fornecedor indicou esta ferramenta na mensagem de erro. Verifique o nome e a origem nos detalhes do pedido antes de alterar um servidor MCP partilhado.',
+   'message.failure.reaSchemaHint': 'Para o REA integrado, abra as configurações do modo de engenharia reversa, desative o REA e salve.',
+   'message.taskStopped': 'Tarefa interrompida',
+   'message.failure.accountSignedOut': 'Interrompido porque você saiu de DeepSeek.',
+diff --git a/packages/client/ui-chat/tests/chat-view.client.spec.tsx b/packages/client/ui-chat/tests/chat-view.client.spec.tsx
+index f84373b7d21133b3989d21853491aaeb22caacec..f4c7e5ebc08b37376375f509c7c3dda0e996bbfd 100644
+--- a/packages/client/ui-chat/tests/chat-view.client.spec.tsx
++++ b/packages/client/ui-chat/tests/chat-view.client.spec.tsx
+@@ -2698,21 +2698,27 @@ describe('ChatView', () => {
+   })
+ 
+   it('opens recovery instructions for the named MCP service in the failed turn', () => {
+-    const nodes = ['mcp__notes__lookup', 'mcp__rea__example'].map((name, index) => ({
++    const nodes = ['mcp__notes__lookup', 'mcp__rea__example', 'mcp__rea__unknown'].map((name, index) => ({
+       ...turnError(index + 2, 'INVALID_REQUEST'),
+       message: `Invalid schema for function '${name}': invalid pattern`, rejectedMcpTool: name,
++      ...(index < 2 ? { rejectedMcpToolInHeader: true as const } : {}),
+     }))
+-    const h = makeHarness({ nodes: [user(1, 'hello'), ...nodes, turnError(4, 'INVALID_REQUEST')] })
++    const h = makeHarness({ nodes: [user(1, 'hello'), ...nodes, turnError(5, 'INVALID_REQUEST')] })
+     const view = render(<h.ChatView {...h.props} />)
+     const entries = view.getAllByText('如何恢复此对话')
+-    expect(entries).toHaveLength(2)
++    expect(entries).toHaveLength(3)
+     for (const [index, summary] of entries.entries()) {
+       const details = summary.closest('details')!
+       expect(details.open).toBe(false)
+       fireEvent.click(summary)
+       expect(details.open).toBe(true)
+-      expect(details.textContent).toContain(index ? '关闭 REA 并保存' : 'MCP 服务配置')
+-      expect(details.textContent).toContain('其他对话')
++      if (index === 2) {
++        expect(details.textContent).toContain('核对工具名称和来源')
++        expect(details.textContent).not.toContain('关闭 REA')
++      } else {
++        expect(details.textContent).toContain(index ? '关闭 REA 并保存' : 'MCP 服务配置')
++        expect(details.textContent).toContain('其他对话')
++      }
+     }
+   })
+ 
+diff --git a/packages/client/ui-chat/tests/conversation-node-definitions.client.spec.ts b/packages/client/ui-chat/tests/conversation-node-definitions.client.spec.ts
+index b71d672e25bf448921f8b8f2d02117e16d9be951..8a9154893948ca035690adfbdac13a09214bdccf 100644
+--- a/packages/client/ui-chat/tests/conversation-node-definitions.client.spec.ts
++++ b/packages/client/ui-chat/tests/conversation-node-definitions.client.spec.ts
+@@ -184,6 +184,33 @@ it.each([
+   else expect(failure).toHaveProperty('rejectedMcpTool', named)
+ })
+ 
++it('checks a named MCP failure against the request header effective at that turn', () => {
++  const named = 'mcp__notes__read'
++  const header = (seq: number, names: string[]) => at(seq, 'request/header', { reason: 'change', header: {
++    config: { provider: 'test', model: 'test' },
++    tools: names.map(name => ({ name, description: '', parameters: {} })),
++  } })
++  const start = at(3, 'turn/start', { turn: 2 })
++  const end = at(4, 'turn/end', { turn: 2, reason: { kind: 'error', error: {
++    status: 400, code: 'INVALID_REQUEST', message: `Invalid schema for function '${named}': invalid pattern`,
++  } } })
++  const previous = header(1, [named])
++  const failure = (value: ConversationNodeAssembler) => node(snapshot(value), 'turn-error')?.data
++  const paged = assembler([start, end], true)
++  expect(failure(paged)).toMatchObject({ rejectedMcpTool: named })
++  expect(failure(paged)).not.toHaveProperty('rejectedMcpToolInHeader')
++  paged.prepend([previous], false)
++  paged.flush()
++  expect(failure(paged)).toMatchObject({ rejectedMcpTool: named, rejectedMcpToolInHeader: true })
++
++  const changed = assembler([previous, header(2, [named + '_archive']), start, end])
++  expect(failure(changed)).toMatchObject({ rejectedMcpTool: named })
++  expect(failure(changed)).not.toHaveProperty('rejectedMcpToolInHeader')
++  changed.append(header(5, [named]))
++  changed.flush()
++  expect(failure(changed)).not.toHaveProperty('rejectedMcpToolInHeader')
++})
++
+ function node(value: ChatSnapshot, kind: string): ChatConversationViewNode | undefined {
+   return value.nodes.values().find(candidate => candidate.kind === kind)
+ }
+diff --git a/packages/client/ui-conversation/src/client/contract/records.ts b/packages/client/ui-conversation/src/client/contract/records.ts
+index 33418a39e0d06808c39678ff4fc691f51c03117a..ada64fec9c589ce73a3438ec91ef42cc88d01257 100644
+--- a/packages/client/ui-conversation/src/client/contract/records.ts
++++ b/packages/client/ui-conversation/src/client/contract/records.ts
+@@ -133,6 +133,8 @@ export type ModelRetryNode = LlmRetryEventData & {
+ export interface TurnErrorNode {
+   /** MCP tool named in the provider's schema-validation HTTP 400, when present. */
+   rejectedMcpTool?: string
++  /** The effective, loaded request header lists this exact tool name. */
++  rejectedMcpToolInHeader?: true
+   kind: 'turn-error'
+   /** Seq of the owning turn/end event. */
+   seq: number
+diff --git a/snapshots/web/mcp-schema-recovery/declared.expected.txt b/snapshots/web/mcp-schema-recovery/declared.expected.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..1dcb439063705c8883bd32ef461bd44c6d95a790
+--- /dev/null
++++ b/snapshots/web/mcp-schema-recovery/declared.expected.txt
+@@ -0,0 +1,2 @@
++How to recover this conversation
++Disable the MCP server that provides this tool, then resend your message in this conversation. Other conversations using that server are affected too.
+diff --git a/snapshots/web/mcp-schema-recovery/recovery.expected.txt b/snapshots/web/mcp-schema-recovery/recovery.expected.txt
+index 1dcb439063705c8883bd32ef461bd44c6d95a790..c901c76d7f0763433284827aed5f032b879df737 100644
+--- a/snapshots/web/mcp-schema-recovery/recovery.expected.txt
++++ b/snapshots/web/mcp-schema-recovery/recovery.expected.txt
+@@ -1,2 +1,2 @@
+ How to recover this conversation
+-Disable the MCP server that provides this tool, then resend your message in this conversation. Other conversations using that server are affected too.
++The provider named this tool in its error. Check the tool name and source in the request details before changing a shared MCP server.
