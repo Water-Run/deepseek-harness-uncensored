@@ -104,6 +104,18 @@
       "logSha256": "88c505075232b48a1008e5c9f647fc92926b7d3a3d1a5c9e6fc8e8516c00ee02",
       "verifyLogSha256": "44c87f647c95fcf3316f4d51ae0d84e2684a3973e7e7e6f28f18a6f8f1c9ec07"
     },
+    "packagedHostRetainedProfile": {
+      "uid": 501,
+      "oldVersions": ["2026.11.23.0", "2026.11.24.3"],
+      "overlaidSamePrivateAppPath": true,
+      "oldSessionsPerCase": 2,
+      "retainedProfileFilesPerCase": 41,
+      "workspaceIdentityAndSessionOrderPreserved": true,
+      "observerSharesBundledWorkspaceController": true,
+      "createdWritingSessionRetainedAfterColdRestart": true,
+      "freshProfileControlPassed": true,
+      "terminalLogSha256": "3be09f738462d694213ffa63e73b4a71e959a50c5aadd98ada9c761d6f48db0f"
+    },
     "buildLogSha256": "648a9db56bbc3b6bc9934681738248877674967b8ba8b8356f8b02ebe8a883c1"
   }
 }

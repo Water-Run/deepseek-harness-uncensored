@@ -298,7 +298,7 @@ https://github.com/user-attachments/assets/69f74147-3377-461c-8ec2-17169bd3ba71
 
 > [!IMPORTANT]
 >
-> Windows x64 用户从 `2026.11.23.0` 静默升级到已发布的 `2026.11.24.3` 会遇到退出码 `2`，旧版文件和安装登记保留。未签名的缺省与写作候选 `2026.11.25.0` 已分别从两个正式版完成离线升级。正式签名包的在线更新仍待验证。[Issue #24](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24)
+> Windows x64 用户从 `2026.11.23.0` 静默升级到已发布的 `2026.11.24.3` 会遇到退出码 `2`，旧文件和安装登记保留。新版候选已从两个正式版通过离线升级。下一次正式发布采用五个安装包。若旧客户端无法检查到新版，下载对应的正式安装包，手动覆盖安装一次。[Issue #24](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24)
 
 Windows x64 正式版 `2026.11.24.3` 有启动后静置卡死的用户报告。已修复并发打开同一旁问的重复请求，以及界面重新绑定时对同一草稿重复发起预测的问题。用上一正式版和缺省与写作候选分别打开同一份 2,224 条事件的旧会话，在主会话、旁问打开、旁问关闭三种状态各观察 3 分钟。两版均未复现持续增长，候选的 39 次采样均为 3 至 4 条回环连接。报告所用系统及资料条件仍待复验，此项保留在正式版发行清单中。[Issue #26](https://github.com/Water-Run/deepseek-harness-uncensored/issues/26) · [安装包对照与逐进程数据](.agents/requirements/2026-11-25-release-handoff.md#保留旧写作会话的-windows-安装包对照)
 >

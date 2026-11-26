@@ -60040,3 +60040,1768 @@ index 2ae95c7e0db72abe11b600d349701543de9b572a..c95701b298203d4227e6c030231afb13
 +- 'button "Conversation cost: ￥0.000104"': ￥0.000104
 +- 'button "Spending limits: Off"': "Off"
  - button "0% of context used": 0%
+diff --git a/apps/desktop/README.i18n.yaml b/apps/desktop/README.i18n.yaml
+index cff4af2f831c89c82fae483046b0c14c8accec91..0bffdf12eacc4a73602e2980257cca7f6b7992a7 100644
+--- a/apps/desktop/README.i18n.yaml
++++ b/apps/desktop/README.i18n.yaml
+@@ -57,8 +57,8 @@
+   en: ccfa977f1d7eaeb0
+   zh: dd5116b4054ad64a
+ /deepseek-harness-desktop/updates:
+-  en: 8b0b9efeb83727ef
+-  zh: 5ee95de48ceab392
++  en: f0aa33b16c763f7c
++  zh: f7119ca815600750
+ /deepseek-harness-desktop/updates/local-desktop-settings:
+   en: c4384915bee9209f
+   zh: eef9ac69d1e3e2cf
+diff --git a/apps/desktop/README.md b/apps/desktop/README.md
+index 33428b4dcf07d4a5e225690d6b1d666918ca4b05..2edb116f66f931d6ff2f2022c1c6c37311701ecf 100644
+--- a/apps/desktop/README.md
++++ b/apps/desktop/README.md
+@@ -277,6 +277,10 @@ Use `node apps/desktop/scripts/test-windows-installer.mjs --uninstall-only --com
+ 
+ ## Updates
+ 
++DSHU production installers check the latest public GitHub release and download the matching installer from its immutable tag. On macOS, the updater prepares the signed app from the DMG for the system update service. Test packages keep their configured test feed.
++
++Collect the five installers with `pnpm --dir apps/desktop run deliver` and stage the GitHub attachment list and release body with `pnpm --dir apps/desktop run deliver:github --from <collected> --out <new-directory>`. Keep the installer checksums in the generated release body. Users of the legacy YAML updater may need to install this release manually once.
++
+ On Windows, the downloaded-update confirmation explains that the application closes during installation, reopens automatically, and should not be launched again while updating. An installer restart carrying `--updated` raises and focuses the main window once when startup opens the workspace directly, without enabling always-on-top. Startup into the welcome page discards that request so a later login keeps its normal activation behavior. Ordinary launches and other platforms do not use this foregrounding step.
+ 
+ On macOS, installation preparation waits for the product window to leave fullscreen before displaying the restart confirmation. Cancelling leaves the window in normal mode; destroying it during the native transition cancels installation before task teardown. If macOS does not report completion within five seconds, preparation fails without stopping the Host; the localized error asks the user to exit fullscreen and retry. Installation failure recovery uses the normal window.
+diff --git a/apps/desktop/README.zh.md b/apps/desktop/README.zh.md
+index 12b135a88a0f42cbec511c34a6973e5b8dff13fb..392587de1ce0dc27d80563664d1b4b0ecd7dcb3e 100644
+--- a/apps/desktop/README.zh.md
++++ b/apps/desktop/README.zh.md
+@@ -277,6 +277,10 @@ Windows 卸载程序会随应用一起删除 Electron 用户数据目录（`%APP
+ 
+ ## 更新
+ 
++DSHU 正式安装包读取 GitHub 的最新公开正式版，并从固定标签下载对应安装包。macOS 更新器将 DMG 内的签名应用交给系统更新服务。测试包继续使用配置的测试更新源。
++
++使用 `pnpm --dir apps/desktop run deliver` 收集五个安装包，再运行 `pnpm --dir apps/desktop run deliver:github --from <收集目录> --out <新目录>` 生成 GitHub 附件清单和发行正文。保留正文内的安装包摘要。仍使用旧 YAML 更新器的用户可能需要手动安装本版一次。
++
+ Windows 下载完成后的更新确认说明应用会在安装期间关闭、完成后自动打开，并提示期间不要重复启动。安装器携带 `--updated` 重启应用并直接打开工作区时，壳会将主窗口前置并聚焦一次，不启用永久置顶。启动进入欢迎页时会清除此请求，使后续登录保留正常的激活行为。普通启动和其他平台不执行此前置步骤。
+ 
+ macOS 在安装准备阶段等待产品主窗口退出全屏，再显示重启确认。取消确认后窗口保持普通模式；原生切换期间销毁窗口会在任务停止前取消安装。如果 macOS 未在五秒内报告切换完成，安装准备会报错且不停止 Host；本地化错误提示要求退出全屏后重试。安装失败后的恢复使用普通窗口。
+diff --git a/apps/desktop/package.json b/apps/desktop/package.json
+index f1781c2ddead8a1556a225459abe2e6c6d82caee..80e2552bf89659922b8310e0c9fb4a8741678492 100644
+--- a/apps/desktop/package.json
++++ b/apps/desktop/package.json
+@@ -53,9 +53,12 @@
+     "upload:latest:mac:arm64": "tsx scripts/upload-target.ts mac-arm64 --latest",
+     "upload:latest:mac:x64": "tsx scripts/upload-target.ts mac-x64 --latest",
+     "upload:latest:win:x64": "tsx scripts/upload-target.ts win-x64 --latest",
+-    "purge:latest": "tsx scripts/upload-target.ts --latest --purge-only"
++    "purge:latest": "tsx scripts/upload-target.ts --latest --purge-only",
++    "deliver": "tsx scripts/collect-release.ts",
++    "deliver:github": "tsx scripts/stage-github-release.ts"
+   },
+   "dependencies": {
++    "@deepseek-ai/dsh-product-version": "workspace:*",
+     "electron-updater": "^6.8.9",
+     "semver": "^7.8.5",
+     "ws": "^8.21.3",
+diff --git a/apps/desktop/scripts/collect-release.ts b/apps/desktop/scripts/collect-release.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..6301728b15f9e135852434f10df82a72d929c813
+--- /dev/null
++++ b/apps/desktop/scripts/collect-release.ts
+@@ -0,0 +1,439 @@
++/**
++ * Assemble one flat release directory from build artifacts produced on separate hosts.
++ * Each artifact is copied under a uniform name, checked against its container's file signature,
++ * and recorded with its SHA-256 so a published download can be verified after transfer.
++ */
++import { createHash } from 'node:crypto'
++import { copyFile, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises'
++import { createReadStream, readFileSync } from 'node:fs'
++import { basename, dirname, join, resolve } from 'node:path'
++import { fileURLToPath } from 'node:url'
++import { parseArgs } from 'node:util'
++import yaml from 'js-yaml'
++import { z } from 'zod'
++import { writeStoredZip } from './release-zip.ts'
++
++/** Installer container a collected artifact uses. */
++export type ReleaseArtifactFormat = 'deb' | 'dmg' | 'exe' | 'rpm' | 'tar.gz'
++
++/** Operating system the artifact installs on. */
++type ReleaseArtifactPlatform = 'darwin' | 'linux' | 'win32'
++
++/** One artifact copied into the release directory. */
++interface ReleaseArtifact {
++  readonly target: string
++  readonly platform: ReleaseArtifactPlatform
++  readonly arch: 'arm64' | 'x64'
++  readonly format: ReleaseArtifactFormat
++  readonly name: string
++  readonly source: string
++  readonly bytes: number
++  readonly sha256: string
++}
++
++/** Signature check that rejects a truncated or mislabelled container. */
++const SIGNATURES: Record<ReleaseArtifactFormat, (path: string, bytes: number) => Promise<void>> = {
++  exe: async (path) => {
++    const head = await readBytes(path, 0, 2)
++    if (head.toString('latin1') !== 'MZ') throw new Error('does not start with the PE signature "MZ"')
++  },
++  deb: async (path) => {
++    const head = await readBytes(path, 0, 8)
++    if (head.toString('latin1') !== '!<arch>\n') throw new Error('does not start with the ar archive signature')
++  },
++  rpm: async (path) => {
++    const head = await readBytes(path, 0, 4)
++    if (!head.equals(Buffer.from([0xed, 0xab, 0xee, 0xdb]))) throw new Error('does not start with the RPM lead magic')
++  },
++  dmg: async (path, bytes) => {
++    // UDIF writes its trailer, whose signature is "koly", in the last 512 bytes.
++    const tail = await readBytes(path, bytes - 512, 512)
++    if (tail.indexOf('koly') === -1) throw new Error('has no UDIF trailer signature')
++  },
++  'tar.gz': async (path) => {
++    const head = await readBytes(path, 0, 2)
++    if (head[0] !== 0x1f || head[1] !== 0x8b) throw new Error('is not gzip compressed')
++  },
++}
++
++const FORMAT_EXTENSIONS: readonly (readonly [ReleaseArtifactFormat, string])[] = [
++  ['tar.gz', '.tar.gz'], ['deb', '.deb'], ['rpm', '.rpm'], ['dmg', '.dmg'], ['exe', '.exe'],
++]
++
++async function readBytes(path: string, start: number, length: number): Promise<Buffer> {
++  const stream = createReadStream(path, { start, end: start + length - 1 })
++  const chunks: Buffer[] = []
++  for await (const chunk of stream) chunks.push(chunk as Buffer)
++  return Buffer.concat(chunks)
++}
++
++function formatOf(path: string): ReleaseArtifactFormat {
++  const name = basename(path)
++  const match = FORMAT_EXTENSIONS.find(([, extension]) => name.endsWith(extension))
++  if (match === undefined) throw new Error(`release collect: ${name} is not a known release artifact`)
++  return match[0]
++}
++
++function platformOf(target: string): ReleaseArtifactPlatform {
++  if (!/^(?:win|mac|linux)-(?:x64|arm64)$/u.test(target)) throw new Error(`release collect: unsupported target ${JSON.stringify(target)}`)
++  if (target.startsWith('win-')) return 'win32'
++  if (target.startsWith('mac-')) return 'darwin'
++  if (target.startsWith('linux-')) return 'linux'
++  throw new Error(`release collect: unsupported target ${JSON.stringify(target)}`)
++}
++
++function archOf(target: string): 'arm64' | 'x64' {
++  const arch = target.slice(target.lastIndexOf('-') + 1)
++  if (arch !== 'arm64' && arch !== 'x64') throw new Error(`release collect: unsupported architecture in ${JSON.stringify(target)}`)
++  return arch
++}
++
++async function sha256File(path: string): Promise<string> {
++  const hash = createHash('sha256')
++  for await (const chunk of createReadStream(path)) hash.update(chunk as Buffer)
++  return hash.digest('hex').toUpperCase()
++}
++
++function releaseName(version: string, target: string, format: ReleaseArtifactFormat): string {
++  const extension = FORMAT_EXTENSIONS.find(([candidate]) => candidate === format)![1]
++  return `DSHU-${version}-${target}${extension}`
++}
++
++/** Layout of the plain-text README shipped beside the installers, with {{TOKEN}} placeholders. */
++const README_TEMPLATE_PATH = fileURLToPath(new URL('./release-readme-template.txt', import.meta.url))
++
++/** Order the artifact blocks appear in the README, matching how a reader picks a platform. */
++const README_FORMAT_ORDER: readonly ReleaseArtifactFormat[] = ['exe', 'dmg', 'deb', 'rpm', 'tar.gz']
++
++/** Order architectures inside one format: x64 first, then arm64. */
++const README_ARCH_ORDER: readonly ('x64' | 'arm64')[] = ['x64', 'arm64']
++
++/** Width of one artifact headline row: `   ■ label ·…· size MB`. */
++const README_ROW_WIDTH = 76
++
++/**
++ * Describe one artifact as a picker row label.
++ * @param artifact - Collected artifact.
++ * @returns Platform and architecture text shown after the marker.
++ */
++function readmeLabel(artifact: ReleaseArtifact): string {
++  switch (artifact.format) {
++    case 'exe': return 'Windows · x64'
++    case 'dmg': return 'macOS · Apple Silicon'
++    case 'deb': return `Debian / Ubuntu · ${artifact.arch}`
++    case 'rpm': return `Fedora / RHEL / Rocky · ${artifact.arch}`
++    case 'tar.gz': return `Linux 免安装包 · ${artifact.arch}`
++  }
++}
++
++/**
++ * Describe how to install one artifact.
++ * @param artifact - Collected artifact.
++ * @returns Command or action line shown under the file name.
++ */
++function readmeCommand(artifact: ReleaseArtifact): string {
++  switch (artifact.format) {
++    case 'exe': return '双击运行，按提示完成安装'
++    case 'dmg': return '双击挂载，把应用拖进「应用程序」文件夹'
++    case 'deb': return `$ sudo apt install ./${artifact.name}`
++    case 'rpm': return `$ sudo dnf install ./${artifact.name}`
++    case 'tar.gz': return `$ tar -xzf ${artifact.name}`
++  }
++}
++
++/**
++ * Render the artifact blocks of README section 01.
++ * @param artifacts - Collected artifacts.
++ * @returns Blocks separated by blank lines, in the picker order.
++ */
++function readmeArtifacts(artifacts: readonly ReleaseArtifact[]): string {
++  const ordered = [...artifacts].sort((left, right) => {
++    const byFormat = README_FORMAT_ORDER.indexOf(left.format) - README_FORMAT_ORDER.indexOf(right.format)
++    return byFormat !== 0 ? byFormat : README_ARCH_ORDER.indexOf(left.arch) - README_ARCH_ORDER.indexOf(right.arch)
++  })
++  return ordered.map((artifact) => {
++    const label = readmeLabel(artifact)
++    const size = `${(artifact.bytes / 1024 / 1024).toFixed(1)} MB`
++    const dots = '·'.repeat(Math.max(2, README_ROW_WIDTH - `   ■ ${label} `.length - size.length - 1))
++    return `   ■ ${label} ${dots} ${size}\n     ${artifact.name}\n     ${readmeCommand(artifact)}`
++  }).join('\n\n')
++}
++
++/**
++ * Format the release date named by a calendar version.
++ * @param version - Public version, `YYYY.MM.DD.N`.
++ * @returns `YYYY-MM-DD`, or the version itself when it is not a calendar version.
++ */
++function readmeDate(version: string): string {
++  const match = /^(\d{4})\.(\d{2})\.(\d{2})\./u.exec(version)
++  return match === null ? version : `${match[1]}-${match[2]}-${match[3]}`
++}
++
++/**
++ * Render the plain-text README shipped beside the installers.
++ * The release directory carries no Markdown renderer, so the file stays readable in any text editor.
++ * @param artifacts - Collected artifacts.
++ * @param version - Public release version.
++ * @param commit - Source commit the artifacts were built from, when known.
++ * @returns README.newline-terminated plain text.
++ */
++function releaseReadme(artifacts: readonly ReleaseArtifact[], version: string, commit: string | undefined): string {
++  return readFileSync(README_TEMPLATE_PATH, 'utf8')
++    .replaceAll('{{ARTIFACTS}}', readmeArtifacts(artifacts))
++    .replaceAll('{{VERSION}}', version)
++    .replaceAll('{{COMMIT}}', commit ?? 'unknown')
++    .replaceAll('{{DATE}}', readmeDate(version))
++}
++/** Request to assemble one release directory. */
++export interface CollectReleaseOptions {
++  readonly version: string
++  readonly out: string
++  readonly artifacts: readonly { readonly target: string; readonly path: string }[]
++  readonly commit?: string
++  readonly dirty?: boolean
++  readonly sourceNote?: string
++  readonly force?: boolean
++  /** Also write `DSHU-<version>-Release.zip` beside the release directory. */
++  readonly zip?: boolean
++  /**
++   * Channel metadata (`latest*.yml`) that installed applications read.
++   * Each file is published as its own release asset; it never goes inside a platform archive.
++   */
++  readonly feeds?: readonly string[]
++  /** Extra assets an update feed names but that are not installers, as `published-name=source`. */
++  readonly auxiliary?: readonly { readonly name: string; readonly path: string }[]
++}
++
++/**
++ * Archive one assembled release directory as one download per system and package format.
++ * Each archive carries the documentation plus only the installers for its own platform, architecture and format.
++ * @param out - Release directory holding the installers and documentation.
++ * @param version - Public release version, used in the archive names.
++ * @returns One archive per target and format, in the order they first appear.
++ */
++async function writeReleaseArchives(out: string, version: string): Promise<readonly { path: string; bytes: number; sha256: string }[]> {
++  const manifest = JSON.parse(await readFile(join(out, 'RELEASE-MANIFEST.json'), 'utf8')) as {
++    artifacts?: readonly { readonly name?: unknown; readonly target?: unknown; readonly format?: unknown }[]
++  }
++  const artifacts = (manifest.artifacts ?? [])
++    .filter((artifact): artifact is { name: string; target: string; format: ReleaseArtifactFormat } =>
++      typeof artifact.name === 'string' && typeof artifact.target === 'string' && typeof artifact.format === 'string')
++  if (artifacts.length === 0) throw new Error('release collect: the manifest lists no artifacts to archive')
++  const groups = new Map<string, { target: string; format: ReleaseArtifactFormat; members: string[] }>()
++  for (const artifact of artifacts) {
++    const key = `${artifact.target}-${artifact.format}`
++    const group = groups.get(key)
++    if (group === undefined) groups.set(key, { target: artifact.target, format: artifact.format, members: [artifact.name] })
++    else group.members.push(artifact.name)
++  }
++  const archives: { path: string; bytes: number; sha256: string }[] = []
++  for (const [key, group] of groups) {
++    const members = ['README.txt', ...group.members, 'LICENSE', 'SHA256SUMS.txt']
++    const archive = join(dirname(out), `DSHU-${version}-${key}.zip`)
++    archives.push({ path: archive, ...await writeStoredZip(members.map(name => ({ source: join(out, name), name })), archive) })
++  }
++  return archives
++}
++
++/**
++ * Copy verified artifacts into one release directory and record their hashes.
++ * @param options - Release version, destination, and the artifact each target produced.
++ * @returns The collected artifacts in the order they were requested.
++ */
++export async function collectRelease(options: CollectReleaseOptions): Promise<readonly ReleaseArtifact[]> {
++  const version = options.version.trim()
++  if (version === '' || /[\\/:*?"<>|]/u.test(version)) {
++    throw new Error('release collect: --version requires the public version, for example 2026.11.23.2')
++  }
++  const out = resolve(options.out)
++  if (options.artifacts.length === 0) throw new Error('release collect: --artifact <target>=<path> is required at least once')
++
++  const artifacts: ReleaseArtifact[] = []
++  for (const entry of options.artifacts) {
++    const source = resolve(entry.path)
++    const format = formatOf(source)
++    const platform = platformOf(entry.target)
++    const file = await stat(source)
++    if (!file.isFile() || file.size === 0) throw new Error(`release collect: ${source} is not a nonempty file`)
++    await SIGNATURES[format](source, file.size).catch((error: unknown) => {
++      throw new Error(`release collect: ${basename(source)} ${error instanceof Error ? error.message : String(error)}`)
++    })
++    artifacts.push({
++      target: entry.target, platform, arch: archOf(entry.target), format,
++      name: releaseName(version, entry.target, format), source, bytes: file.size, sha256: await sha256File(source),
++    })
++  }
++  const duplicated = artifacts.filter((artifact, index) => artifacts.findIndex(other => other.name === artifact.name) !== index)
++  if (duplicated.length > 0) throw new Error(`release collect: more than one artifact for ${duplicated.map(it => it.name).join(', ')}`)
++
++  const extras = (options.auxiliary ?? []).map(entry => entry.name)
++  const publicNames = [...artifacts.map(artifact => artifact.name), ...extras, ...(options.feeds ?? []).map(path => basename(path))]
++  if (extras.some(name => !/^[A-Za-z0-9][A-Za-z0-9._-]*\.zip$/u.test(name)) ||
++      new Set(publicNames.map(name => name.toLowerCase())).size !== publicNames.length) {
++    throw new Error('release collect: expected distinct installer, update ZIP and index filenames')
++  }
++  await mkdir(out, { recursive: true })
++  const existing = new Set(await readdir(out))
++  for (const artifact of artifacts) {
++    if (!options.force && existing.has(artifact.name)) {
++      throw new Error(`release collect: ${artifact.name} already exists in ${out}; pass --force to replace it`)
++    }
++  }
++  for (const artifact of artifacts) await copyFile(artifact.source, join(out, artifact.name))
++  const license = resolve(import.meta.dirname, '..', '..', '..', 'LICENSE')
++  await copyFile(license, join(out, 'LICENSE'))
++
++  const written: ReleaseArtifact[] = []
++  for (const artifact of artifacts) {
++    const destination = join(out, artifact.name)
++    const { size } = await stat(destination)
++    const sha256 = await sha256File(destination)
++    if (size !== artifact.bytes || sha256 !== artifact.sha256) {
++      throw new Error(`release collect: ${artifact.name} changed while it was copied`)
++    }
++    written.push(artifact)
++  }
++  const licenseHash = await sha256File(join(out, 'LICENSE'))
++
++  const publishedNames = new Map(artifacts.map(artifact => [basename(artifact.source), artifact.name]))
++  const feeds: { name: string; bytes: number; sha256: string }[] = []
++  const auxiliary: { name: string; bytes: number; sha256: string }[] = []
++  for (const entry of options.auxiliary ?? []) {
++    const source = resolve(entry.path)
++    const { size } = await stat(source)
++    if (size === 0) throw new Error(`release collect: ${source} is empty`)
++    if (publishedNames.has(basename(source))) throw new Error(`release collect: ambiguous source name ${basename(source)}`)
++    publishedNames.set(basename(source), entry.name)
++    await copyFile(source, join(out, entry.name))
++    auxiliary.push({ name: entry.name, bytes: size, sha256: await sha256File(join(out, entry.name)) })
++  }
++  for (const feed of options.feeds ?? []) {
++    const name = basename(feed)
++    if (!/^latest(?:-[a-z0-9]+)*\.yml$/u.test(name)) {
++      throw new Error(`release collect: ${name} is not a latest*.yml channel file`)
++    }
++    if (feeds.some(entry => entry.name === name)) {
++      throw new Error(`release collect: two sources provide ${name}; one channel file cannot describe both`)
++    }
++    const source = resolve(feed)
++    const { size } = await stat(source)
++    if (size === 0) throw new Error(`release collect: ${source} is empty`)
++    const feedData = z.looseObject({ path: z.string(), files: z.array(z.looseObject({ url: z.string() })) })
++      .parse(yaml.load(await readFile(source, 'utf8')))
++    feedData.path = publishedNames.get(feedData.path) ?? feedData.path
++    for (const file of feedData.files) file.url = publishedNames.get(file.url) ?? file.url
++    await writeFile(join(out, name), yaml.dump(feedData, { lineWidth: -1 }))
++    feeds.push({ name, bytes: (await stat(join(out, name))).size, sha256: await sha256File(join(out, name)) })
++  }
++
++  await writeFile(join(out, 'SHA256SUMS.txt'),
++    `${[...written.map(artifact => `${artifact.sha256.toLowerCase()}  ${artifact.name}`),
++      ...feeds.map(feed => `${feed.sha256.toLowerCase()}  ${feed.name}`),
++      ...auxiliary.map(entry => `${entry.sha256.toLowerCase()}  ${entry.name}`),
++      `${licenseHash.toLowerCase()}  LICENSE`].join('\n')}\n`)
++
++  const manifest = {
++    schemaVersion: 1,
++    kind: 'release-manifest',
++    version,
++    generatedAt: new Date().toISOString(),
++    ...(options.commit === undefined ? {} : { sourceCommit: options.commit }),
++    ...(options.commit === undefined ? {} : { sourceDirty: options.dirty ?? false }),
++    ...(options.sourceNote === undefined ? {} : { sourceNote: options.sourceNote }),
++    artifacts: written.map(artifact => ({
++      target: artifact.target, platform: artifact.platform, arch: artifact.arch,
++      format: artifact.format, name: artifact.name, bytes: artifact.bytes, sha256: artifact.sha256,
++      source: artifact.source,
++    })),
++    ...(feeds.length === 0 ? {} : { feeds }),
++    ...(auxiliary.length === 0 ? {} : { auxiliary }),
++  }
++  await writeFile(join(out, 'RELEASE-MANIFEST.json'), `${JSON.stringify(manifest, null, 2)}\n`)
++  await writeFile(join(out, 'README.txt'), releaseReadme(written, version, options.commit))
++  process.stdout.write(`release collect: ${written.length} artifacts in ${out}\n`)
++  for (const artifact of written) process.stdout.write(`  ${artifact.name}  ${artifact.bytes} bytes  ${artifact.sha256}\n`)
++  for (const feed of feeds) process.stdout.write(`  ${feed.name}  ${feed.bytes} bytes  ${feed.sha256}\n`)
++  for (const entry of auxiliary) process.stdout.write(`  ${entry.name}  ${entry.bytes} bytes  ${entry.sha256}\n`)
++  if (options.zip === true) {
++    for (const archive of await writeReleaseArchives(out, version)) {
++      process.stdout.write(`  ${basename(archive.path)}  ${archive.bytes} bytes  ${archive.sha256}\n`)
++    }
++  }
++  return written
++}
++
++async function main(): Promise<void> {
++  const { values } = parseArgs({
++    allowPositionals: false,
++    options: {
++      version: { type: 'string' },
++      out: { type: 'string' },
++      artifact: { type: 'string', multiple: true, default: [] },
++      commit: { type: 'string' },
++      dirty: { type: 'boolean', default: false },
++      force: { type: 'boolean', default: false },
++      'readme-only': { type: 'boolean', default: false },
++      zip: { type: 'boolean', default: false },
++      'source-note': { type: 'string' },
++      feed: { type: 'string', multiple: true, default: [] },
++      auxiliary: { type: 'string', multiple: true, default: [] },
++    },
++  })
++  if (values.out === undefined) throw new Error('release collect: --out requires the release directory')
++  if (values['readme-only']) {
++    const version = await rerenderReadme(values.out, values.version, values.commit)
++    if (values.zip) {
++      for (const archive of await writeReleaseArchives(resolve(values.out), version)) {
++        process.stdout.write(`  ${basename(archive.path)}  ${archive.bytes} bytes  ${archive.sha256}\n`)
++      }
++    }
++    return
++  }
++  await collectRelease({
++    version: values.version ?? '',
++    out: values.out,
++    artifacts: values.artifact.map((entry) => {
++      const separator = entry.indexOf('=')
++      if (separator <= 0) throw new Error(`release collect: ${JSON.stringify(entry)} is not <target>=<path>`)
++      return { target: entry.slice(0, separator), path: entry.slice(separator + 1) }
++    }),
++    ...(values.commit === undefined ? {} : { commit: values.commit }),
++    dirty: values.dirty,
++    ...(values['source-note'] === undefined ? {} : { sourceNote: values['source-note'] }),
++    feeds: values.feed,
++    auxiliary: values.auxiliary.map((entry) => {
++      const separator = entry.indexOf('=')
++      if (separator <= 0) throw new Error(`release collect: ${JSON.stringify(entry)} is not <published-name>=<path>`)
++      return { name: entry.slice(0, separator), path: entry.slice(separator + 1) }
++    }),
++    force: values.force,
++    zip: values.zip,
++  })
++}
++
++/**
++ * Rewrite only README.txt from an existing release manifest, leaving the artifacts untouched.
++ * @param out - Release directory holding RELEASE-MANIFEST.json.
++ * @param version - Version override; the manifest's version is used when omitted.
++ * @param commit - Source commit override; the manifest's commit is used when omitted.
++ * @returns The version the rewritten README names.
++ */
++async function rerenderReadme(out: string, version: string | undefined, commit: string | undefined): Promise<string> {
++  const directory = resolve(out)
++  const manifest = JSON.parse(await readFile(join(directory, 'RELEASE-MANIFEST.json'), 'utf8')) as {
++    version?: unknown
++    sourceCommit?: unknown
++    artifacts?: readonly ReleaseArtifact[]
++  }
++  const resolvedVersion = version?.trim() || (typeof manifest.version === 'string' ? manifest.version : '')
++  if (resolvedVersion === '') throw new Error('release collect: the manifest declares no version; pass --version')
++  if (manifest.artifacts === undefined || manifest.artifacts.length === 0) {
++    throw new Error('release collect: the manifest lists no artifacts')
++  }
++  const resolvedCommit = commit ?? (typeof manifest.sourceCommit === 'string' ? manifest.sourceCommit : undefined)
++  await writeFile(join(directory, 'README.txt'), releaseReadme(manifest.artifacts, resolvedVersion, resolvedCommit))
++  process.stdout.write(`release collect: rewrote README.txt in ${directory}\n`)
++  return resolvedVersion
++}
++
++if (process.argv[1] !== undefined && import.meta.filename === resolve(process.argv[1])) await main()
+diff --git a/apps/desktop/scripts/desktop-package-environment.mjs b/apps/desktop/scripts/desktop-package-environment.mjs
+index 772de2c3f2226b765f94621ffe4bc9fc5b3e338f..dc381f98e1522ef4c28686540ebc240375afc461 100644
+--- a/apps/desktop/scripts/desktop-package-environment.mjs
++++ b/apps/desktop/scripts/desktop-package-environment.mjs
+@@ -5,7 +5,7 @@ import { dirname, isAbsolute, join } from 'node:path'
+ import { fileURLToPath } from 'node:url'
+ import { readDesktopPackageSettings as readSettings } from './desktop-file-settings.mjs'
+ import { resolveDesktopAppId, resolveMacOSNotarizationEnvironment, resolveMacOSSigningEnvironment, resolveNpmRegistry } from './desktop-release-environment.mjs'
+-import { resolveDesktopAutoUpdateConfig } from '@deepseek-ai/dsh-desktop-publisher/desktop-auto-update-environment.mjs'
++import { resolvePackagedUpdate } from './dshu-release-feed.mjs'
+ import { createWindowsTokenSigner } from './windows-sign.mjs'
+ import { resolveDesktopPolicyEnvironment } from './desktop-policy-environment.mjs'
+ import { validateMacOSSignatureCacheDirectory } from './macos-signature-cache-directory.mjs'
+@@ -130,7 +130,7 @@ export function validateDesktopPackageEnvironment(environment, target, options =
+   else if (target.platform === 'win32') resolveWindowsPackageSettings(environment)
+   else resolveLinuxPackageSettings(environment)
+   if (options.unsigned) return
+-  if (!options.prepareOnly && target.platform !== 'linux') resolveDesktopAutoUpdateConfig(environment, target.platform, target.arch)
++  if (!options.prepareOnly) resolvePackagedUpdate(environment, target.platform, target.arch)
+   if (target.platform === 'win32') {
+     if (!options.prepareOnly) createWindowsTokenSigner({
+       certificateFile: environment.DSH_DESKTOP_WINDOWS_CER_FILE,
+diff --git a/apps/desktop/scripts/dshu-release-feed.d.mts b/apps/desktop/scripts/dshu-release-feed.d.mts
+new file mode 100644
+index 0000000000000000000000000000000000000000..2e781931cbb07140377d516e39234f4c9401b59a
+--- /dev/null
++++ b/apps/desktop/scripts/dshu-release-feed.d.mts
+@@ -0,0 +1,19 @@
++/** Public GitHub repository shared by production packaging and upload staging. */
++export const DSHU_RELEASE_REPOSITORY: string
++
++/** Immutable update settings sealed into the installed application. */
++export interface PackagedUpdateFeed {
++  readonly channel: 'stable' | 'nightly'
++  readonly publicUrl: string
++  readonly environment: 'production' | 'test'
++  readonly github: boolean
++}
++
++/**
++ * Resolve the public GitHub feed for production installers or the configured test feed.
++ * @param env - Packaging settings.
++ * @param platform - Installer platform.
++ * @param arch - Installer architecture.
++ * @returns Update settings for this target when it has an update feed.
++ */
++export function resolvePackagedUpdate(env: NodeJS.ProcessEnv, platform: NodeJS.Platform, arch: string): PackagedUpdateFeed | undefined
+diff --git a/apps/desktop/scripts/dshu-release-feed.mjs b/apps/desktop/scripts/dshu-release-feed.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..190c75e21d80bdee3e66977b1e9e2aac8415cb25
+--- /dev/null
++++ b/apps/desktop/scripts/dshu-release-feed.mjs
+@@ -0,0 +1,24 @@
++/** Select the fork's public release feed for production installers. */
++import { resolveDesktopAutoUpdateConfig } from '@deepseek-ai/dsh-desktop-publisher/desktop-auto-update-environment.mjs'
++
++/** Public GitHub repository for staged attachments and production installer configuration. */
++export const DSHU_RELEASE_REPOSITORY = 'Water-Run/deepseek-harness-uncensored'
++
++/**
++ * Choose the public GitHub feed for supported production installers or keep the configured test feed.
++ * @param {NodeJS.ProcessEnv} env - Validated packaging settings.
++ * @param {NodeJS.Platform} platform - Installer platform.
++ * @param {string} arch - Installer architecture.
++ * @returns {{ channel: 'stable' | 'nightly', publicUrl: string, environment: 'production' | 'test', github: boolean } | undefined}
++ * Feed settings for the packaged application, if the platform has one.
++ */
++export function resolvePackagedUpdate(env, platform, arch) {
++  const production = env.DSH_DESKTOP_AUTO_UPDATE_ENV?.trim() === 'production'
++  if (production && ((arch === 'arm64' && (platform === 'linux' || platform === 'darwin'))
++    || (arch === 'x64' && (platform === 'linux' || platform === 'win32')))) {
++    return { channel: 'stable', publicUrl: 'https://github.com/' + DSHU_RELEASE_REPOSITORY + '/releases/latest/download/',
++      environment: 'production', github: true }
++  }
++  if (platform === 'linux') return undefined
++  return { ...resolveDesktopAutoUpdateConfig(env, platform, arch), github: false }
++}
+diff --git a/apps/desktop/scripts/electron-builder-config.mjs b/apps/desktop/scripts/electron-builder-config.mjs
+index 234f22adbeea67b554659d5c88909bf0691af4dd..3d66ba7ab119de6e62bbf40217cb31d896d61c01 100644
+--- a/apps/desktop/scripts/electron-builder-config.mjs
++++ b/apps/desktop/scripts/electron-builder-config.mjs
+@@ -20,7 +20,7 @@ import {
+   resolveWindowsUpdatePublisher,
+   scrubWindowsSigningEnvironment,
+ } from './windows-sign.mjs'
+-import { resolveDesktopAutoUpdateConfig } from '@deepseek-ai/dsh-desktop-publisher/desktop-auto-update-environment.mjs'
++import { resolvePackagedUpdate } from './dshu-release-feed.mjs'
+ import { resolveDesktopBuildCommit } from './desktop-build-commit.mjs'
+ import { desktopArtifactBase } from '@deepseek-ai/dsh-desktop-publisher/dshu-version.mjs'
+ import { desktopDisplayVersion, desktopProductVersion, resolveDesktopBuildVersion } from './desktop-build-version.mjs'
+@@ -106,7 +106,7 @@ export function createElectronBuilderConfig(
+   if (windowsSigner !== undefined) {
+     installWindowsNsisBootstrapSigner({ sign: windowsSigner })
+   }
+-  const update = unsigned || resolvedPlatform === 'linux' ? undefined : resolveDesktopAutoUpdateConfig(env, resolvedPlatform, resolvedArch)
++  const update = unsigned ? undefined : resolvePackagedUpdate(env, resolvedPlatform, resolvedArch)
+   // electron-builder merges extraMetadata into the packaged manifest, so a build version here reaches
+   // the artifact names, the update feed, and the installed app.getVersion() the updater compares against.
+   const kernelVersion = JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8')).version
+@@ -123,6 +123,7 @@ export function createElectronBuilderConfig(
+       dshDisplayVersion: displayVersion,
+       ...(displayVersion === buildVersion ? {} : { shortVersionWindows: displayVersion }),
+       dshDesktopUpdateChannel: update?.channel ?? 'nightly',
++      ...(update?.github === true ? { dshDesktopReleaseSource: 'github' } : {}),
+       ...(policy === undefined ? {} : { dshMandatoryUpdatePolicy: policy }),
+       version: buildVersion,
+       ...packaged === undefined ? {} : { dshBuildCommit: packaged.commit, dshBuildDirty: packaged.dirty },
+@@ -222,6 +223,9 @@ export function createElectronBuilderConfig(
+         await writeMacOSAppUpdateConfig(resourcesDir, resolveMacOSAppUpdateFeed(context.packager.config.publish),
+           context.packager.appInfo.updaterCacheDirName)
+       }
++      if (resolvedPlatform === 'linux' && update?.github === true) {
++        await writeMacOSAppUpdateConfig(resourcesDir, update, context.packager.appInfo.updaterCacheDirName)
++      }
+       // The bundled runtime declares whichever version prepared it: the product version for an ordinary
+       // release, and a rewritten one for installed-update qualification.
+       const hostRoot = resolvedPlatform === 'linux' ? join(resourcesDir, 'app.asar.unpacked', 'dsh') : buildPaths.dsh
+diff --git a/apps/desktop/scripts/package-target.ts b/apps/desktop/scripts/package-target.ts
+index 6e2663755abc3c969dbab575418f685030254c84..d93b552d30041083e1d9416657c74bcdecdd7025 100644
+--- a/apps/desktop/scripts/package-target.ts
++++ b/apps/desktop/scripts/package-target.ts
+@@ -1,14 +1,12 @@
+ /** Build one release target with matching Electron and dsh architecture. */
+ 
++import { resolvePackagedUpdate } from './dshu-release-feed.mjs'
+ import { desktopArtifactBase } from '@deepseek-ai/dsh-desktop-publisher/dshu-version.mjs'
+ import { spawn } from 'node:child_process'
+ import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+ import { parseArgs } from 'node:util'
+ import { join, resolve } from 'node:path'
+-import {
+-  desktopBuildRecordFilename,
+-  resolveDesktopAutoUpdateConfig,
+-} from '@deepseek-ai/dsh-desktop-publisher/desktop-auto-update-environment.mjs'
++import { desktopBuildRecordFilename } from '@deepseek-ai/dsh-desktop-publisher/desktop-auto-update-environment.mjs'
+ import { desktopArtifactArch, desktopArtifactOutput, desktopTargetBuildPaths, desktopUnpackedDirectory } from './desktop-build-paths.mjs'
+ import { packageMacOSArtifacts, type DesktopPrepackagedArtifact } from './package-macos.ts'
+ import { loadDesktopPackageEnvironment, localUnsignedPackageEnvironment, validateDesktopPackageEnvironment } from './desktop-package-environment.mjs'
+@@ -162,7 +160,8 @@ function writeReleaseRecord(
+   }
+   const buildVersion = resolveDesktopBuildVersion(environment, desktopProductVersion())
+   const packaged = resolveDesktopBuildCommit(environment)
+-  const update = resolveDesktopAutoUpdateConfig(environment, target.platform, target.arch)
++  const update = resolvePackagedUpdate(environment, target.platform, target.arch)
++  if (update === undefined) throw new Error('desktop package: missing release update feed')
+   const recordPath = join(artifactsRoot, desktopBuildRecordFilename(target.name))
+   const temporaryPath = `${recordPath}.tmp`
+   writeFileSync(temporaryPath, `${JSON.stringify({
+diff --git a/apps/desktop/scripts/release-readme-template.txt b/apps/desktop/scripts/release-readme-template.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..a8ec774fb2c7c978641c13082d3f1db7c59796f3
+--- /dev/null
++++ b/apps/desktop/scripts/release-readme-template.txt
+@@ -0,0 +1,107 @@
++
++       ██████╗ ███████╗███████╗██████╗ ███████╗███████╗███████╗██╗  ██╗
++       ██╔══██╗██╔════╝██╔════╝██╔══██╗██╔════╝██╔════╝██╔════╝██║ ██╔╝
++       ██║  ██║█████╗  █████╗  ██████╔╝███████╗█████╗  █████╗  █████╔╝
++       ██║  ██║██╔══╝  ██╔══╝  ██╔═══╝ ╚════██║██╔══╝  ██╔══╝  ██╔═██╗
++       ██████╔╝███████╗███████╗██║     ███████║███████╗███████╗██║  ██╗
++       ╚═════╝ ╚══════╝╚══════╝╚═╝     ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝
++
++  █ █ ▄▀█ █▀█ █▄ █ █▀▀ █▀ █▀   ▄   █ █ █▄ █ █▀▀ █▀▀ █▄ █ █▀ █▀█ █▀█ █▀▀ █▀▄
++  █▀█ █▀█ █▀▄ █ ▀█ ██▄ ▄█ ▄█   ▀   █▄█ █ ▀█ █▄▄ ██▄ █ ▀█ ▄█ █▄█ █▀▄ ██▄ █▄▀
++
++
++     ▄▄██████████████████████████▄▄
++   ▄████████████████████████████████▄      DeepSeek Harness Uncensored
++  ▄██████████████████████████████████▄     ═══════════════════════════
++  ████████████████████████████████████     更自由的探索未至之境.
++  ████████████████▀▀▀█████▀███████████
++  ████████▀          █████  ▀██▀▀▀ ███     版本   {{VERSION}}
++  ██████▀             ▀▀██        ▄███     提交   {{COMMIT}}
++  █████                  ▀█▄   ▄▄█████     发布   {{DATE}}
++  █████  ███▄▄▄       ▄▄      ████████     平台   Windows · Linux · macOS
++  █████  ███████▄      ██     ████████     架构   x64 · arm64
++  █████  ▀████████▄     ▀    ▄████████     内置   Node · Python · pnpm
++  █████▄  ▀█████████        ▄█████████     模式   缺省 · 网安 · 逆向 · 写作
++  ██████▄   ▀███  ▀██▄     ███████████     基于   DeepSeek Harness
++  ████████▄          ▀▀ ▄    █████████     许可   GPL-3.0-or-later
++  ███████████▄▄▄▄ ▄▄▄▄████████████████
++  ▀██████████████████████████████████▀     ░░░▒▒▒▓▓▓███▓▓▓▒▒▒░░░
++   ▀████████████████████████████████▀
++     ▀▀██████████████████████████▀▀
++
++
++   本目录是同一版本的全部安装包，按系统任选其一。
++   每个安装包都自带 Node、Python 与 pnpm，开箱即用，无需预装任何运行时。
++
++
++ ═══╡ 01 ╞════════════════════════════════════════════════════════════════════
++
++   选择安装包  /  DOWNLOAD & INSTALL
++
++{{ARTIFACTS}}
++
++   DEB / RPM 安装到 /opt/DeepSeek Harness Uncensored，并在 /usr/bin 注册命令。
++
++
++ ═══╡ 02 ╞════════════════════════════════════════════════════════════════════
++
++   首次运行  /  FIRST LAUNCH
++
++   安装包未做代码签名，首次打开时系统可能拦截：
++
++   ► Windows   SmartScreen 提示时，点「更多信息」→「仍要运行」
++   ► macOS     右键点击应用 →「打开」；或在终端执行：
++
++     $ xattr -dr com.apple.quarantine \
++         "/Applications/DeepSeek Harness Uncensored.app"
++
++
++ ═══╡ 03 ╞════════════════════════════════════════════════════════════════════
++
++   校验下载  /  VERIFY
++
++   ► Linux / macOS
++     $ sha256sum -c SHA256SUMS.txt
++
++   ► Windows (PowerShell)，输出与 SHA256SUMS.txt 对照
++     > Get-FileHash -Algorithm SHA256 .\DSHU-{{VERSION}}-win-x64.exe
++
++
++ ═══╡ 04 ╞════════════════════════════════════════════════════════════════════
++
++   卸载与数据  /  UNINSTALL & DATA
++
++   ► deb       $ sudo apt remove deepseek-harness-uncensored
++   ► rpm       $ sudo dnf remove deepseek-harness-uncensored
++   ► Windows   「设置 → 应用」中卸载
++   ► macOS     把应用拖进废纸篓
++
++   会话、设置与凭据保存在：
++
++     ~/.dsh-uncensored                 (Linux / macOS)
++     %USERPROFILE%\.dsh-uncensored     (Windows)
++
++   卸载不会删除这些数据；需要彻底清除时，手动删除该目录。
++
++
++ ═══╡ 05 ╞════════════════════════════════════════════════════════════════════
++
++   链接  /  LINKS
++
++   ► 项目主页 / 下载 / 反馈
++     https://github.com/Water-Run/deepseek-harness-uncensored
++       ├── /releases                         全部版本
++       ├── /releases/tag/v{{VERSION}}       本版本页
++       └── /issues                           问题反馈
++
++   ► 上游项目
++     https://github.com/deepseek-ai/deepseek-harness
++
++   反馈问题时请附上版本号 {{VERSION}}、提交号 {{COMMIT}}、
++   系统版本与安装包类型。
++
++
++ ═════════════════════════════════════════════════════════════════════════════
++   DSHU {{VERSION}} · {{COMMIT}} · GPL-3.0-or-later
++   更自由的探索未至之境.
++ ═════════════════════════════════════════════════════════════════════════════
+diff --git a/apps/desktop/scripts/release-zip.ts b/apps/desktop/scripts/release-zip.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..6e6776b9fd5125e4bfbcc8986c0599c8ab9ead7b
+--- /dev/null
++++ b/apps/desktop/scripts/release-zip.ts
+@@ -0,0 +1,165 @@
++/**
++ * Write a stored (uncompressed) ZIP archive.
++ * Release installers are already compressed containers, so deflating them would cost CPU for no size gain;
++ * storing keeps the archive cheap to produce and lets the bytes be read back without a decompressor.
++ */
++import { createHash } from 'node:crypto'
++import { createReadStream } from 'node:fs'
++import { open, stat } from 'node:fs/promises'
++
++/** One file the archive carries. */
++export interface ReleaseZipEntry {
++  /** Absolute source path. */
++  readonly source: string
++  /** Path the entry carries inside the archive, using `/` separators. */
++  readonly name: string
++}
++
++const LOCAL_HEADER = 0x04034b50
++const CENTRAL_HEADER = 0x02014b50
++const END_OF_CENTRAL_DIRECTORY = 0x06054b50
++/** UTF-8 names, so the archive needs no code-page guessing. */
++const UTF8_NAME_FLAG = 0x0800
++
++/** Incremental CRC-32 (IEEE 802.3) over the bytes already written. */
++class Crc32 {
++  private state = 0xffffffff
++
++  /** Add bytes to the running checksum. */
++  update(chunk: Buffer): void {
++    for (const byte of chunk) this.state = CRC_TABLE[(this.state ^ byte) & 0xff]! ^ (this.state >>> 8)
++  }
++
++  /** Finish and return the checksum. */
++  digest(): number {
++    return (this.state ^ 0xffffffff) >>> 0
++  }
++}
++
++const CRC_TABLE: Uint32Array = (() => {
++  const table = new Uint32Array(256)
++  for (let index = 0; index < 256; index += 1) {
++    let value = index
++    for (let bit = 0; bit < 8; bit += 1) value = (value & 1) === 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1
++    table[index] = value >>> 0
++  }
++  return table
++})()
++
++/**
++ * Convert a modification time into the MS-DOS date and time fields a ZIP header carries.
++ * @param time - Milliseconds since the epoch.
++ * @returns The packed date in the high half and the packed time in the low half.
++ */
++function dosTimestamp(time: number): { date: number; time: number } {
++  const at = new Date(time)
++  const year = Math.max(1980, at.getFullYear())
++  return {
++    date: ((year - 1980) << 9) | ((at.getMonth() + 1) << 5) | at.getDate(),
++    time: (at.getHours() << 11) | (at.getMinutes() << 5) | (Math.floor(at.getSeconds() / 2) & 0x1f),
++  }
++}
++
++interface ScannedEntry extends ReleaseZipEntry {
++  readonly bytes: number
++  readonly crc: number
++  readonly modified: number
++  readonly nameBytes: Buffer
++}
++
++async function scan(entry: ReleaseZipEntry): Promise<ScannedEntry> {
++  const file = await stat(entry.source)
++  if (!file.isFile() || file.size === 0) throw new Error(`release zip: ${entry.source} is not a nonempty file`)
++  const crc = new Crc32()
++  for await (const chunk of createReadStream(entry.source)) crc.update(chunk as Buffer)
++  return { ...entry, bytes: file.size, crc: crc.digest(), modified: file.mtimeMs, nameBytes: Buffer.from(entry.name, 'utf8') }
++}
++
++/**
++ * Write one stored ZIP archive.
++ * Each member is read twice: once for its CRC, once to copy its bytes, so peak memory stays one chunk.
++ * @param entries - Files to store, in archive order.
++ * @param destination - Archive path to create.
++ * @returns The archive's SHA-256 and byte length.
++ */
++export async function writeStoredZip(entries: readonly ReleaseZipEntry[], destination: string): Promise<{ bytes: number; sha256: string }> {
++  if (entries.length === 0) throw new Error('release zip: no entries')
++  if (entries.length > 0xffff) throw new Error('release zip: more than 65535 members requires ZIP64')
++  const scanned: ScannedEntry[] = []
++  for (const entry of entries) scanned.push(await scan(entry))
++  const total = scanned.reduce((sum, entry) => sum + entry.bytes, 0)
++  if (scanned.some(entry => entry.bytes > 0xffffffff) || total > 0xffffffff) {
++    throw new Error('release zip: more than 4 GiB requires ZIP64')
++  }
++
++  const targets: { offset: number; entry: ScannedEntry }[] = []
++  let offset = 0
++  const handle = await open(destination, 'w')
++  try {
++    for (const entry of scanned) {
++      const stamp = dosTimestamp(entry.modified)
++      const header = Buffer.alloc(30)
++      header.writeUInt32LE(LOCAL_HEADER, 0)
++      header.writeUInt16LE(20, 4)
++      header.writeUInt16LE(UTF8_NAME_FLAG, 6)
++      header.writeUInt16LE(0, 8)
++      header.writeUInt16LE(stamp.time, 10)
++      header.writeUInt16LE(stamp.date, 12)
++      header.writeUInt32LE(entry.crc, 14)
++      header.writeUInt32LE(entry.bytes, 18)
++      header.writeUInt32LE(entry.bytes, 22)
++      header.writeUInt16LE(entry.nameBytes.length, 26)
++      header.writeUInt16LE(0, 28)
++      await handle.write(header)
++      await handle.write(entry.nameBytes)
++      targets.push({ offset, entry })
++      for await (const chunk of createReadStream(entry.source)) await handle.write(chunk as Buffer)
++      offset += 30 + entry.nameBytes.length + entry.bytes
++    }
++
++    const centralStart = offset
++    for (const { offset: localOffset, entry } of targets) {
++      const stamp = dosTimestamp(entry.modified)
++      const header = Buffer.alloc(46)
++      header.writeUInt32LE(CENTRAL_HEADER, 0)
++      header.writeUInt16LE(20, 4)
++      header.writeUInt16LE(20, 6)
++      header.writeUInt16LE(UTF8_NAME_FLAG, 8)
++      header.writeUInt16LE(0, 10)
++      header.writeUInt16LE(stamp.time, 12)
++      header.writeUInt16LE(stamp.date, 14)
++      header.writeUInt32LE(entry.crc, 16)
++      header.writeUInt32LE(entry.bytes, 20)
++      header.writeUInt32LE(entry.bytes, 24)
++      header.writeUInt16LE(entry.nameBytes.length, 28)
++      header.writeUInt16LE(0, 30)
++      header.writeUInt16LE(0, 32)
++      header.writeUInt16LE(0, 34)
++      header.writeUInt16LE(0, 36)
++      header.writeUInt32LE(0, 38)
++      header.writeUInt32LE(localOffset, 42)
++      await handle.write(header)
++      await handle.write(entry.nameBytes)
++      offset += 46 + entry.nameBytes.length
++    }
++    const centralSize = offset - centralStart
++
++    const end = Buffer.alloc(22)
++    end.writeUInt32LE(END_OF_CENTRAL_DIRECTORY, 0)
++    end.writeUInt16LE(0, 4)
++    end.writeUInt16LE(0, 6)
++    end.writeUInt16LE(scanned.length, 8)
++    end.writeUInt16LE(scanned.length, 10)
++    end.writeUInt32LE(centralSize, 12)
++    end.writeUInt32LE(centralStart, 16)
++    end.writeUInt16LE(0, 20)
++    await handle.write(end)
++  } finally {
++    await handle.close()
++  }
++
++  const digest = createHash('sha256')
++  for await (const chunk of createReadStream(destination)) digest.update(chunk as Buffer)
++  const { size } = await stat(destination)
++  return { bytes: size, sha256: digest.digest('hex').toUpperCase() }
++}
+diff --git a/apps/desktop/scripts/stage-github-release.ts b/apps/desktop/scripts/stage-github-release.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..ceb71069765f479399812c7bb844359b3eeaeb87
+--- /dev/null
++++ b/apps/desktop/scripts/stage-github-release.ts
+@@ -0,0 +1,129 @@
++/** Stage desktop installers and the payloads needed by clients migrating from the older updater. */
++import { createHash } from 'node:crypto'
++import { createReadStream } from 'node:fs'
++import { copyFile, lstat, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
++import { basename, dirname, join, resolve } from 'node:path'
++import { pathToFileURL } from 'node:url'
++import { parseArgs } from 'node:util'
++import { parseCalendarVersion } from '@deepseek-ai/dsh-product-version/bootstrap'
++import { DSHU_RELEASE_REPOSITORY } from './dshu-release-feed.mjs'
++import yaml from 'js-yaml'
++import { z } from 'zod'
++
++const installers = [
++  ['win-x64.exe', 'Windows x64'],
++  ['mac-arm64.dmg', 'macOS Apple 芯片'],
++  ['linux-x64.deb', 'Linux x64 · DEB'],
++  ['linux-x64.rpm', 'Linux x64 · RPM'],
++  ['linux-arm64.deb', 'Linux arm64 · DEB'],
++] as const
++const feeds = {
++  'latest.yml': ['win-x64.exe'],
++  'latest-mac.yml': ['mac-arm64.zip'],
++  'latest-linux.yml': ['linux-x64.deb', 'linux-x64.rpm'],
++  'latest-linux-arm64.yml': ['linux-arm64.deb'],
++}
++const receipt = z.object({ name: z.string(), bytes: z.number().int().positive(), sha256: z.string().regex(/^[a-f\d]{64}$/iu) })
++const manifestSchema = z.object({
++  schemaVersion: z.literal(1), kind: z.literal('release-manifest'), version: z.string(),
++  artifacts: z.array(receipt), auxiliary: z.array(receipt).default([]), feeds: z.array(receipt).default([]),
++})
++const feedSchema = z.object({
++  version: z.string(), files: z.array(z.object({ url: z.string(), size: z.number().int().positive(), sha512: z.string() })),
++  path: z.string(), sha512: z.string(), packages: z.never().optional(),
++})
++
++function exactNames(actual: readonly string[], expected: readonly string[], subject: string): void {
++  if (actual.length !== expected.length || new Set(actual).size !== expected.length || expected.some(name => !actual.includes(name))) {
++    throw new Error(`GitHub release: expected ${subject} [${expected.join(', ')}]; received [${actual.join(', ')}]`)
++  }
++}
++
++async function verifyFile(directory: string, file: z.infer<typeof receipt>): Promise<string> {
++  const path = join(directory, file.name)
++  const info = await lstat(path)
++  if (!info.isFile() || info.size !== file.bytes) throw new Error(`GitHub release: unexpected file size for ${file.name}`)
++  const sha256 = createHash('sha256'), sha512 = createHash('sha512')
++  for await (const chunk of createReadStream(path)) { sha256.update(chunk as Buffer); sha512.update(chunk as Buffer) }
++  if (sha256.digest('hex') !== file.sha256.toLowerCase()) throw new Error(`GitHub release: SHA-256 differs for ${file.name}`)
++  return sha512.digest('base64')
++}
++
++/**
++ * Create a new upload directory from the desktop collector's receipt. Failed validation leaves no upload directory.
++ * @param from - Collected files and RELEASE-MANIFEST.json.
++ * @param out - New directory for one version's attachments, upload list and release notes.
++ * @param bridge - Include the previous client's automatic update indexes and macOS ZIP.
++ */
++export async function stageGithubRelease(from: string, out: string, bridge = false): Promise<void> {
++  const source = resolve(from), destination = resolve(out)
++  const manifest = manifestSchema.parse(JSON.parse(await readFile(join(source, 'RELEASE-MANIFEST.json'), 'utf8')))
++  const version = parseCalendarVersion(manifest.version)
++  if (!version || version.display !== manifest.version) throw new Error('GitHub release: expected the public calendar version')
++  const name = (suffix: string): string => `DSHU-${version.display}-${suffix}`
++  const zip = name('mac-arm64.zip')
++  exactNames(manifest.artifacts.map(file => file.name), installers.map(([suffix]) => name(suffix)), 'installers')
++  if (bridge) {
++    exactNames(manifest.auxiliary.map(file => file.name), [zip], 'update payloads')
++    exactNames(manifest.feeds.map(file => file.name), Object.keys(feeds), 'update indexes')
++  }
++  if (await lstat(destination).then(() => true, (error: NodeJS.ErrnoException) => {
++    if (error.code === 'ENOENT') return false
++    throw error
++  })) throw new Error(`GitHub release: choose a new output directory: ${destination}`)
++
++  await mkdir(dirname(destination), { recursive: true })
++  const staging = await mkdtemp(join(dirname(destination), '.' + basename(destination) + '-'))
++  try {
++    const installDir = join(staging, 'installers'), updateDir = join(staging, 'updates')
++    await mkdir(installDir)
++    if (bridge) await mkdir(updateDir)
++    const files = new Map<string, { size: number; sha512: string }>()
++    const uploads: string[] = []
++    for (const file of bridge ? [...manifest.artifacts, ...manifest.auxiliary] : manifest.artifacts) {
++      const dir = file.name === zip ? updateDir : installDir
++      await copyFile(join(source, file.name), join(dir, file.name))
++      files.set(file.name, { size: file.bytes, sha512: await verifyFile(dir, file) })
++    }
++    const tag = 'v' + version.display
++    const base = 'https://github.com/' + DSHU_RELEASE_REPOSITORY + '/releases/download/' + tag + '/'
++    const notes = ['## 安装包', '', '| 系统 | 下载 |', '| --- | --- |']
++    for (const [suffix, label] of installers) {
++      const filename = name(suffix)
++      uploads.push(`installers/${filename}#${label} · 安装包`)
++      notes.push(`| ${label} | [${filename}](${base}${filename}) |`)
++    }
++    if (bridge) uploads.push(`updates/${zip}#macOS arm64 · 应用内更新包`)
++    for (const [index, suffixes] of bridge ? Object.entries(feeds) : []) {
++      const path = join(updateDir, index)
++      await copyFile(join(source, index), path)
++      await verifyFile(updateDir, manifest.feeds.find(file => file.name === index)!)
++      const info = feedSchema.parse(yaml.load(await readFile(path, 'utf8')))
++      exactNames(info.files.map(file => file.url), suffixes.map(name), index)
++      if (info.version !== version.runtime || !info.files.some(file => file.url === info.path && file.sha512 === info.sha512)) {
++        throw new Error(`GitHub release: invalid version or legacy path/digest in ${index}`)
++      }
++      for (const file of info.files) {
++        const target = files.get(file.url)
++        if (target?.size !== file.size || target.sha512 !== file.sha512) throw new Error(`GitHub release: invalid size or SHA-512 for ${file.url} in ${index}`)
++      }
++      uploads.push(`updates/${index}#更新索引 · ${index}`)
++    }
++    notes.push('')
++    if (bridge) notes.push('旧版用户可在应用内检查更新。曾手动选择「开发版」的用户，请在设置中切回「正式版」，再检查更新。', '')
++    else notes.push('若过渡前的旧版无法检查更新，请选择上方对应系统的安装包，手动安装一次。', '')
++    const checksums = manifest.artifacts.map(file => ({
++      name: file.name, size: file.bytes, sha256: file.sha256.toLowerCase(), sha512: files.get(file.name)!.sha512,
++    }))
++    notes.push('<!-- dshu-installers-v1 ' + JSON.stringify(checksums) + ' -->', '')
++    await writeFile(join(staging, 'release-notes.md'), notes.join('\n'))
++    await writeFile(join(staging, 'upload-files.txt'), uploads.join('\n') + '\n')
++    await rename(staging, destination)
++  } finally { await rm(staging, { recursive: true, force: true }) }
++}
++
++if (process.argv[1] !== undefined && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
++  const { values } = parseArgs({ options: { from: { type: 'string' }, out: { type: 'string' }, bridge: { type: 'boolean', default: false } } })
++  if (!values.from || !values.out) throw new Error('Usage: stage-github-release --from <collected> --out <new directory> [--bridge]')
++  await stageGithubRelease(values.from, values.out, values.bridge)
++}
+diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
+index 456c6e6346ccd8b38bfd853da2be40be80bbcedc..99bd95b610569e804bd322ad9f93cacaff14873b 100644
+--- a/apps/desktop/src/main.ts
++++ b/apps/desktop/src/main.ts
+@@ -38,7 +38,7 @@ import { readDeviceInfo } from './device-info.ts'
+ import { desktopUpdateReadyConfirmation, formatDesktopMessage, resolveDesktopLocale, resolveDesktopStartupLocale } from './locale.ts'
+ import type { DesktopMessages } from './locale.ts'
+ import { claimDesktopSingleInstance } from './single-instance.ts'
+-import { desktopUpdateChannel } from './update-channel.ts'
++import { desktopUpdateChannel, desktopUsesGithubRelease } from './update-channel.ts'
+ import { DesktopUpdateCoordinator } from './update-coordinator.ts'
+ import { prepareDesktopUpdateWindow } from './update-window.ts'
+ import { DesktopCommandManager } from './command-management.ts'
+@@ -793,7 +793,7 @@ async function main(): Promise<void> {
+     },
+     undefined, undefined, undefined,
+     (success, reason) => { void track('desktop_upgrade_download_result', { is_success: success, ...reason === undefined ? {} : { error_reason: reason } }) },
+-    updateChannel,
++    updateChannel, undefined, desktopUsesGithubRelease(manifest),
+   )
+ 
+   const updateSchedule = new DesktopUpdateSchedule(updates, resolveDesktopUpdateScheduleConfig(process.env))
+diff --git a/apps/desktop/src/update-channel.ts b/apps/desktop/src/update-channel.ts
+index cfd5747ccfcf8a32eb147fc4440fccb6810bd5c2..8ef811b124c9704c78397ef77d8c9951eab0ccba 100644
+--- a/apps/desktop/src/update-channel.ts
++++ b/apps/desktop/src/update-channel.ts
+@@ -16,3 +16,13 @@ export function desktopUpdateChannel(manifest: unknown): DesktopUpdateChannel {
+   if (channel !== 'nightly' && channel !== 'stable') throw new Error('desktop update: invalid packaged channel')
+   return channel
+ }
++
++/**
++ * Read the public release provider selected by the packaged manifest.
++ * @param manifest - Parsed application manifest.
++ * @returns Whether the installed application uses the fork's public GitHub releases.
++ */
++export function desktopUsesGithubRelease(manifest: unknown): boolean {
++  return typeof manifest === 'object' && manifest !== null
++    && 'dshDesktopReleaseSource' in manifest && manifest.dshDesktopReleaseSource === 'github'
++}
+diff --git a/apps/desktop/src/update-coordinator.ts b/apps/desktop/src/update-coordinator.ts
+index 475a560667f1917630093a22b42a82c0637931aa..42893cf3eb04ccb2474e820e14e0c9dee33421d7 100644
+--- a/apps/desktop/src/update-coordinator.ts
++++ b/apps/desktop/src/update-coordinator.ts
+@@ -12,7 +12,11 @@ import type { DesktopUpdateChannel } from './update-channel.ts'
+ import { selectUpdateChannel } from './updates/electron-updater/channel.ts'
+ import { discardDesktopUpdate } from './updates/electron-updater/discard.ts'
+ 
+-const { autoUpdater } = electronUpdater
++import { DmgMacUpdater } from './updates/electron-updater/mac-dmg.ts'
++import { GithubInstallerProvider } from './updates/github-release.ts'
++
++const autoUpdater = process.platform === 'darwin' && electronUpdater.MacUpdater
++  ? new DmgMacUpdater() : electronUpdater.autoUpdater
+ 
+ /** Owns one updater target until its download and installation settle. */
+ export class DesktopUpdateCoordinator {
+@@ -56,6 +60,7 @@ export class DesktopUpdateCoordinator {
+    * @param channel - Installed package channel; omitted test/local callers retain nightly.
+    * @param discard - Clears settled library targets and platform resources before another channel is used.
+    * @param downloadResult - Once per completed download attempt, including platform preparation failures.
++   * @param githubRelease - Select the public GitHub release provider recorded by the installed package.
+    */
+   constructor(
+     private readonly publish: (state: DesktopUpdateState) => DesktopUpdateState,
+@@ -66,6 +71,7 @@ export class DesktopUpdateCoordinator {
+     private readonly downloadResult?: (success: boolean, reason?: string) => void,
+     private channel: DesktopUpdateChannel = 'nightly',
+     private readonly discard: (updater: AppUpdater) => Promise<void> = discardDesktopUpdate,
++    githubRelease = false,
+   ) {
+     if (updater === autoUpdater) {
+       // electron-updater omits this internal transport property from its public declarations.
+@@ -79,6 +85,10 @@ export class DesktopUpdateCoordinator {
+     this.updater.autoDownload = false
+     this.updater.autoInstallOnAppQuit = false
+     selectUpdateChannel(this.updater, channel)
++    if (githubRelease) {
++      this.updater.disableDifferentialDownload = true
++      this.updater.setFeedURL({ provider: 'custom', updateProvider: GithubInstallerProvider })
++    }
+     this.updater.on('download-progress', this.onProgress)
+     this.updater.on('update-downloaded', this.onDownloaded)
+     this.updater.on('error', this.onError)
+diff --git a/apps/desktop/src/updates/electron-updater/mac-dmg.ts b/apps/desktop/src/updates/electron-updater/mac-dmg.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..249752fe26b77545a604b32735f2d82693ffc283
+--- /dev/null
++++ b/apps/desktop/src/updates/electron-updater/mac-dmg.ts
+@@ -0,0 +1,72 @@
++/** Prepare a release DMG for the signed Squirrel.Mac installation path. */
++import { execFile } from 'node:child_process'
++import { mkdtemp, readdir, rename, rm, rmdir, stat } from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import { dirname, join } from 'node:path'
++import { promisify } from 'node:util'
++import { MacUpdater } from 'electron-updater/out/MacUpdater.js'
++import type { DownloadUpdateOptions } from 'electron-updater/out/AppUpdater.js'
++import type { ResolvedUpdateFileInfo, UpdateDownloadedEvent } from 'electron-updater'
++import type { ElectronHttpExecutor } from 'electron-updater/out/electronHttpExecutor.js'
++import { GithubInstallerProvider } from '../github-release.ts'
++
++const run = promisify(execFile)
++
++/**
++ * Convert the single signed app in a read-only DMG into the archive consumed by the native updater.
++ * @param dmg - Downloaded installer whose digest matched the published release.
++ * @param execute - Apple system tools, replaceable for filesystem and failure-path tests.
++ * @returns The prepared archive in the updater's private pending directory and its byte length.
++ */
++export async function prepareMacUpdateArchive(dmg: string, execute: (program: string, args: string[]) => Promise<unknown> = run):
++Promise<{ path: string; size: number }> {
++  const mount = await mkdtemp(join(tmpdir(), 'dshu-update-volume-'))
++  const work = await mkdtemp(join(dirname(dmg), 'dshu-update-')).catch(async (error) => { await rmdir(mount); throw error })
++  const temporary = join(work, 'update.zip'), path = join(dirname(dmg), 'squirrel-update.zip')
++  try {
++    await execute('/usr/bin/hdiutil', ['attach', '-readonly', '-nobrowse', '-mountpoint', mount, dmg])
++    try {
++      const apps = (await readdir(mount, { withFileTypes: true })).filter(entry => entry.isDirectory() && entry.name.endsWith('.app'))
++      const app = apps[0]
++      if (apps.length !== 1 || !app) throw new Error('desktop update: expected one application in the release DMG')
++      const bundle = join(mount, app.name)
++      await execute('/usr/bin/codesign', ['--verify', '--deep', '--strict', bundle])
++      await execute('/usr/bin/ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', bundle, temporary])
++    } finally { await execute('/usr/bin/hdiutil', ['detach', mount]) }
++    const { size } = await stat(temporary)
++    if (size <= 0) throw new Error('desktop update: macOS application archive is empty')
++    await rename(temporary, path)
++    return { path, size }
++  } finally {
++    await rm(work, { recursive: true, force: true })
++    // Never recursively remove a volume if detaching it failed.
++    await rmdir(mount).catch((error: NodeJS.ErrnoException) => {
++      if (error.code !== 'ENOENT' && error.code !== 'EBUSY' && error.code !== 'ENOTEMPTY') throw error
++    })
++  }
++}
++
++/** Use the pinned updater's download cache, native signature checks and restart handshake for a DMG-only release. */
++export class DmgMacUpdater extends MacUpdater {
++  protected override async doDownloadUpdate(options: DownloadUpdateOptions): Promise<string[]> {
++    const { info, provider } = options.updateInfoAndProvider
++    if (!(provider instanceof GithubInstallerProvider)) return super.doDownloadUpdate(options)
++    const [file] = provider.resolveFiles(info)
++    if (!file?.url.pathname.endsWith('.dmg')) throw new Error('desktop update: macOS release has no DMG')
++    // electron-updater 6.x owns the authenticated loopback server and its native update state.
++    const native = this as object as {
++      httpExecutor: ElectronHttpExecutor
++      updateDownloaded(file: ResolvedUpdateFileInfo, event: UpdateDownloadedEvent): Promise<string[]>
++    }
++    return this.executeDownload({
++      fileExtension: 'dmg', fileInfo: file, downloadUpdateOptions: options,
++      task: (destination, downloadOptions) => native.httpExecutor.download(file.url, destination, downloadOptions),
++      done: async (event) => {
++        const archive = await prepareMacUpdateArchive(event.downloadedFile)
++        if (options.cancellationToken.cancelled) throw new Error('desktop update: macOS update was cancelled')
++        // Squirrel consumes the local ZIP and verifies the replacement against the installed app's signature.
++        await native.updateDownloaded({ ...file, info: { ...file.info, size: archive.size } }, { ...event, downloadedFile: archive.path })
++      },
++    })
++  }
++}
+diff --git a/apps/desktop/src/updates/github-release.ts b/apps/desktop/src/updates/github-release.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..d314d1b1c6461722124c948a78c11d59684f4aee
+--- /dev/null
++++ b/apps/desktop/src/updates/github-release.ts
+@@ -0,0 +1,79 @@
++/** Discover signed-build inputs in the latest public DSHU release. */
++import { parseCalendarVersion } from '@deepseek-ai/dsh-product-version/bootstrap'
++import type { AppUpdater, ResolvedUpdateFileInfo, UpdateInfo } from 'electron-updater'
++import { Provider, type ProviderRuntimeOptions } from 'electron-updater/out/providers/Provider.js'
++import { gt } from 'semver'
++import { z } from 'zod'
++
++const repository = 'Water-Run/deepseek-harness-uncensored'
++const releaseSchema = z.object({
++  tag_name: z.string(), published_at: z.string().datetime(), draft: z.literal(false), prerelease: z.literal(false),
++  body: z.string().nullable(), assets: z.array(z.object({
++    name: z.string(), size: z.number().int().positive(), state: z.string(),
++    browser_download_url: z.string(), digest: z.string().nullable().optional(),
++  })),
++})
++const hashes = z.array(z.object({
++  name: z.string(), size: z.number().int().positive(),
++  sha512: z.string().regex(/^[A-Za-z0-9+/]{85}[AQgw]==$/u), sha256: z.string().regex(/^[a-f0-9]{64}$/u),
++}))
++
++/**
++ * Select tag-pinned installer URLs for one GitHub release.
++ * @param document - Raw JSON returned by the public latest release endpoint.
++ * @param installedVersion - Local runtime version used to exclude downgrades.
++ * @param platform - Platform of the installed application.
++ * @param arch - Architecture of the installed application.
++ * @returns Update metadata for electron-updater, including size and SHA-512 for each target.
++ */
++export function installerUpdateInfo(document: unknown, installedVersion: string,
++  platform: ProviderRuntimeOptions['platform'], arch: string): UpdateInfo {
++  const release = releaseSchema.parse(document)
++  const version = parseCalendarVersion(release.tag_name.slice(1))
++  if (!version || release.tag_name !== 'v' + version.display) throw new Error('desktop update: invalid DSHU release tag')
++  const info = { version: version.runtime, releaseDate: release.published_at }
++  if (!gt(version.runtime, installedVersion)) return { ...info, files: [], path: '', sha512: '' }
++  const markers = [...(release.body ?? '').matchAll(/^<!-- dshu-installers-v1 (.+) -->$/gmu)]
++  const marker = markers[0]?.[1]
++  if (markers.length !== 1 || marker === undefined) throw new Error('desktop update: expected one installer checksum list in the release notes')
++  const receipts = hashes.parse(JSON.parse(marker))
++  const target = platform === 'darwin' ? 'mac' : platform === 'win32' ? 'win' : 'linux'
++  let extensions: string[]
++  if (target === 'win' && arch === 'x64') extensions = ['exe']
++  else if (target === 'mac' && arch === 'arm64') extensions = ['dmg']
++  else if (target === 'linux' && arch === 'x64') extensions = ['deb', 'rpm']
++  else if (target === 'linux' && arch === 'arm64') extensions = ['deb']
++  else throw new Error('desktop update: unsupported installer target ' + target + '-' + arch)
++  const files = extensions.map((extension) => {
++    const name = ['DSHU', version.display, target, arch].join('-') + '.' + extension
++    const entries = receipts.filter(item => item.name === name)
++    const assets = release.assets.filter(item => item.name === name)
++    const asset = assets[0], receipt = entries[0]
++    const url = 'https://github.com/' + repository + '/releases/download/' + release.tag_name + '/' + name
++    if (assets.length !== 1 || entries.length !== 1 || !asset || !receipt || asset.state !== 'uploaded'
++      || asset.size !== receipt.size || asset.browser_download_url !== url || asset.digest !== 'sha256:' + receipt.sha256) {
++      throw new Error('desktop update: release asset and installer checksums disagree for ' + name)
++    }
++    return { url, size: receipt.size, sha512: receipt.sha512 }
++  })
++  const primary = files[0]
++  if (!primary) throw new Error('desktop update: no installer for the selected target')
++  return { ...info, files, path: primary.url, sha512: primary.sha512 }
++}
++
++/** Resolve only tag-pinned installers for the checked public release and running platform. */
++export class GithubInstallerProvider extends Provider<UpdateInfo> {
++  constructor(_options: unknown, private readonly updater: AppUpdater, private readonly runtime: ProviderRuntimeOptions) {
++    super({ ...runtime, isUseMultipleRangeRequest: false })
++  }
++
++  override async getLatestVersion(): Promise<UpdateInfo> {
++    const url = new URL('https://api.github.com/repos/' + repository + '/releases/latest')
++    const raw = await this.httpRequest(url, { Accept: 'application/vnd.github+json', 'User-Agent': 'DSHU-Desktop-Updater' })
++    return installerUpdateInfo(JSON.parse(raw ?? 'null'), this.updater.currentVersion.version, this.runtime.platform, process.arch)
++  }
++
++  override resolveFiles(info: UpdateInfo): ResolvedUpdateFileInfo[] {
++    return info.files.map(file => ({ url: new URL(file.url), info: file }))
++  }
++}
+diff --git a/apps/desktop/tests/collect-release.spec.ts b/apps/desktop/tests/collect-release.spec.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..2c2ab1141fdb1b3164d5df7ff20fbec742a5bb6b
+--- /dev/null
++++ b/apps/desktop/tests/collect-release.spec.ts
+@@ -0,0 +1,128 @@
++/** Release directory assembly for artifacts built on separate hosts. */
++import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import { join } from 'node:path'
++import { expect, it, onTestFinished } from 'vitest'
++import yaml from 'js-yaml'
++import { collectRelease } from '../scripts/collect-release.ts'
++
++const VERSION = '2026.11.23.2'
++
++it('matches the macOS index to its own source ZIP across architectures', async () => {
++  const root = await workspace(), out = join(root, 'collected')
++  const path = join(root, 'build.dmg')
++  await writeFile(path, payload('dmg'))
++  const auxiliary = []
++  for (const arch of ['x64', 'arm64']) {
++    const source = join(root, 'electron-' + arch + '.zip')
++    await writeFile(source, 'bytes-' + arch)
++    auxiliary.push({ name: `DSHU-${VERSION}-mac-${arch}.zip`, path: source })
++  }
++  const feed = join(root, 'latest-mac.yml')
++  await writeFile(feed, yaml.dump({ path: 'electron-arm64.zip', files: [{ url: 'electron-arm64.zip', size: 11 }] }))
++  await collectRelease({ version: VERSION, out, artifacts: [{ target: 'mac-arm64', path }], auxiliary, feeds: [feed] })
++  const expected = `DSHU-${VERSION}-mac-arm64.zip`
++  expect(yaml.load(await readFile(join(out, 'latest-mac.yml'), 'utf8'))).toEqual({ path: expected, files: [{ url: expected, size: 11 }] })
++  await expect(collectRelease({ version: VERSION, out, artifacts: [{ target: 'mac-arm64', path }], auxiliary: [{ name: '../other.zip', path }] })).rejects.toThrow('distinct')
++  await expect(collectRelease({ version: VERSION, out, artifacts: [{ target: 'mac-../../outside-arm64', path }] })).rejects.toThrow('unsupported target')
++})
++
++function payload(kind: 'deb' | 'dmg' | 'exe' | 'rpm' | 'tar.gz'): Buffer {
++  switch (kind) {
++    case 'exe': return Buffer.concat([Buffer.from('MZ', 'latin1'), Buffer.alloc(64)])
++    case 'deb': return Buffer.concat([Buffer.from('!<arch>\n', 'latin1'), Buffer.alloc(64)])
++    case 'rpm': return Buffer.concat([Buffer.from([0xed, 0xab, 0xee, 0xdb]), Buffer.alloc(64)])
++    case 'dmg': return Buffer.concat([Buffer.alloc(256), Buffer.from('koly', 'latin1'), Buffer.alloc(256)])
++    case 'tar.gz': return Buffer.concat([Buffer.from([0x1f, 0x8b]), Buffer.alloc(64)])
++  }
++}
++
++async function workspace(): Promise<string> {
++  const root = await mkdtemp(join(tmpdir(), 'dshu-collect-'))
++  onTestFinished(() => rm(root, { recursive: true, force: true }))
++  return root
++}
++
++it('collects one verified file per target under a uniform name', async () => {
++  const root = await workspace()
++  const sources = [
++    ['win-x64', 'deepseek-harness-uncensored-2026.11.23.2-win-x64.exe', 'exe'],
++    ['linux-x64', 'deepseek-harness-uncensored-2026.11.23.2-linux-amd64.deb', 'deb'],
++    ['linux-x64-rpm', 'deepseek-harness-uncensored-2026.11.23.2-linux-x86_64.rpm', 'rpm'],
++    ['linux-arm64', 'deepseek-harness-uncensored-2026.11.23.2-linux-arm64.deb', 'deb'],
++    ['mac-arm64', 'deepseek-harness-uncensored-2026.11.23.2-mac-arm64.dmg', 'dmg'],
++  ] as const
++  const artifacts: { target: string; path: string }[] = []
++  for (const [target, filename, kind] of sources) {
++    const path = join(root, filename)
++    await writeFile(path, payload(kind))
++    artifacts.push({ target: target === 'linux-x64-rpm' ? 'linux-x64' : target, path })
++  }
++  const out = join(root, 'release')
++  const collected = await collectRelease({ version: VERSION, out, artifacts, commit: 'abc1234' })
++  expect(collected.map(artifact => artifact.name)).toEqual([
++    `DSHU-${VERSION}-win-x64.exe`, `DSHU-${VERSION}-linux-x64.deb`, `DSHU-${VERSION}-linux-x64.rpm`,
++    `DSHU-${VERSION}-linux-arm64.deb`, `DSHU-${VERSION}-mac-arm64.dmg`,
++  ])
++  const sums = await readFile(join(out, 'SHA256SUMS.txt'), 'utf8')
++  expect(sums.trimEnd().split('\n')).toHaveLength(6)
++  expect(sums).toContain(`  DSHU-${VERSION}-win-x64.exe\n`)
++  expect(sums.trimEnd().split('\n').at(-1)).toMatch(/^[0-9a-f]{64} {2}LICENSE$/u)
++  const manifest = JSON.parse(await readFile(join(out, 'RELEASE-MANIFEST.json'), 'utf8')) as {
++    version: string
++    sourceCommit: string
++    sourceDirty: boolean
++    artifacts: readonly { target: string; format: string; bytes: number; sha256: string }[]
++  }
++  expect(manifest.version).toBe(VERSION)
++  expect(manifest.sourceCommit).toBe('abc1234')
++  expect(manifest.sourceDirty).toBe(false)
++  expect(manifest.artifacts.map(artifact => [artifact.target, artifact.format])).toEqual([
++    ['win-x64', 'exe'], ['linux-x64', 'deb'], ['linux-x64', 'rpm'], ['linux-arm64', 'deb'], ['mac-arm64', 'dmg'],
++  ])
++  expect(manifest.artifacts[1]?.sha256).toMatch(/^[0-9A-F]{64}$/u)
++  const readme = await readFile(join(out, 'README.txt'), 'utf8')
++  expect(readme).toContain(`DSHU-${VERSION}-linux-x64.deb`)
++  expect(readme).toContain('sudo apt install ./')
++  expect(readme).toContain('sha256sum -c SHA256SUMS.txt')
++  expect(readme).toContain('https://github.com/Water-Run/deepseek-harness-uncensored')
++  expect(readme).toContain(`/releases/tag/v${VERSION}`)
++  expect(readme).toContain('/issues')
++  expect(readme).toContain(`DSHU ${VERSION} · abc1234 · GPL-3.0-or-later`)
++  expect(readme).not.toContain('#')
++  expect(readme).not.toContain('|')
++})
++
++it('rejects two artifacts that would share one release name', async () => {
++  const root = await workspace()
++  const first = join(root, 'a', 'deepseek-harness-uncensored-2026.11.23.2-linux-amd64.deb')
++  const second = join(root, 'b', 'deepseek-harness-uncensored-2026.11.24.2-linux-amd64.deb')
++  await mkdir(join(root, 'a'), { recursive: true })
++  await mkdir(join(root, 'b'), { recursive: true })
++  await writeFile(first, payload('deb'))
++  await writeFile(second, payload('deb'))
++  await expect(collectRelease({
++    version: VERSION, out: join(root, 'release'),
++    artifacts: [{ target: 'linux-x64', path: first }, { target: 'linux-x64', path: second }],
++  })).rejects.toThrow(/more than one artifact for DSHU-2026\.11\.23\.2-linux-x64\.deb/u)
++})
++
++it('rejects an artifact whose container signature does not match its extension', async () => {
++  const root = await workspace()
++  const installer = join(root, 'deepseek-harness-uncensored-2026.11.23.2-win-x64.exe')
++  await writeFile(installer, Buffer.from('not a portable executable', 'utf8'))
++  await expect(collectRelease({ version: VERSION, out: join(root, 'release'), artifacts: [{ target: 'win-x64', path: installer }] }))
++    .rejects.toThrow(/does not start with the PE signature/u)
++})
++
++it('refuses to replace an existing artifact without force', async () => {
++  const root = await workspace()
++  const installer = join(root, 'deepseek-harness-uncensored-2026.11.23.2-win-x64.exe')
++  await writeFile(installer, payload('exe'))
++  const out = join(root, 'release')
++  await collectRelease({ version: VERSION, out, artifacts: [{ target: 'win-x64', path: installer }] })
++  await expect(collectRelease({ version: VERSION, out, artifacts: [{ target: 'win-x64', path: installer }] }))
++    .rejects.toThrow(/pass --force to replace it/u)
++  await expect(collectRelease({ version: VERSION, out, artifacts: [{ target: 'win-x64', path: installer }], force: true }))
++    .resolves.toHaveLength(1)
++})
+diff --git a/apps/desktop/tests/github-release-layout.spec.ts b/apps/desktop/tests/github-release-layout.spec.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..5c464a5feace676b51b042c5f3672e35c1c0a573
+--- /dev/null
++++ b/apps/desktop/tests/github-release-layout.spec.ts
+@@ -0,0 +1,212 @@
++/** Public download layout and compatibility with the generic updater used by installed desktop apps. */
++import { createHash } from 'node:crypto'
++import { createServer } from 'node:http'
++import { once } from 'node:events'
++import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
++import { createRequire } from 'node:module'
++import { tmpdir } from 'node:os'
++import { join } from 'node:path'
++import yaml from 'js-yaml'
++import { gt, SemVer } from 'semver'
++import { AppUpdater } from 'electron-updater/out/AppUpdater.js'
++import { ElectronHttpExecutor } from 'electron-updater/out/electronHttpExecutor.js'
++import { createClient } from 'electron-updater/out/providerFactory.js'
++import { expect, it, onTestFinished } from 'vitest'
++import { GithubInstallerProvider, installerUpdateInfo } from '../src/updates/github-release.ts'
++import { stageGithubRelease } from '../scripts/stage-github-release.ts'
++import { resolvePackagedUpdate } from '../scripts/dshu-release-feed.mjs'
++
++const version = '2026.11.24.0'
++const name = (suffix: string): string => 'DSHU-' + version + '-' + suffix
++const matrix = {
++  'latest.yml': ['win-x64.exe'], 'latest-mac.yml': ['mac-arm64.zip'],
++  'latest-linux.yml': ['linux-x64.deb', 'linux-x64.rpm'], 'latest-linux-arm64.yml': ['linux-arm64.deb'],
++}
++async function fixture() {
++  const dir = await mkdtemp(join(tmpdir(), 'dshu-release-'))
++  onTestFinished(() => rm(dir, { recursive: true, force: true }))
++  const source = join(dir, 'collected'), out = join(dir, 'upload')
++  await mkdir(source)
++  async function save(filename: string, contents: string) {
++    await writeFile(join(source, filename), contents)
++    return { name: filename, bytes: Buffer.byteLength(contents), sha256: createHash('sha256').update(contents).digest('hex') }
++  }
++  const payloads = [...Object.values(matrix).flat(), 'mac-arm64.dmg']
++  const receipts = await Promise.all(payloads.map(suffix => save(name(suffix), suffix)))
++  const indexes = await Promise.all(Object.entries(matrix).map(async ([index, suffixes]) => {
++    const files = suffixes.map(suffix => ({ url: name(suffix), sha512: createHash('sha512').update(suffix).digest('base64'), size: suffix.length }))
++    return save(index, yaml.dump({ version: '2026.1124.0', files, path: files[0]!.url, sha512: files[0]!.sha512 }))
++  }))
++  const manifest = { schemaVersion: 1, kind: 'release-manifest', version, artifacts: receipts.filter(it => !it.name.endsWith('.zip')),
++    auxiliary: receipts.filter(it => it.name.endsWith('.zip')), feeds: indexes }
++  const writeManifest = () => writeFile(join(source, 'RELEASE-MANIFEST.json'), JSON.stringify(manifest))
++  await writeManifest()
++  await save('stale-test-build.exe', 'local only')
++  return { source, out, manifest, writeManifest, save }
++}
++
++it('stages five installers from a collection without update metadata', async () => {
++  const { source, out, manifest } = await fixture()
++  await writeFile(join(source, 'RELEASE-MANIFEST.json'), JSON.stringify({ ...manifest, feeds: undefined, auxiliary: undefined }))
++  await stageGithubRelease(source, out)
++  const entries = (await readFile(join(out, 'upload-files.txt'), 'utf8')).trim().split('\n')
++  expect(entries).toHaveLength(5)
++  expect(entries.every(entry => entry.startsWith('installers/'))).toBe(true)
++  expect(await readdir(out)).not.toContain('updates')
++})
++
++it('reads the latest release metadata and verifies each platform installer from the five-asset upload', async () => {
++  const { source, out, manifest } = await fixture()
++  await stageGithubRelease(source, out)
++  const base = 'https://github.com/Water-Run/deepseek-harness-uncensored/releases/download/v' + version + '/'
++  const assets = manifest.artifacts.map(file => ({
++    name: file.name, size: file.bytes, state: 'uploaded', digest: 'sha256:' + file.sha256, browser_download_url: base + file.name,
++  }))
++  const release = { tag_name: 'v' + version, published_at: '2026-11-24T00:00:00Z', draft: false, prerelease: false,
++    body: await readFile(join(out, 'release-notes.md'), 'utf8'), assets }
++  for (const [platform, arch, expected] of [
++    ['win32', 'x64', ['win-x64.exe']], ['darwin', 'arm64', ['mac-arm64.dmg']],
++    ['linux', 'x64', ['linux-x64.deb', 'linux-x64.rpm']], ['linux', 'arm64', ['linux-arm64.deb']],
++  ] as const) {
++    const info = installerUpdateInfo(release, '2026.1123.0', platform, arch)
++    expect(info.files.map(file => file.url)).toEqual(expected.map(suffix => base + name(suffix)))
++    for (const file of info.files) {
++      const bytes = await readFile(join(out, 'installers', file.url.slice(base.length)))
++      expect(createHash('sha512').update(bytes).digest('base64')).toBe(file.sha512)
++      expect(bytes.length).toBe(file.size)
++    }
++  }
++  const requested: string[] = []
++  const executor: ElectronHttpExecutor = Object.assign(Object.create(ElectronHttpExecutor.prototype), {
++    request(options: { hostname: string; path: string }) {
++      requested.push(options.hostname + options.path)
++      return Promise.resolve(JSON.stringify(release))
++    },
++  })
++  const updater: AppUpdater = Object.assign(Object.create(AppUpdater.prototype), { currentVersion: new SemVer('2026.1123.0') })
++  const platform = process.arch === 'arm64' ? 'darwin' : 'win32'
++  const client = createClient({ provider: 'custom', updateProvider: GithubInstallerProvider }, updater,
++    { isUseMultipleRangeRequest: true, executor, platform })
++  const resolved = client.resolveFiles(await client.getLatestVersion())
++  expect(requested).toEqual(['api.github.com/repos/Water-Run/deepseek-harness-uncensored/releases/latest'])
++  expect(resolved[0]?.url.href).toBe(base + name(platform === 'darwin' ? 'mac-arm64.dmg' : 'win-x64.exe'))
++  expect(client.isUseMultipleRangeRequest).toBe(false)
++  const check = (change: object) => installerUpdateInfo({ ...release, ...change }, '2026.1123.0', 'win32', 'x64')
++  const installer = assets.find(asset => asset.name.endsWith('.exe'))!
++  for (const change of [{ body: null }, { body: release.body + release.body }, { prerelease: true }, { draft: true },
++    { tag_name: 'v2026.11.24.1' }, { assets: [] }, { assets: [installer, installer] },
++    { assets: [{ ...installer, browser_download_url: 'https://example.invalid/update.exe' }] },
++    { assets: [{ ...installer, size: installer.size + 1 }] }, { assets: [{ ...installer, digest: null }] },
++    { assets: [{ ...installer, state: 'starter' }] }]) expect(() => check(change)).toThrow()
++  for (const current of ['2026.1124.0', '2026.1125.0']) {
++    expect(installerUpdateInfo({ ...release, body: null }, current, 'win32', 'x64').files).toEqual([])
++  }
++  expect(() => installerUpdateInfo(release, '2026.1123.0', 'darwin', 'x64')).toThrow('unsupported installer')
++})
++
++it('stages ten bridge assets and explains the previous channel setting', async () => {
++  const { source, out } = await fixture()
++  await stageGithubRelease(source, out, true)
++  expect(await readdir(join(out, 'installers'))).toHaveLength(5)
++  const uploads = (await readFile(join(out, 'upload-files.txt'), 'utf8')).trim().split('\n')
++  expect(uploads).toHaveLength(10)
++  for (const entry of uploads) expect(await readFile(join(out, entry.split('#')[0]!))).not.toHaveLength(0)
++  expect(uploads.join('\n')).not.toContain('stale')
++  const notes = await readFile(join(out, 'release-notes.md'), 'utf8')
++  expect(notes.match(/\/releases\/download\//gu)).toHaveLength(5)
++  expect(notes).not.toMatch(/\.zip|\.yml/u)
++  expect(notes).toContain('切回「正式版」')
++  expect(uploads.join('\n')).not.toContain('nightly')
++  await expect(stageGithubRelease(source, out, true)).rejects.toThrow('new output directory')
++})
++
++it.each(['extra payload', 'wrong bytes', 'wrong feed hash', 'wrong version', 'missing RPM', 'foreign URL', 'wrong legacy path'])(
++  'withholds the upload directory on %s', async (problem) => {
++    const { source, out, manifest, writeManifest, save } = await fixture()
++    if (problem === 'extra payload') manifest.auxiliary.push(await save('debug.zip', 'debug'))
++    else if (problem === 'wrong bytes') await writeFile(join(source, name('win-x64.exe')), 'bad-x64.exe')
++    else {
++      const index = 'latest-linux.yml'
++      const body = await readFile(join(source, index), 'utf8')
++      const feed = yaml.load(body) as { version: string; path: string; files: { url: string; sha512: string }[] }
++      if (problem === 'wrong feed hash') feed.files[1]!.sha512 = 'mismatch'
++      if (problem === 'wrong version') feed.version = '2026.1123.0'
++      if (problem === 'missing RPM') feed.files.pop()
++      if (problem === 'foreign URL') feed.files[1]!.url = 'https://example.invalid/file.rpm'
++      if (problem === 'wrong legacy path') feed.path = '../file.deb'
++      manifest.feeds[manifest.feeds.findIndex(it => it.name === index)] = await save(index, yaml.dump(feed))
++    }
++    await writeManifest()
++    await expect(stageGithubRelease(source, out, true)).rejects.toThrow()
++    await expect(readdir(out)).rejects.toMatchObject({ code: 'ENOENT' })
++  },
++)
++
++it('resolves the bridge after an old installation selects the public channel', async () => {
++  const { source, out } = await fixture()
++  await stageGithubRelease(source, out, true)
++  const require = createRequire(process.env.DSH_RELEASED_DESKTOP_MANIFEST ?? import.meta.url)
++  const { GenericProvider }: typeof import('electron-updater/out/providers/GenericProvider.js') = require('electron-updater/out/providers/GenericProvider.js')
++  const { findFile }: typeof import('electron-updater/out/providers/Provider.js') = require('electron-updater/out/providers/Provider.js')
++  const paths = new Map<string, string>()
++  for (const folder of ['installers', 'updates']) {
++    for (const filename of await readdir(join(out, folder))) paths.set('/releases/latest/download/' + filename, join(out, folder, filename))
++  }
++  const server = createServer((request, response) => {
++    const file = paths.get(request.url ?? '')
++    if (file === undefined) { response.writeHead(404).end(); return }
++    void readFile(file).then((bytes) => { response.end(bytes) }, () => { response.writeHead(500).end() })
++  })
++  server.listen(0, '127.0.0.1')
++  await once(server, 'listening')
++  const previous = process.env.TEST_UPDATER_ARCH
++  try {
++    const address = server.address()
++    if (address === null || typeof address === 'string') throw new Error('Missing release fixture port')
++    const readAsset = async (url: URL) => {
++      expect(url.origin).toBe('https://github.com')
++      const path = url.pathname.slice('/Water-Run/deepseek-harness-uncensored'.length)
++      const response = await fetch(new URL(path, 'http://127.0.0.1:' + address.port))
++      if (!response.ok) throw new Error('HTTP ' + response.status)
++      return response
++    }
++    for (const [platform, arch, extension] of [
++      ['win32', 'x64', 'exe'], ['darwin', 'arm64', 'zip'], ['linux', 'x64', 'deb'], ['linux', 'x64', 'rpm'], ['linux', 'arm64', 'deb'],
++    ] as const) {
++      process.env.TEST_UPDATER_ARCH = arch
++      const packaged = resolvePackagedUpdate({ DSH_DESKTOP_AUTO_UPDATE_ENV: 'production' }, platform, arch)
++      expect(packaged?.github).toBe(true)
++      const { channel: packagedChannel, publicUrl: base } = packaged!
++      expect(packagedChannel).toBe('stable')
++      expect(base).toBe('https://github.com/Water-Run/deepseek-harness-uncensored/releases/latest/download/')
++      for (const channel of ['nightly', 'latest']) {
++        // Keep the release provider's URL selection and exercise both index and payload requests on loopback.
++        const client = Object.create(GenericProvider.prototype) as InstanceType<typeof GenericProvider>
++        Object.assign(client, { configuration: { channel }, updater: { channel, isAddNoCacheQuery: false },
++          baseUrl: new URL(base), runtimeOptions: { platform },
++          httpRequest: async (url: URL) => { expect(url.href.startsWith(base)).toBe(true); return (await readAsset(url)).text() } })
++        if (channel === 'nightly') {
++          await expect(client.getLatestVersion()).rejects.toThrow('404')
++          continue
++        }
++        const update = await client.getLatestVersion()
++        expect(update.version).toBe('2026.1124.0')
++        expect(gt(update.version, '2026.1123.0')).toBe(true)
++        const file = findFile(client.resolveFiles(update), extension)
++        const suffix = (platform === 'darwin' ? 'mac' : platform === 'win32' ? 'win' : 'linux') + '-' + arch + '.' + extension
++        expect(file?.url.href).toBe(base + name(suffix))
++        const bytes = Buffer.from(await (await readAsset(file!.url)).arrayBuffer())
++        expect(createHash('sha512').update(bytes).digest('base64')).toBe(file?.info.sha512)
++      }
++    }
++    for (const index of Object.keys(matrix)) paths.delete('/releases/latest/download/' + index)
++    await expect(readAsset(new URL('latest.yml', resolvePackagedUpdate({ DSH_DESKTOP_AUTO_UPDATE_ENV: 'production' }, 'win32', 'x64')!.publicUrl))).rejects.toThrow('404')
++  } finally {
++    if (previous === undefined) delete process.env.TEST_UPDATER_ARCH
++    else process.env.TEST_UPDATER_ARCH = previous
++    const closed = once(server, 'close')
++    server.close()
++    server.closeAllConnections()
++    await closed
++  }
++})
+diff --git a/apps/desktop/tests/mac-dmg-update.spec.ts b/apps/desktop/tests/mac-dmg-update.spec.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..2b26db45a61b22516e476c266153745bdd1132b5
+--- /dev/null
++++ b/apps/desktop/tests/mac-dmg-update.spec.ts
+@@ -0,0 +1,71 @@
++import { once } from 'node:events'
++import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import { join } from 'node:path'
++import type { Server } from 'node:http'
++import { MacUpdater } from 'electron-updater/out/MacUpdater.js'
++import { expect, it, onTestFinished } from 'vitest'
++import { prepareMacUpdateArchive } from '../src/updates/electron-updater/mac-dmg.ts'
++
++it.each(['ready', 'duplicate', 'signature', 'archive', 'detach'] as const)('handles the signed bundle and volume on %s', async (outcome) => {
++  const dir = await mkdtemp(join(tmpdir(), 'dshu-mac-fixture-'))
++  onTestFinished(() => rm(dir, { recursive: true, force: true }))
++  const dmg = join(dir, 'installer.dmg')
++  let mount = ''
++  const calls: string[] = []
++  const run = async (tool: string, args: string[]) => {
++    calls.push(tool.split('/').at(-1) + ' ' + args[0])
++    if (args[0] === 'attach') {
++      expect(args.slice(1, 4)).toEqual(['-readonly', '-nobrowse', '-mountpoint'])
++      expect(args.at(-1)).toBe(dmg)
++      mount = args[4]!
++      onTestFinished(() => rm(mount, { recursive: true, force: true }))
++      await mkdir(join(mount, 'DSHU.app'))
++      if (outcome === 'duplicate') await mkdir(join(mount, 'Other.app'))
++    } else if (args[0] === 'detach') {
++      expect(args[1]).toBe(mount)
++      if (outcome === 'detach') throw new Error('detach failed')
++      await rm(mount, { recursive: true })
++    } else if (tool.endsWith('codesign')) {
++      expect(args).toEqual(['--verify', '--deep', '--strict', join(mount, 'DSHU.app')])
++      if (outcome === 'signature') throw new Error('signature failed')
++    } else {
++      expect(args.slice(0, -1)).toEqual(['-c', '-k', '--sequesterRsrc', '--keepParent', join(mount, 'DSHU.app')])
++      if (outcome === 'archive') throw new Error('archive failed')
++      await writeFile(args.at(-1)!, 'signed archive')
++    }
++  }
++  if (outcome !== 'ready') {
++    await expect(prepareMacUpdateArchive(dmg, run)).rejects.toThrow()
++    expect(calls.at(-1)).toBe('hdiutil detach')
++    await expect(readFile(join(dir, 'squirrel-update.zip'))).rejects.toMatchObject({ code: 'ENOENT' })
++    if (outcome === 'signature') expect(calls.some(call => call.startsWith('ditto'))).toBe(false)
++    return
++  }
++  const archive = await prepareMacUpdateArchive(dmg, run)
++  expect(archive.size).toBe(Buffer.byteLength('signed archive'))
++  expect(calls).toEqual(['hdiutil attach', 'codesign --verify', 'ditto -c', 'hdiutil detach'])
++
++  // Exercise the pinned MacUpdater's authenticated native feed with the converted archive.
++  let feed: { url: string; headers: Record<string, string> } | undefined
++  type NativeFeed = { server?: Server; updateDownloaded: (...args: object[]) => Promise<string[]> }
++  const library = Object.assign(Object.create(MacUpdater.prototype) as NativeFeed, {
++    nativeUpdater: { setFeedURL(value: NonNullable<typeof feed>) { feed = value }, removeListener() {} },
++    autoInstallOnAppQuit: false, dispatchUpdateDownloaded() {}, _logger: { info() {}, warn() {}, debug() {} },
++  })
++  onTestFinished(async () => {
++    if (!library.server?.listening) return
++    const closed = once(library.server, 'close')
++    library.server.close()
++    library.server.closeAllConnections()
++    await closed
++  })
++  await library.updateDownloaded({ info: { size: archive.size }, url: new URL('https://example.invalid/installer.dmg') },
++    { downloadedFile: archive.path })
++  if (!feed) throw new Error('Missing Squirrel.Mac feed')
++  expect((await fetch(feed.url)).status).toBe(401)
++  const entry = await (await fetch(feed.url, { headers: feed.headers })).json() as { url: string }
++  const response = await fetch(entry.url)
++  expect(response.headers.get('content-length')).toBe(String(archive.size))
++  expect(await response.text()).toBe('signed archive')
++})
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 1204c58bdab8402aae7dad0869360085371ef6d5..7c5c665493e4e1b4bcebc168233cb38ee3bdc95d 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -778,6 +778,9 @@ importers:
+       '@deepseek-ai/dsh-error':
+         specifier: workspace:*
+         version: link:../../packages/util/error
++      '@deepseek-ai/dsh-product-version':
++        specifier: workspace:*
++        version: link:../../packages/util/product-version
+       electron-updater:
+         specifier: ^6.8.9
+         version: 6.8.9(supports-color@9.4.0)
