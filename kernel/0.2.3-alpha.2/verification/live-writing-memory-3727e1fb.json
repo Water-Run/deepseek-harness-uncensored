@@ -1,0 +1,94 @@
+{
+  "testedOn": "2026-11-26",
+  "dshuVersion": "2026.11.25.0",
+  "kernelVersion": "0.2.3-alpha.2",
+  "sourceTree": "3727e1fb510f78b2f636a75c81ae1e17dc8993bc",
+  "surface": "Built Web host, isolated writing sessions, live official provider",
+  "sample": "Synthetic novel canon and a single-use layout marker. Answer markers identify random values generated for this run.",
+  "repeat": {
+    "case": "live-writing-memory.e2e.ts.in",
+    "passed": true,
+    "freshSessions": 6
+  },
+  "model": "deepseek-flash",
+  "provider": "deepseek-official",
+  "steps": [
+    {
+      "label": "provider-catalog",
+      "models": [
+        "deepseek-flash",
+        "deepseek-v4-pro"
+      ]
+    },
+    {
+      "label": "default-off",
+      "turn": "completed",
+      "tools": [],
+      "answerMarkers": [],
+      "reportedMissing": false,
+      "contextRevisions": [],
+      "extractions": []
+    },
+    {
+      "label": "auto-extract",
+      "turn": "completed",
+      "tools": [],
+      "answerMarkers": [],
+      "reportedMissing": false,
+      "contextRevisions": [],
+      "extractions": [
+        {
+          "outcome": "completed",
+          "saved": 1,
+          "uncachedInputTokens": 269,
+          "outputTokens": 63
+        }
+      ]
+    },
+    {
+      "label": "new-conversation",
+      "turn": "completed",
+      "tools": [],
+      "answerMarkers": [
+        "ORIGINAL"
+      ],
+      "reportedMissing": false,
+      "contextRevisions": [
+        1
+      ],
+      "extractions": []
+    },
+    {
+      "label": "edited",
+      "turn": "completed",
+      "tools": [],
+      "answerMarkers": [
+        "EDITED"
+      ],
+      "reportedMissing": false,
+      "contextRevisions": [
+        2
+      ],
+      "extractions": []
+    },
+    {
+      "label": "other-workspace",
+      "turn": "completed",
+      "tools": [],
+      "answerMarkers": [],
+      "reportedMissing": true,
+      "contextRevisions": [],
+      "extractions": []
+    },
+    {
+      "label": "record-disabled",
+      "turn": "completed",
+      "tools": [],
+      "answerMarkers": [],
+      "reportedMissing": true,
+      "contextRevisions": [],
+      "extractions": []
+    }
+  ],
+  "passed": true
+}

@@ -1,0 +1,101 @@
+/** With-key acceptance against the restored candidate's Web composition and a synthetic writing project. */
+import { randomUUID } from 'node:crypto'
+import { mkdir } from 'node:fs/promises'
+import { join } from 'node:path'
+import { expect, it } from 'vitest'
+import { brandString } from '@deepseek-ai/dsh-brand'
+import type {} from '@deepseek-ai/dsh-api-session-controller'
+import type { SessionRequestId } from '@deepseek-ai/dsh-api-session-controller/types'
+import type {} from '@deepseek-ai/dsh-memory'
+import type {} from '@deepseek-ai/dsh-memory/agent'
+import type {} from '@deepseek-ai/dsh-settings'
+import type {} from '@deepseek-ai/dsh-workspace'
+import { launchWebScaffold } from './scaffold.ts'
+
+it('recalls a lasting writing fact in a new session and respects edits, status and workspace', async () => {
+  if (process.env.DSH_SNAPSHOT !== 'record' || !process.env.DEEPSEEK_API_KEY) {
+    throw new Error('This acceptance case requires record mode and a live DeepSeek credential.')
+  }
+  const scaffold = await launchWebScaffold()
+  const { ctx } = scaffold
+  try {
+    const workspace = await ctx.workspaceRegistry.create(scaffold.workspaceCwd)
+    const otherPath = join(scaffold.workspaceCwd, 'second-notebook')
+    await mkdir(otherPath)
+    const other = await ctx.workspaceRegistry.create(otherPath)
+    const ns = ctx.memory.settingsNamespace()
+    if (!ns) throw new Error('Missing memory settings namespace')
+    const configure = async (key: 'enabled' | 'autoExtract', value: boolean) => {
+      await ctx.settings.update(ns, { [key]: value })
+      await expect.poll(() => key === 'enabled' ? ctx.memory.enabled : ctx.memory.extractionOptions().enabled).toBe(value)
+    }
+    const ask = async (text: string, workspaceId = workspace.id) => {
+      const { sessionId } = await ctx.sessionController.create({ workspaceId, agentPreset: 'writing' })
+      await ctx.sessionController.selectModel({ sessionId, provider: 'deepseek-official', model: 'deepseek-flash' })
+      await ctx.sessionController.prompt({
+        sessionId, mode: 'queue', requestId: brandString<SessionRequestId>(randomUUID()), content: [{ type: 'text', text }],
+      }, AbortSignal.timeout(115_000))
+      const agent = ctx.agents.get(sessionId)
+      if (!agent) throw new Error('Writing session did not open')
+      await expect.poll(() => agent.session.snapshotEvents().some(e => e.type === 'turn/end'), { timeout: 110_000 }).toBe(true)
+      await agent.whenIdle()
+      const events = agent.session.snapshotEvents()
+      expect(events.findLast(e => e.type === 'turn/end')?.data.reason.kind).toBe('completed')
+      const blocks = events.flatMap(e => e.type === 'assistant/message' ? e.data.message.content : [])
+      expect(blocks.filter(block => block.type === 'tool-call')).toHaveLength(0)
+      return {
+        answer: blocks.flatMap(block => block.type === 'text' ? [block.text] : []).join(' '),
+        entries: events.flatMap(e => e.type === 'user/message' && e.data.source.kind === 'memory-context' ? e.data.source.entries : []),
+        results: events.flatMap(e => e.type === 'memory/extraction' && e.data.phase === 'result' ? [e.data] : []),
+      }
+    }
+    const marker = (name: string) => name + '-' + randomUUID().slice(0, 8).toUpperCase()
+    const off = marker('OFF'), original = marker('ORIGINAL'), edited = marker('EDITED'), transient = marker('TRANSIENT')
+    const ack = '请直接回答“收到”，无需调用工具。'
+    const query = '按已有资料，《鹿湾归航》里鹿湾灯塔的玻璃工艺代号是什么？只回复原代号；如果资料没有，回复“未提供”。无需调用工具。'
+
+    expect(ctx.memory.enabled).toBe(false)
+    expect(ctx.memory.extractionOptions().enabled).toBe(false)
+    const initial = await ask('虚构设定：鹿湾灯塔的玻璃工艺代号是 ' + off + '。' + ack)
+    expect(initial.entries).toHaveLength(0)
+    expect(initial.results).toHaveLength(0)
+    expect(ctx.memory.records()).toHaveLength(0)
+    await configure('enabled', true)
+    expect(ctx.memory.extractionOptions().enabled).toBe(false)
+    await configure('autoExtract', true)
+    const source = await ask('我在写小说《鹿湾归航》。贯穿全书的固定设定：鹿湾灯塔的玻璃工艺代号是 ' + original
+      + '。我的一次性排版草稿号为 ' + transient + '，只用于此轮，之后作废。' + ack)
+    const records = ctx.memory.records()
+    const matches = records.filter(record => record.content.includes(original))
+    expect(matches).toHaveLength(1)
+    const record = matches[0]!
+    expect(record.scope).toMatchObject({ global: false, workspace: 'workspace:' + workspace.id, mode: 'writing' })
+    expect(source.results).toHaveLength(1)
+    expect(source.results[0]?.outcome).toBe('completed')
+    expect(source.results[0]?.usage?.outputTokens).toBeGreaterThan(0)
+    expect(source.results[0]?.saved).toContainEqual({ id: record.id, version: record.version })
+    expect(JSON.stringify(records)).not.toContain(transient)
+    expect(JSON.stringify(records)).not.toContain(off)
+
+    await configure('autoExtract', false)
+    const recall = await ask(query)
+    expect(recall.answer).toContain(original)
+    expect(recall.entries).toContainEqual({ id: record.id, version: record.version })
+    expect(recall.results).toHaveLength(0)
+    const revised = await ctx.memory.update(record.id, { content: '小说《鹿湾归航》中鹿湾灯塔的玻璃工艺代号是 ' + edited + '。' }, record.version)
+    const afterEdit = await ask(query)
+    expect(afterEdit.answer).toContain(edited)
+    expect(afterEdit.answer).not.toContain(original)
+    expect(afterEdit.entries).toContainEqual({ id: record.id, version: revised.version })
+    const elsewhere = await ask(query, other.id)
+    expect(elsewhere.entries).toHaveLength(0)
+    expect(elsewhere.answer).toContain('未提供')
+    await ctx.memory.setStatus(record.id, 'disabled', revised.version)
+    const disabled = await ask(query)
+    expect(disabled.entries).toHaveLength(0)
+    expect(disabled.answer).toContain('未提供')
+    expect(ctx.memory.records().find(item => item.id === record.id)?.status).toBe('disabled')
+  } finally {
+    await scaffold.close()
+  }
+}, 720_000)

@@ -412,11 +412,31 @@ node kernel/0.2.3-alpha.2/verification/writing-memory-endpoint.mjs initial
 | 5. 退出桌面和测试服务。用同一安装器和保留资料冷启动。另建空目录 `cold`，以上面的命令启动服务并传入 `cold`，将新地址写入测试配置。在管理页核对修订后的内容。新建写作会话 D，发送 `QUERY-QUAY-COLD. What glass does the North Quay lantern use?` | 总开关开启，自动提炼关闭。回答为 `QUERY-QUAY-COLD COBALT-28`。D 的 HTTP 请求中只有修订后的编号，整个冷启动阶段未产生提炼请求。 |
 | 6. 在相同工作区把新任务默认模式改为缺省，另建会话 E，发送 `QUERY-QUAY-OTHER. What glass does the North Quay lantern use?` | 回答为 `QUERY-QUAY-OTHER NO MATCH`。请求没有两种编号，日志没有这条写作记忆。 |
 
-**核对记录。** 退出桌面后，在一次性账号中运行以下命令。检查器同时读取记忆库、v4 会话（JSONL 或 zstd）和两次 HTTP 回执，核对五个会话、六个回合、原始提炼的请求与结果、作用域、每轮注入的修订号以及实际回答。此次安装实测得到记忆 ID `ad89c571-b02f-4cc0-bff3-0a8370f306cb`，冷启动读到修订 2。安装器与可重查的测试资料保存在 `%USERPROFILE%/DSHU-Deliveries/20261125/windows-x64-candidate/d75d00fb91e0/`。真实模型选择、归纳哪些事实的质量仍需用实际模型评估。[安装版记忆记录检查器](../../kernel/0.2.3-alpha.2/verification/inspect-writing-memory.mjs)
+**核对记录。** 退出桌面后，在一次性账号中运行以下命令。检查器同时读取记忆库、v4 会话（JSONL 或 zstd）和两次 HTTP 回执，核对五个会话、六个回合、原始提炼的请求与结果、作用域、每轮注入的修订号以及实际回答。此次安装实测得到记忆 ID `ad89c571-b02f-4cc0-bff3-0a8370f306cb`，冷启动读到修订 2。安装器与可重查的测试资料保存在 `%USERPROFILE%/DSHU-Deliveries/20261125/windows-x64-candidate/d75d00fb91e0/`。官方模型对长期设定与一次性草稿号的实际取舍见[真实模型的跨对话写作记忆](#真实模型的跨对话写作记忆)。[安装版记忆记录检查器](../../kernel/0.2.3-alpha.2/verification/inspect-writing-memory.mjs)
 
 ```powershell
 $fixtureProfile = Join-Path $env:USERPROFILE '.dsh-uncensored'
 node kernel/0.2.3-alpha.2/verification/inspect-writing-memory.mjs $fixtureProfile initial/provider.jsonl cold/provider.jsonl
+```
+
+### 真实模型的跨对话写作记忆
+
+2026-11-26，DSHU `2026.11.25.0` 的 Web 候选（DSH `0.2.3-alpha.2`，树 `3727e1fb510f78b2f636a75c81ae1e17dc8993bc`）通过官方 `deepseek-flash` 完成两次实测。每次使用独立资料、随机设定代号和六个新建写作对话。首轮回执记录了注入的修订号、提炼用量和实际回答中出现的代号。[脱敏回执](../../kernel/0.2.3-alpha.2/verification/live-writing-memory-3727e1fb.json)
+
+| 对话 | 操作 | 核对结果 |
+| --- | --- | --- |
+| 1 | 在默认设置下提供一个虚构设定 | 两个开关均关闭，记忆库为空，没有注入和提炼事件。 |
+| 2 | 开启总开关，再单独开启自动提炼。提供贯穿全书的灯塔设定和仅限本轮的草稿号 | 提炼请求返回用量，保存一条当前工作区和写作模式的设定。记录中没有草稿号和对话 1 的代号。 |
+| 3 | 只关闭自动提炼，同一工作区新开对话询问灯塔设定 | 注入修订 1，模型答出原代号。 |
+| 4 | 编辑记录后，在同一工作区再问 | 注入修订 2，模型答出新代号。 |
+| 5 | 去另一工作区，询问相同问题 | 没有注入记忆，模型回答“未提供”。 |
+| 6 | 回原工作区停用记录，新开对话再问 | 记录仍可管理，状态为停用。没有注入记忆，模型回答“未提供”。 |
+
+**复验。** 在已还原并完成构建的候选工作目录中，将[实测用例](../../kernel/0.2.3-alpha.2/verification/live-writing-memory.e2e.ts.in)复制为 `apps/web/tests/release-memory-provider.e2e.ts`。在已配置 `DEEPSEEK_API_KEY` 的临时 PowerShell 会话运行以下命令。测试经官方服务产生模型用量，结束时关闭测试 Host 并清理临时工作区。若模型给出不同回答，可按上表分别核对已保存条目、实际注入版本和回答内容。
+
+```powershell
+$env:DSH_SNAPSHOT = 'record'
+pnpm run test:web:built apps/web/tests/release-memory-provider.e2e.ts --maxWorkers=1
 ```
 
 ### 余额与左侧导航的候选验收

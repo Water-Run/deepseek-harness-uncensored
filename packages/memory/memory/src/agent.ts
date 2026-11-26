@@ -148,14 +148,15 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
   if (retrieval) {
     ctx.on('agent/pre-step', async ({ agent, messages, step, signal }, next): Promise<PreStepDecision> => {
       const decision = await next()
-      if (decision.kind === 'reject' || signal.aborted || step !== 1 || !ctx.memory.enabled) return decision
+      const canRetrieve = () => ctx.memory.enabled && !signal.aborted
+      if (decision.kind === 'reject' || step !== 1 || !canRetrieve()) return decision
       const query = userText(messages)
       if (query === '') return decision
       const session = agent.session
       const scope = await resolveSessionScope(ctx, session, config.mode)
       // A fresh child conversation keeps its own empty context: quick
       // questions and spawned children never inherit the main line's memory.
-      if (scope.freshChild || !ctx.memory.enabled) return decision
+      if (scope.freshChild || !canRetrieve()) return decision
       const { injectedVersions } = extraction.stateOf(session)
       const exclude = ctx.memory.records().filter(record => injectedVersions[record.id] === record.version).map(record => record.id)
       const outcome = ctx.memory.retrieve({ query, scope, exclude })

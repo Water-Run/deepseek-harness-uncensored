@@ -10,7 +10,8 @@ import { createUserMessage, LlmAdapter, ToolCallId } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 import { Session, SessionId } from '@deepseek-ai/dsh-session'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
-import type { Agent } from '@deepseek-ai/dsh-agent'
+import { agentEvents, type Agent } from '@deepseek-ai/dsh-agent'
+import * as scope from '../src/scope.ts'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
 import Storage from '@deepseek-ai/dsh-storage'
@@ -136,6 +137,28 @@ function memoryMessages(agent: Agent): { text: string; entries: readonly { id: s
 }
 
 describe('memory through the real loop', () => {
+  it('skips retrieval when the step is cancelled while resolving its workspace', async () => {
+    const h = await harness([])
+    const agent = await h.agent('cancel-during-scope')
+    const controller = new AbortController()
+    const resolveScope = scope.resolveSessionScope
+    const lookup = vi.spyOn(scope, 'resolveSessionScope').mockImplementationOnce(async (...args) => {
+      const value = await resolveScope(...args)
+      controller.abort()
+      return value
+    })
+    const retrieve = vi.spyOn(h.ctx.memory, 'retrieve')
+    try {
+      const prompt = createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'Recall the notes.' }] })
+      const decision = await agentEvents(agent.ctx, agent).waterfall('agent/pre-step', {
+        turn: 1, step: 1, messages: [prompt], signal: controller.signal, modelSelection: { provider: 'mock', model: 'mock' },
+      }, () => Promise.resolve({ kind: 'enter' as const, messages: [] }))
+      expect(lookup).toHaveBeenCalledOnce()
+      expect(retrieve).not.toHaveBeenCalled()
+      expect(decision).toEqual({ kind: 'enter', messages: [] })
+    } finally { lookup.mockRestore(); retrieve.mockRestore() }
+  })
+
   it('omits memory tools, retrieval and extraction while conversation access is off', async () => {
     const h = await harness([textResponse('OK')], 'standard', { enabled: false, autoExtract: true })
     await h.ctx.memory.create({ type: 'preference', content: 'Always use teal', scope: { global: true }, source: { kind: 'user', confirmed: true } })
