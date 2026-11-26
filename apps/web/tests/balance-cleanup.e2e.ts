@@ -5,7 +5,8 @@ import { join } from 'node:path'
 import { chromium } from 'playwright'
 import { expect, it, onTestFinished, vi } from 'vitest'
 import type {} from '@deepseek-ai/dsh-balance'
-import type { BalanceCleanupRequest } from '@deepseek-ai/dsh-balance/types'
+import type { AccountUserId } from '@deepseek-ai/dsh-deepseek-account/types'
+import type { BalanceCleanupRequest, BalanceHistoryTag } from '@deepseek-ai/dsh-balance/types'
 import { launchWebScaffold } from './scaffold.ts'
 import { openSettings, ZH_BROWSER_LOCALE } from './support.ts'
 
@@ -17,14 +18,15 @@ it('cleans stored samples by age, by count, or completely, and keeps automatic r
     { op: 'set', path: ['step'], value: 'done' }, { op: 'set', path: ['completion'], value: 'completed' },
   ])
   const snapshot = {
-    status: 'ready' as const, source: 'api' as const, account: 'api-key' as const, sampleCount: 4,
+    historyTag: 'test-history' as BalanceHistoryTag, status: 'ready' as const, source: 'api' as const, account: 'api-key' as const, sampleCount: 4,
     samples: [[0, 128.5], [1, 128.4], [181, 128.4], [182, 128.3]].map(([minute, amount]) => ({
       time: Date.UTC(2026, 10, 11, 0, minute ?? 0),
       wallets: [{ currency: 'CNY' as const, toppedUp: (amount ?? 0).toFixed(2), granted: '0' }] })),
   }
   const get = vi.spyOn(scaffold.ctx.uncensoredBalance, 'get').mockResolvedValue(snapshot)
   const requests: BalanceCleanupRequest[] = []
-  const clear = vi.spyOn(scaffold.ctx.uncensoredBalance, 'clear').mockImplementation(async (_client, request) => {
+  const clear = vi.spyOn(scaffold.ctx.uncensoredBalance, 'clear').mockImplementation(async (_client, request, _view, expectedHistory) => {
+    expect(expectedHistory).toBe(snapshot.historyTag)
     requests.push(request)
     return { ...snapshot, status: 'empty', sampleCount: 0, samples: [] }
   })
@@ -94,4 +96,70 @@ it('cleans stored samples by age, by count, or completely, and keeps automatic r
   await retainedCount.blur()
   await expect.poll(() => retainedCount.getAttribute('aria-invalid')).toBe('false')
   await expect.poll(() => retainedCount.inputValue()).toBe('2')
+})
+
+it('keeps both stored histories until the user reviews and confirms the new account', async () => {
+  const scaffold = await launchWebScaffold({ developerTools: false,
+    extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
+  onTestFinished(() => scaffold.close())
+  await scaffold.ctx.settings.mutate('ui-settings-account', [
+    { op: 'set', path: ['step'], value: 'done' }, { op: 'set', path: ['completion'], value: 'completed' },
+  ])
+  let account = 'second'
+  const platform = vi.spyOn(scaffold.ctx.deepseekAccount, 'getPlatformSession').mockImplementation(async () => ({
+    origin: 'https://balance.example', token: account, userId: account as AccountUserId,
+  }))
+  const provider = vi.spyOn(scaffold.ctx.deepseekAccount, 'getBalance').mockImplementation(async () => ({
+    status: 'ready', value: [{ currency: 'CNY', balance: account === 'first' ? '11' : '22' }], bonusWallets: [],
+  }))
+  onTestFinished(() => { provider.mockRestore(); platform.mockRestore() })
+  const client = { version: 'test', locale: 'zh-CN', timezoneOffsetSeconds: 28800 }
+  const read = () => scaffold.ctx.uncensoredBalance.get(client, 'history')
+  const second = await read()
+  account = 'first'
+  const first = await read()
+  expect(first.sampleCount).toBe(1)
+  expect(second.sampleCount).toBe(1)
+  expect(first.historyTag).not.toBe(second.historyTag)
+  await scaffold.ctx.settings.mutate('balance', [
+    { op: 'set', path: ['source'], value: 'local' }, { op: 'set', path: ['refreshSeconds'], value: 3600 },
+  ])
+
+  const browser = await chromium.launch()
+  onTestFinished(() => browser.close())
+  const page = await browser.newPage({ locale: ZH_BROWSER_LOCALE, viewport: { width: 1280, height: 900 } })
+  await page.goto(scaffold.authenticatedUrl)
+  await openSettings(page, 'zh')
+  const dialog = page.getByRole('dialog', { name: '设置', exact: true })
+  await dialog.getByRole('navigation').getByRole('button', { name: '额度', exact: true }).click()
+  const chart = dialog.getByRole('slider', { name: '总余额采样曲线' })
+  await expect.poll(() => chart.getAttribute('aria-valuetext')).toContain('11.00')
+  await dialog.getByText('采样设置', { exact: true }).click()
+  const controls = dialog.getByRole('group', { name: '清理存储的采样' })
+  await controls.getByRole('button', { name: '清理存储的采样' }).click()
+  await page.getByRole('menuitem', { name: '全部', exact: true }).click()
+  const clear = controls.getByRole('button', { name: '清理', exact: true })
+  const confirm = controls.getByRole('button', { name: '确认清理', exact: true })
+  await clear.click()
+  await confirm.waitFor()
+  account = 'second'
+  await confirm.click()
+  await expect.poll(() => chart.getAttribute('aria-valuetext')).toContain('22.00')
+  expect((await read()).samples).toEqual(second.samples)
+  await clear.click()
+  await confirm.waitFor()
+  account = 'first'
+  const refresh = dialog.getByRole('button', { name: '刷新', exact: true })
+  await refresh.click()
+  await expect.poll(() => chart.getAttribute('aria-valuetext')).toContain('11.00')
+  await clear.waitFor()
+  account = 'second'
+  await refresh.click()
+  await expect.poll(() => chart.getAttribute('aria-valuetext')).toContain('22.00')
+  await clear.click()
+  await confirm.click()
+  await dialog.getByText('暂无记录，切换到 API 实时开始采样', { exact: true }).waitFor()
+  expect((await read()).samples).toEqual([])
+  account = 'first'
+  expect((await read()).samples).toEqual(first.samples)
 })

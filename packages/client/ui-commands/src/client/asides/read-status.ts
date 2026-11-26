@@ -1,5 +1,6 @@
 /** Read position of the most recently viewed side result for each main conversation. */
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
+import type { SessionListMetadata } from '@deepseek-ai/dsh-api-session-controller/types'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
 import { SessionId } from '@deepseek-ai/dsh-session/types'
 
@@ -21,7 +22,11 @@ function saved(parent: SessionId): Receipt | null {
 export class AsideReads {
   private readonly parents = new Map<SessionId, SnapshotStore<Receipt | null>>()
 
-  /** @param parent - main Session. @returns its observable latest read position. */
+  /**
+   * Observe the last side result read in this browser.
+   * @param parent - Main Session.
+   * @returns Its observable read position.
+   */
   for(parent: SessionId): SnapshotStore<Receipt | null> {
     let store = this.parents.get(parent)
     if (!store) {
@@ -31,7 +36,12 @@ export class AsideReads {
     return store
   }
 
-  /** @param parent - main Session. @param child - viewed generation. @param seq - visible finished turn. */
+  /**
+   * Record a finished turn when the side panel displays it.
+   * @param parent - Main Session.
+   * @param child - Viewed side generation.
+   * @param seq - Sequence of the finished turn.
+   */
   mark(parent: SessionId, child: SessionId, seq: number): void {
     const store = this.for(parent), previous = store.getSnapshot()
     if (previous?.child === child && previous.seq >= seq) return
@@ -41,7 +51,10 @@ export class AsideReads {
     catch (_storageUnavailable) { /* The current window keeps the read position. */ }
   }
 
-  /** @param event - a read position updated by another window on this origin. */
+  /**
+   * Refresh the observed position after another window updates it.
+   * @param event - Storage change from the same origin.
+   */
   sync(event: StorageEvent): void {
     if (event.key?.startsWith(PREFIX)) {
       const parent = SessionId(event.key.slice(PREFIX.length))
@@ -49,7 +62,10 @@ export class AsideReads {
     }
   }
 
-  /** @param parent - deleted main Session whose read position can be discarded. */
+  /**
+   * Discard a deleted conversation's read position.
+   * @param parent - Deleted main Session.
+   */
   forget(parent: SessionId): void {
     this.parents.delete(parent)
     try { localStorage.removeItem(PREFIX + parent) }
@@ -57,13 +73,23 @@ export class AsideReads {
   }
 }
 
-/** @param list - Session summaries. @param child - side identity. @returns the Host's latest side result metadata. */
-export function sideMetadata(list: SessionListState, child: SessionId | undefined) {
+/**
+ * Read the side result from the newest available summary.
+ * @param list - Session summaries.
+ * @param child - Side Session.
+ * @returns The generation and latest finished turn, when available.
+ */
+export function sideMetadata(list: SessionListState, child: SessionId | undefined): SessionListMetadata['side'] {
   if (child === undefined) return undefined
   return (list.projectionsBySession[child]?.values.sessionListMetadata ?? list.byId[child]?.projectionValues?.sessionListMetadata)?.side
 }
 
-/** @param list - Session summaries. @param parent - main Session. @returns its newest side generation, including an empty successor. */
+/**
+ * Find the newest side conversation, including an empty successor.
+ * @param list - Session summaries.
+ * @param parent - Main Session.
+ * @returns The newest known side Session.
+ */
 export function newestSide(list: SessionListState, parent: SessionId): SessionId | undefined {
   let current: SessionId | undefined, generation = -1
   for (const id of list.ids) {

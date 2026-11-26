@@ -1,8 +1,8 @@
 /** Serial, account-scoped sampling; no credential or raw response enters the stored history. */
-import { createHash } from 'node:crypto'
+import { createHash, createHmac, randomBytes } from 'node:crypto'
 import { z } from 'zod'
 import type { AccountClientMetadata } from '@deepseek-ai/dsh-deepseek-account/types'
-import type { BalanceAutoCleanup, BalanceSidebarRange, BalanceCleanupRequest, BalanceSample, BalanceSnapshot, BalanceWallet } from './types.ts'
+import type { BalanceAutoCleanup, BalanceHistoryTag, BalanceSidebarRange, BalanceCleanupRequest, BalanceCleanupSnapshot, BalanceSample, BalanceSnapshot, BalanceWallet } from './types.ts'
 
 /** One credential generation resolved on the Host. */
 export interface BalanceIdentity {
@@ -138,9 +138,14 @@ function snapshotSamples(samples: readonly BalanceSample[], limit: number, view?
 /** Owns sampling, credential-change checks, and write settlement before disposal. */
 export class BalanceEngine {
   private readonly lifetime = new AbortController()
+  private readonly tagSecret = randomBytes(32)
   private tail: Promise<void> = Promise.resolve()
   /** @param options - Provider-owned IO and validated limits. */
   constructor(private readonly options: BalanceEngineOptions) {}
+
+  private historyTag(identity: BalanceIdentity): BalanceHistoryTag {
+    return createHmac('sha256', this.tagSecret).update(identity.key).digest('hex') as BalanceHistoryTag
+  }
 
   /**
    * Read cached history or append one successful API sample.
@@ -161,16 +166,15 @@ export class BalanceEngine {
 
   private async query(client: AccountClientMetadata, source: 'local' | 'api'): Promise<Omit<BalanceSnapshot, 'sampleCount'>> {
     let samples: readonly BalanceSample[] = []
-    let account: BalanceSnapshot['account'] = null
+    let identity: BalanceIdentity | null = null
     let failure: 'request' | 'storage' = 'request'
     try {
       this.lifetime.signal.throwIfAborted()
-      const identity = await this.options.identify(client, source === 'api')
-      if (identity === null) return { status: 'signed-out', source, account, samples }
-      account = identity.account
+      identity = await this.options.identify(client, source === 'api')
+      if (identity === null) return { status: 'signed-out', source, account: null, samples }
       failure = 'storage'
       samples = this.options.read(identity.key) ?? []
-      if (source === 'local') return { status: samples.length === 0 ? 'empty' : 'ready', source, account, samples }
+      if (source === 'local') return this.snapshot(identity, source, samples.length === 0 ? 'empty' : 'ready', samples)
       failure = 'request'
       const wallets = await identity.query(AbortSignal.any([this.lifetime.signal, AbortSignal.timeout(this.options.timeoutMs)]))
       this.lifetime.signal.throwIfAborted()
@@ -181,10 +185,20 @@ export class BalanceEngine {
       failure = 'storage'
       this.lifetime.signal.throwIfAborted()
       await this.options.write(identity.key, next)
-      return { status: 'ready', source, account, samples: next }
+      return this.snapshot(identity, source, 'ready', next)
     } catch (_error) {
-      return { status: 'unavailable', source, account, samples, error: failure }
+      return identity === null ? { status: 'unavailable', source, account: null, samples: [], error: failure }
+        : this.snapshot(identity, source, 'unavailable', samples, failure)
     }
+  }
+
+  private async snapshot(identity: BalanceIdentity, source: BalanceSnapshot['source'], status: BalanceSnapshot['status'],
+    samples: readonly BalanceSample[], error?: BalanceSnapshot['error']): Promise<Omit<BalanceSnapshot, 'sampleCount'>> {
+    if (!await identity.current().catch(() => false)) {
+      return { status: 'unavailable', source, account: null, samples: [], error: 'changed' }
+    }
+    return { status, source, account: identity.account, historyTag: this.historyTag(identity), samples,
+      ...(error === undefined ? {} : { error }) }
   }
 
   /** Stop admission and await every query and durable write before storage closes. @returns Quiescent completion. */
@@ -195,10 +209,13 @@ export class BalanceEngine {
    * @param client - Request identity used by the account provider.
    * @param request - Cleanup mode and its bound.
    * @param view - Full history or the time window to downsample.
-   * @returns The remaining history under the same shape as a local read.
+   * @param expectedHistory - History shown when the user requested cleanup, when supplied by the client.
+   * @returns The remaining history and its account tag.
    */
-  clear(client: AccountClientMetadata, request: BalanceCleanupRequest, view?: 'history' | BalanceSidebarRange): Promise<BalanceSnapshot> {
-    const operation = this.tail.then(() => this.remove(client, request)).then(result => ({
+  clear(client: AccountClientMetadata, request: BalanceCleanupRequest, view?: 'history' | BalanceSidebarRange, expectedHistory?: BalanceHistoryTag): Promise<BalanceCleanupSnapshot> {
+    // Older clients omit the tag. Capture their target before waiting for pending writes.
+    const target = this.lifetime.signal.aborted ? undefined : this.options.identify(client, false).catch(() => undefined)
+    const operation = this.tail.then(async () => this.remove(await target, request, expectedHistory)).then(result => ({
       ...result,
       sampleCount: result.samples.length,
       samples: snapshotSamples(result.samples, this.options.displayLimit, view),
@@ -207,17 +224,22 @@ export class BalanceEngine {
     return operation
   }
 
-  private async remove(client: AccountClientMetadata, request: BalanceCleanupRequest): Promise<Omit<BalanceSnapshot, 'sampleCount'>> {
-    let samples: readonly BalanceSample[] = []
+  private async remove(identity: BalanceIdentity | null | undefined, request: BalanceCleanupRequest,
+    expectedHistory?: BalanceHistoryTag): Promise<Omit<BalanceCleanupSnapshot, 'sampleCount'>> {
+    if (identity === undefined) return { status: 'unavailable', source: 'local', account: null, samples: [], error: 'storage' }
+    if (identity === null) return expectedHistory === undefined
+      ? { status: 'signed-out', source: 'local', account: null, samples: [] }
+      : { status: 'unavailable', source: 'local', account: null, samples: [], error: 'changed' }
     try {
       this.lifetime.signal.throwIfAborted()
-      const identity = await this.options.identify(client, false)
-      if (identity === null) return { status: 'signed-out', source: 'local', account: null, samples }
-      samples = this.options.read(identity.key) ?? []
+      if ((expectedHistory !== undefined && expectedHistory !== this.historyTag(identity)) || !await identity.current()) {
+        return { status: 'unavailable', source: 'local', account: null, samples: [], error: 'changed' }
+      }
+      const samples = this.options.read(identity.key) ?? []
       const next = cleanSamples(samples, request, this.options.now())
       this.lifetime.signal.throwIfAborted()
       await this.options.write(identity.key, next)
-      return { status: next.length === 0 ? 'empty' : 'ready', source: 'local', account: identity.account, samples: next }
+      return { ...await this.snapshot(identity, 'local', next.length === 0 ? 'empty' : 'ready', next), cleanupApplied: true }
     } catch (_error) {
       return { status: 'unavailable', source: 'local', account: null, samples: [], error: 'storage' }
     }

@@ -12,7 +12,7 @@ afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals() })
 
 function fixture(granted = '0') {
   vi.stubGlobal('matchMedia', () => Object.assign(new EventTarget(), { matches: true }))
-  const data: BalanceSnapshot = { status: 'ready', source: 'api', account: 'api-key', sampleCount: 2,
+  const data: BalanceSnapshot = { historyTag: 'test-history' as NonNullable<BalanceSnapshot['historyTag']>, status: 'ready', source: 'api', account: 'api-key', sampleCount: 2,
     samples: [0, 60_000].map(time => ({ time, wallets: [{ currency: 'CNY', toppedUp: '12.50', granted }] })) }
   const state = createSnapshotStore<BalanceViewState>({
     data, loading: false, failed: false, now: 0, saving: false, clearing: false, toast: null, toastId: 0,

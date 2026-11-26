@@ -5,7 +5,7 @@
 线上基准为 `v2026.11.24.3`。当前 DSH `0.2.3-alpha.2` 候选覆盖缺省和写作，两者均有旧资料升级记录。接手者从[固定候选清单](../kernel/0.2.3-alpha.2/source.json)取得源码身份，按以下顺序交付。
 
 1. **对齐功能。** 以[上一版逐项对照](requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表)和[专项待办](requirements/2026-11-25-release-handoff.md#专项维护者待办)登记余下差异、负责人和证据。正式发行范围为四模式。关于页的组件状态须与实际安装内容一致。[关于页验收](requirements/2026-11-25-release-handoff.md#合并后的关于页)
-2. **验收最终安装文件。** 对同一源码树，从首发版和上一正式版分别升级，核对含输入建议与保护审计的旧对话、旁问计费、签名和实际在线更新。两版均有可复用的普通及压缩会话样本。Windows 静置问题保留独立结论。[五件套实测](requirements/2026-11-25-release-handoff.md#同一源码树的五件套演练) · [旧会话复验](requirements/2026-11-25-release-handoff.md#含保护审计的旧会话) · [平台矩阵](requirements/2026-11-25-release-handoff.md#桌面与平台验收) · [Windows 静置](requirements/2026-11-25-release-handoff.md#issue-26-的-windows-静置卡死)
+2. **验收最终安装文件。** 对同一源码树，从首发版和上一正式版分别升级，核对含输入建议与保护审计的旧对话、旁问计费、签名和实际在线更新。两版均有可复用的普通及压缩会话样本。余额清理另有[双账号切换用例](requirements/2026-11-25-release-handoff.md#清理期间切换余额账号)。Windows 静置问题保留独立结论。[五件套实测](requirements/2026-11-25-release-handoff.md#同一源码树的五件套演练) · [旧会话复验](requirements/2026-11-25-release-handoff.md#含保护审计的旧会话) · [平台矩阵](requirements/2026-11-25-release-handoff.md#桌面与平台验收) · [Windows 静置](requirements/2026-11-25-release-handoff.md#issue-26-的-windows-静置卡死)
 3. **准备发行正文。** 编辑[下一版 Release 说明](../发布稿/Release-下一版.md)。在候选根目录用 `deliver:github --notes-file` 传入定稿，生成含下载表和五个安装包校验值的 `release-notes.md`。首发版用户需要手动覆盖安装，`2026.11.24.3` 可在应用内检查更新。[完整命令](requirements/2026-11-25-release-handoff.md#发布前最后一次核对) · [两个旧版的更新路径](requirements/2026-11-25-release-handoff.md#两个已发布版本如何发现新安装包)
 
 ### 关联 Issue
@@ -15,6 +15,7 @@
 | Issue | GitHub 状态 | 已验证的结果与余项 |
 | --- | --- | --- |
 | [#20 旧工作区无法启动](https://github.com/Water-Run/deepseek-harness-uncensored/issues/20#issuecomment-7188254129) | 已评论并关闭 | 两个正式旧版的资料均已在 Mac 覆盖安装后打开。冷启动仍能读取原会话，用户插件保留。 |
+| [#21 下载更新后仍是旧版](https://github.com/Water-Run/deepseek-harness-uncensored/issues/21) | 已关闭 | 报告缺少操作系统、起始版本和安装日志，无法判定是否命中 #24。首发版的手动升级路径已写入 Release 草稿。 |
 | [#24 Windows 安装器拒绝末段为零的版本](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24#issuecomment-7188257670) | 已评论并关闭 | 首发版和上一版分别静默升级并同版重装成功。修复已入主线，现有正式下载仍是旧版。 |
 | [#25 工具声明导致原会话持续返回 400](https://github.com/Water-Run/deepseek-harness-uncensored/issues/25) | 开放，优先处理 | 界面会核对报错与请求记录中的工具名，再提示停用共享服务。已验证停用整项服务后能继续原会话。仍需在桌面账号中验证只停用被点名的工具、保留同一服务的其他工具。[实测与验收条件](requirements/2026-11-25-release-handoff.md#issue-25-的工具声明与会话恢复) |
 | [#22 工具发现](https://github.com/Water-Run/deepseek-harness-uncensored/issues/22) | 开放 | 已验证文件头识别样例。完整发行配置下的报告场景仍待专项维护者确认。 |

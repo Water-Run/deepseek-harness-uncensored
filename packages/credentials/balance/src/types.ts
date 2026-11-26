@@ -1,4 +1,10 @@
 /** Credential-free balance observations exposed to the application. */
+import type { Branded } from '@deepseek-ai/dsh-brand'
+
+/** Identifies the displayed account history for cleanup within one running Host. */
+export type BalanceHistoryTag = Branded<'BalanceHistoryTag'>
+
+/** Topped-up and granted amounts for a single currency in one observation. */
 export interface BalanceWallet {
   readonly currency: 'CNY' | 'USD'
   readonly toppedUp: string
@@ -45,5 +51,13 @@ export interface BalanceSnapshot {
   readonly account: 'account' | 'api-key' | null
   readonly samples: readonly BalanceSample[]
   readonly sampleCount: number
+  /** Opaque cleanup precondition for a history resolved by this Host. */
+  readonly historyTag?: BalanceHistoryTag
   readonly error?: 'request' | 'storage' | 'changed'
+}
+
+/** Manual cleanup outcome, including writes completed before an account switch. */
+export interface BalanceCleanupSnapshot extends BalanceSnapshot {
+  /** The Host committed the cleanup to the selected history. */
+  readonly cleanupApplied?: true
 }

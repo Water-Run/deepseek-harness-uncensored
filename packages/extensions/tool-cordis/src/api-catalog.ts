@@ -5445,9 +5445,9 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'Sanitized current state and local sampling history.',
       },
       {
-        signature: '@Remote clear(client: AccountClientMetadata, request: BalanceCleanupRequest, view?: \'history\' | BalanceSidebarRange): Promise<BalanceSnapshot>',
+        signature: '@Remote clear(client: AccountClientMetadata, request: BalanceCleanupRequest, view?: \'history\' | BalanceSidebarRange, expectedHistory?: BalanceHistoryTag): Promise<BalanceCleanupSnapshot>',
         description: 'Remove stored samples for the current account.',
-        parameters: [{ name: 'client', description: 'Platform request metadata.' }, { name: 'request', description: 'Cleanup mode and its bound.' }, { name: 'view', description: 'History detail requested by the active client view.' }],
+        parameters: [{ name: 'client', description: 'Platform request metadata.' }, { name: 'request', description: 'Cleanup mode and its bound.' }, { name: 'view', description: 'History detail requested by the active client view.' }, { name: 'expectedHistory', description: 'Opaque tag of the account history the user reviewed.' }],
         returns: 'The remaining history.',
       },
     ],
@@ -7157,6 +7157,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type BalanceCleanupRequest = {\n    readonly mode: \'all\';\n} | {\n    readonly mode: \'count\';\n    readonly keep: number;\n} | {\n    readonly mode: \'age\';\n    readonly days: number;\n};',
   },
   {
+    name: 'BalanceCleanupSnapshot',
+    declaration: 'export interface BalanceCleanupSnapshot extends BalanceSnapshot {\n    readonly cleanupApplied?: true;\n}',
+  },
+  {
+    name: 'BalanceHistoryTag',
+    declaration: 'export type BalanceHistoryTag = Branded<\'BalanceHistoryTag\'>;',
+  },
+  {
     name: 'BalanceSample',
     declaration: 'export interface BalanceSample {\n    readonly time: number;\n    readonly wallets: readonly BalanceWallet[];\n}',
   },
@@ -7166,7 +7174,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'BalanceSnapshot',
-    declaration: 'export interface BalanceSnapshot {\n    readonly status: \'ready\' | \'empty\' | \'signed-out\' | \'disabled\' | \'unavailable\';\n    readonly source: \'local\' | \'api\';\n    readonly account: \'account\' | \'api-key\' | null;\n    readonly samples: readonly BalanceSample[];\n    readonly sampleCount: number;\n    readonly error?: \'request\' | \'storage\' | \'changed\';\n}',
+    declaration: 'export interface BalanceSnapshot {\n    readonly status: \'ready\' | \'empty\' | \'signed-out\' | \'disabled\' | \'unavailable\';\n    readonly source: \'local\' | \'api\';\n    readonly account: \'account\' | \'api-key\' | null;\n    readonly samples: readonly BalanceSample[];\n    readonly sampleCount: number;\n    readonly historyTag?: BalanceHistoryTag;\n    readonly error?: \'request\' | \'storage\' | \'changed\';\n}',
   },
   {
     name: 'BalanceWallet',

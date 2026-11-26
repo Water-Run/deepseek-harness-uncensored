@@ -4,7 +4,8 @@ import type { BalanceCleanupRequest, BalancePreferences, BalanceSnapshot } from 
 import { BalanceController } from '../src/client/balance-controller.ts'
 
 afterEach(() => { vi.useRealTimers() })
-const sample = (amount: string): BalanceSnapshot => ({ status: 'ready', source: 'api', account: 'api-key', sampleCount: 1,
+const tag = 'test-history' as NonNullable<BalanceSnapshot['historyTag']>
+const sample = (amount: string): BalanceSnapshot => ({ historyTag: tag, status: 'ready', source: 'api', account: 'api-key', sampleCount: 1,
   samples: [{ time: 1, wallets: [{ currency: 'CNY', toppedUp: amount, granted: '0' }] }] })
 const clearSamples = vi.fn(async (_request: BalanceCleanupRequest): Promise<BalanceSnapshot> => sample('0'))
 
@@ -95,7 +96,7 @@ it('publishes the remaining history after a cleanup and reports its outcome', as
   try {
     await vi.advanceTimersByTimeAsync(0)
     expect(await controller.clear({ mode: 'count', keep: 500 })).toBe(true)
-    expect(cleanup).toHaveBeenCalledWith({ mode: 'count', keep: 500 }, '7')
+    expect(cleanup).toHaveBeenCalledWith({ mode: 'count', keep: 500 }, '7', tag)
     expect(controller.state.getSnapshot()).toMatchObject({
       data: { status: 'empty', sampleCount: 0 }, clearing: false, toast: 'cleared',
     })
@@ -149,5 +150,22 @@ it('reports a failed cleanup without discarding the shown history', async () => 
     const shown = controller.state.getSnapshot().data
     expect(await controller.clear({ mode: 'all' })).toBe(false)
     expect(controller.state.getSnapshot()).toMatchObject({ data: shown, clearing: false, toast: 'clearFailed' })
+  } finally { await controller.dispose() }
+})
+
+it.each([true, false])('refreshes a changed balance account and reports whether cleanup committed (%s)', async (committed) => {
+  vi.useFakeTimers()
+  const previous = sample('10.00'), current = { ...sample('2.00'), historyTag: 'next-history' as typeof tag }
+  const query = vi.fn().mockResolvedValueOnce(previous).mockResolvedValue(current)
+  const controller = new BalanceController(preferences().scope, query, async () => ({
+    status: 'unavailable', source: 'local', error: 'changed', samples: [], sampleCount: 0, account: null,
+    ...(committed ? { cleanupApplied: true } : {}),
+  }))
+  try {
+    await vi.advanceTimersByTimeAsync(0)
+    expect(await controller.clear({ mode: 'all' }, tag)).toBe(committed)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(controller.state.getSnapshot()).toMatchObject({ data: current, clearing: false,
+      toast: committed ? 'previousCleared' : 'accountChanged' })
   } finally { await controller.dispose() }
 })

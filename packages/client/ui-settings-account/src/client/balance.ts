@@ -21,9 +21,9 @@ export function registerBalance(ctx: Context, account: HostObservable<AccountSna
         const result = await scope.remote.balance.get(client, view)
         if (!result.ok) throw result.error
         return result.value
-      }, async (request, view) => {
+      }, async (request, view, expectedHistory) => {
         const client = accountClientMetadata(scope.locale.getSnapshot().active, process.env.DSH_CLIENT_VERSION)
-        const result = await scope.remote.balance.clear(client, request, view)
+        const result = await scope.remote.balance.clear(client, request, view, expectedHistory)
         if (!result.ok) throw result.error
         return result.value
       })

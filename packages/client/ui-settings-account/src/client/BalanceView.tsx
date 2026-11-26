@@ -141,6 +141,8 @@ const TOAST_KEYS = {
   saveFailed: 'balance.saveFailed',
   cleared: 'balance.cleared',
   clearFailed: 'balance.clearFailed',
+  accountChanged: 'balance.accountChanged',
+  previousCleared: 'balance.previousCleared',
 } as const
 
 /** @param props - Shared balance state and live preferences. @returns The built-in settings section. */
@@ -153,13 +155,16 @@ export function BalanceSettings({ useBalance, useBalancePreferences, inspectHist
   const [retainDraft, setRetainDraft] = useState<string | null>(null)
   const [cleanupMode, setCleanupMode] = useState<CleanupMode>('age')
   const [cleanupDraft, setCleanupDraft] = useState('30')
-  const [armed, setArmed] = useState(false)
+  const historyTag = state.data?.historyTag
+  const [armedHistory, arm] = useState<typeof historyTag>()
+  const armed = historyTag !== undefined && armedHistory === historyTag
   const id = useId()
   useEffect(() => {
-    if (!armed) return
-    const timer = window.setTimeout(() => { setArmed(false) }, 5_000)
+    if (armedHistory === undefined) return
+    if (armedHistory !== historyTag) { arm(undefined); return }
+    const timer = window.setTimeout(() => { arm(undefined) }, 5_000)
     return () => { window.clearTimeout(timer) }
-  }, [armed])
+  }, [armedHistory, historyTag])
   if (preferences === undefined) return null
   const interval = draft ?? String(preferences.refreshSeconds)
   const invalid = draft !== null && (!Number.isInteger(Number(draft)) || Number(draft) < 3 || Number(draft) > 3600)
@@ -210,15 +215,15 @@ export function BalanceSettings({ useBalance, useBalancePreferences, inspectHist
         <div className={css.cleanup} role="group" aria-label={t('balance.cleanup')}>
           <Select label={t('balance.cleanup')} value={cleanupMode} disabled={busy || !preferences.enabled}
             options={[{ value: 'age', label: t('balance.cleanupByAge') }, { value: 'count', label: t('balance.cleanupByCount') }, { value: 'all', label: t('balance.cleanupAll') }]}
-            onChange={(value) => { setCleanupMode(value); setArmed(false) }} />
+            onChange={(value) => { setCleanupMode(value); arm(undefined) }} />
           {cleanupMode !== 'all' && <div className={css.interval}><Input id={`${id}-cleanup`} aria-label={t(cleanupMode === 'count' ? 'balance.keepCount' : 'balance.keepDays')} type="number" min={1} max={cleanupLimit} step={1}
             value={cleanupDraft} aria-invalid={cleanupInvalid} aria-describedby={cleanupInvalid ? `${id}-cleanup-error` : undefined} disabled={busy || !preferences.enabled}
-            onChange={(event) => { setCleanupDraft(event.target.value); setArmed(false) }} /></div>}
-          <Button size="sm" variant={armed ? 'primary' : 'outline'} disabled={cleanupInvalid || busy || !preferences.enabled}
+            onChange={(event) => { setCleanupDraft(event.target.value); arm(undefined) }} /></div>}
+          <Button size="sm" variant={armed ? 'primary' : 'outline'} disabled={cleanupInvalid || busy || !preferences.enabled || historyTag === undefined}
             onClick={() => {
-              if (cleanupMode === 'all' && !armed) { setArmed(true); return }
-              setArmed(false)
-              void clear(request)
+              if (cleanupMode === 'all' && !armed) { arm(historyTag); return }
+              arm(undefined)
+              void clear(request, historyTag)
             }}>{armed ? t('balance.cleanupConfirm') : t('balance.cleanupNow')}</Button>
         </div>
       </PreferenceControlRow>

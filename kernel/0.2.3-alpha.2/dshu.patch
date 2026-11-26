@@ -66092,3 +66092,826 @@ index 1dcb439063705c8883bd32ef461bd44c6d95a790..c901c76d7f0763433284827aed5f032b
  How to recover this conversation
 -Disable the MCP server that provides this tool, then resend your message in this conversation. Other conversations using that server are affected too.
 +The provider named this tool in its error. Check the tool name and source in the request details before changing a shared MCP server.
+diff --git a/apps/web/tests/balance-cleanup.e2e.ts b/apps/web/tests/balance-cleanup.e2e.ts
+index 885ec1a823d764449a263e7d7cec49a8adb94af0..2a13f39fd777b644653bb25ac92d7386c2248274 100644
+--- a/apps/web/tests/balance-cleanup.e2e.ts
++++ b/apps/web/tests/balance-cleanup.e2e.ts
+@@ -5,7 +5,8 @@ import { join } from 'node:path'
+ import { chromium } from 'playwright'
+ import { expect, it, onTestFinished, vi } from 'vitest'
+ import type {} from '@deepseek-ai/dsh-balance'
+-import type { BalanceCleanupRequest } from '@deepseek-ai/dsh-balance/types'
++import type { AccountUserId } from '@deepseek-ai/dsh-deepseek-account/types'
++import type { BalanceCleanupRequest, BalanceHistoryTag } from '@deepseek-ai/dsh-balance/types'
+ import { launchWebScaffold } from './scaffold.ts'
+ import { openSettings, ZH_BROWSER_LOCALE } from './support.ts'
+ 
+@@ -17,14 +18,15 @@ it('cleans stored samples by age, by count, or completely, and keeps automatic r
+     { op: 'set', path: ['step'], value: 'done' }, { op: 'set', path: ['completion'], value: 'completed' },
+   ])
+   const snapshot = {
+-    status: 'ready' as const, source: 'api' as const, account: 'api-key' as const, sampleCount: 4,
++    historyTag: 'test-history' as BalanceHistoryTag, status: 'ready' as const, source: 'api' as const, account: 'api-key' as const, sampleCount: 4,
+     samples: [[0, 128.5], [1, 128.4], [181, 128.4], [182, 128.3]].map(([minute, amount]) => ({
+       time: Date.UTC(2026, 10, 11, 0, minute ?? 0),
+       wallets: [{ currency: 'CNY' as const, toppedUp: (amount ?? 0).toFixed(2), granted: '0' }] })),
+   }
+   const get = vi.spyOn(scaffold.ctx.uncensoredBalance, 'get').mockResolvedValue(snapshot)
+   const requests: BalanceCleanupRequest[] = []
+-  const clear = vi.spyOn(scaffold.ctx.uncensoredBalance, 'clear').mockImplementation(async (_client, request) => {
++  const clear = vi.spyOn(scaffold.ctx.uncensoredBalance, 'clear').mockImplementation(async (_client, request, _view, expectedHistory) => {
++    expect(expectedHistory).toBe(snapshot.historyTag)
+     requests.push(request)
+     return { ...snapshot, status: 'empty', sampleCount: 0, samples: [] }
+   })
+@@ -95,3 +97,69 @@ it('cleans stored samples by age, by count, or completely, and keeps automatic r
+   await expect.poll(() => retainedCount.getAttribute('aria-invalid')).toBe('false')
+   await expect.poll(() => retainedCount.inputValue()).toBe('2')
+ })
++
++it('keeps both stored histories until the user reviews and confirms the new account', async () => {
++  const scaffold = await launchWebScaffold({ developerTools: false,
++    extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
++  onTestFinished(() => scaffold.close())
++  await scaffold.ctx.settings.mutate('ui-settings-account', [
++    { op: 'set', path: ['step'], value: 'done' }, { op: 'set', path: ['completion'], value: 'completed' },
++  ])
++  let account = 'second'
++  const platform = vi.spyOn(scaffold.ctx.deepseekAccount, 'getPlatformSession').mockImplementation(async () => ({
++    origin: 'https://balance.example', token: account, userId: account as AccountUserId,
++  }))
++  const provider = vi.spyOn(scaffold.ctx.deepseekAccount, 'getBalance').mockImplementation(async () => ({
++    status: 'ready', value: [{ currency: 'CNY', balance: account === 'first' ? '11' : '22' }], bonusWallets: [],
++  }))
++  onTestFinished(() => { provider.mockRestore(); platform.mockRestore() })
++  const client = { version: 'test', locale: 'zh-CN', timezoneOffsetSeconds: 28800 }
++  const read = () => scaffold.ctx.uncensoredBalance.get(client, 'history')
++  const second = await read()
++  account = 'first'
++  const first = await read()
++  expect(first.sampleCount).toBe(1)
++  expect(second.sampleCount).toBe(1)
++  expect(first.historyTag).not.toBe(second.historyTag)
++  await scaffold.ctx.settings.mutate('balance', [
++    { op: 'set', path: ['source'], value: 'local' }, { op: 'set', path: ['refreshSeconds'], value: 3600 },
++  ])
++
++  const browser = await chromium.launch()
++  onTestFinished(() => browser.close())
++  const page = await browser.newPage({ locale: ZH_BROWSER_LOCALE, viewport: { width: 1280, height: 900 } })
++  await page.goto(scaffold.authenticatedUrl)
++  await openSettings(page, 'zh')
++  const dialog = page.getByRole('dialog', { name: '设置', exact: true })
++  await dialog.getByRole('navigation').getByRole('button', { name: '额度', exact: true }).click()
++  const chart = dialog.getByRole('slider', { name: '总余额采样曲线' })
++  await expect.poll(() => chart.getAttribute('aria-valuetext')).toContain('11.00')
++  await dialog.getByText('采样设置', { exact: true }).click()
++  const controls = dialog.getByRole('group', { name: '清理存储的采样' })
++  await controls.getByRole('button', { name: '清理存储的采样' }).click()
++  await page.getByRole('menuitem', { name: '全部', exact: true }).click()
++  const clear = controls.getByRole('button', { name: '清理', exact: true })
++  const confirm = controls.getByRole('button', { name: '确认清理', exact: true })
++  await clear.click()
++  await confirm.waitFor()
++  account = 'second'
++  await confirm.click()
++  await expect.poll(() => chart.getAttribute('aria-valuetext')).toContain('22.00')
++  expect((await read()).samples).toEqual(second.samples)
++  await clear.click()
++  await confirm.waitFor()
++  account = 'first'
++  const refresh = dialog.getByRole('button', { name: '刷新', exact: true })
++  await refresh.click()
++  await expect.poll(() => chart.getAttribute('aria-valuetext')).toContain('11.00')
++  await clear.waitFor()
++  account = 'second'
++  await refresh.click()
++  await expect.poll(() => chart.getAttribute('aria-valuetext')).toContain('22.00')
++  await clear.click()
++  await confirm.click()
++  await dialog.getByText('暂无记录，切换到 API 实时开始采样', { exact: true }).waitFor()
++  expect((await read()).samples).toEqual([])
++  account = 'first'
++  expect((await read()).samples).toEqual(first.samples)
++})
+diff --git a/docs/subsystems/credentials.md b/docs/subsystems/credentials.md
+index 6cd3ac94e8ad84973638db62d1a2dcb6c4b016a2..9d07a1fd51452d279149be04753b9bcafb846d3a 100644
+--- a/docs/subsystems/credentials.md
++++ b/docs/subsystems/credentials.md
+@@ -276,9 +276,10 @@ Authenticated application access to local history and fresh balance queries.
+  * @param client - Platform request metadata.
+  * @param request - Cleanup mode and its bound.
+  * @param view - History detail requested by the active client view.
++ * @param expectedHistory - Opaque tag of the account history the user reviewed.
+  * @returns The remaining history.
+  */
+-@Remote clear(client: AccountClientMetadata, request: BalanceCleanupRequest, view?: 'history' | BalanceSidebarRange): Promise<BalanceSnapshot>
++@Remote clear(client: AccountClientMetadata, request: BalanceCleanupRequest, view?: 'history' | BalanceSidebarRange, expectedHistory?: BalanceHistoryTag): Promise<BalanceCleanupSnapshot>
+ ```
+ 
+ Types: [AccountClientMetadata](account.md)
+diff --git a/docs/subsystems/credentials.zh.md b/docs/subsystems/credentials.zh.md
+index ce3ad8b86bf5dc0d424218601d4c27b88c92d5d5..b160721e884725a266185a66b828d27411a895cd 100644
+--- a/docs/subsystems/credentials.zh.md
++++ b/docs/subsystems/credentials.zh.md
+@@ -276,9 +276,10 @@ Authenticated application access to local history and fresh balance queries.
+  * @param client - Platform request metadata.
+  * @param request - Cleanup mode and its bound.
+  * @param view - History detail requested by the active client view.
++ * @param expectedHistory - Opaque tag of the account history the user reviewed.
+  * @returns The remaining history.
+  */
+-@Remote clear(client: AccountClientMetadata, request: BalanceCleanupRequest, view?: 'history' | BalanceSidebarRange): Promise<BalanceSnapshot>
++@Remote clear(client: AccountClientMetadata, request: BalanceCleanupRequest, view?: 'history' | BalanceSidebarRange, expectedHistory?: BalanceHistoryTag): Promise<BalanceCleanupSnapshot>
+ ```
+ 
+ Types: [AccountClientMetadata](account.zh.md)
+diff --git a/packages/client/ui-settings-account/README.i18n.yaml b/packages/client/ui-settings-account/README.i18n.yaml
+index db2a99b7131dcd5c74a59b8cc28a37ad949ab740..2c23256c15ffde82d96ff6a515909322ee398cea 100644
+--- a/packages/client/ui-settings-account/README.i18n.yaml
++++ b/packages/client/ui-settings-account/README.i18n.yaml
+@@ -15,8 +15,8 @@
+   en: c26f81e8adf0128b
+   zh: e11ab371f51f66bc
+ /deepseek-ai-dsh-client-ui-settings-account/use-this-package:
+-  en: 7927d2f736273da6
+-  zh: 5b7b5864804706ad
++  en: 1ed875fd8170041f
++  zh: ac93fe4bc0b44b71
+ /deepseek-ai-dsh-client-ui-settings-account/use-this-package/desktop-onboarding:
+   en: b17e3d33f66af025
+   zh: 780f813205d955d9
+diff --git a/packages/client/ui-settings-account/README.md b/packages/client/ui-settings-account/README.md
+index 857162f88d8c48cb0554345bcd1eb0100d09cb59..82338828a5f864626c7eec4ba0081de289873266 100644
+--- a/packages/client/ui-settings-account/README.md
++++ b/packages/client/ui-settings-account/README.md
+@@ -30,7 +30,7 @@ A new account-model sign-in-required event displays “Model unavailable. Please
+ <a id="use-this-package"></a>
+ ## Use this package
+ 
+-The sign-in dialog offers network troubleshooting only for `no-response` failures. HTTP, business, response-validation, storage, and account-stream failures retain the generic retry message. Manual cleanup can keep one sample. If Host access is revoked during cleanup, the controller waits for the submitted operation to finish. Late replies leave the closed view untouched. Automatic cleanup by count accepts 2 to 40,320 samples. The reading updates when a composer prediction or memory extraction records usage, including while the cost details are open.
++The sign-in dialog offers network troubleshooting only for `no-response` failures. HTTP, business, response-validation, storage, and account-stream failures retain the generic retry message. Manual cleanup can keep one sample. Changing accounts invalidates the confirmation for the previous account. If Host access is revoked during cleanup, the controller waits for the submitted operation to finish. Late replies leave the closed view untouched. Automatic cleanup by count accepts 2 to 40,320 samples. The reading updates when a composer prediction or memory extraction records usage, including while the cost details are open.
+ 
+ The account menu offers **About** before and after sign-in. On wide screens the brand panel fills the left edge of the dialog. On narrow screens it spans the top. The left panel displays the DSHU calendar version and UTC build time. The right panel identifies the kernel, base commit and date, source tree, release component pins and licenses, with links to the candidate manifest, notices and official DSHU releases. Escape returns focus to the account menu.
+ 
+diff --git a/packages/client/ui-settings-account/README.zh.md b/packages/client/ui-settings-account/README.zh.md
+index 822f16cbc22d963e54d5e71792de961b3a99e30b..8c061e47f8437f50f36ecd1ecbd987c6602f778f 100644
+--- a/packages/client/ui-settings-account/README.zh.md
++++ b/packages/client/ui-settings-account/README.zh.md
+@@ -30,7 +30,7 @@ kind: "package-reference"
+ <a id="use-this-package"></a>
+ ## 使用此包
+ 
+-登录弹窗仅对 `no-response` 失败提示检查网络。HTTP、业务、响应校验、存储和账号状态流失败仍显示通用重试提示。 手动清理可以只保留 1 条采样。清理期间撤销 Host 权限时，控制器会等待已提交的清理结束。关闭后的界面不会收到迟到的结果。按条数自动清理时，可保留 2 至 40,320 条。输入预测或记忆提炼记录用量后，底栏金额及已展开的费用详情会随之更新。
++登录弹窗仅对 `no-response` 失败提示检查网络。HTTP、业务、响应校验、存储和账号状态流失败仍显示通用重试提示。 手动清理可以只保留 1 条采样。切换账号后需要为当前账号重新确认清理。清理期间撤销 Host 权限时，控制器会等待已提交的清理结束。关闭后的界面不会收到迟到的结果。按条数自动清理时，可保留 2 至 40,320 条。输入预测或记忆提炼记录用量后，底栏金额及已展开的费用详情会随之更新。
+ 
+ 登录前后均可从账号菜单打开**关于**。宽屏的渐变铺满弹窗左侧，窄屏铺满顶部。左侧展示 DSHU 日期版本和 UTC 编译时间。右侧列出内核版本、基线提交及时间、候选源码树、发行版组件版本与许可，可打开候选清单、第三方许可和 DSHU 正式发行页。按 Escape 后焦点回到账号菜单。
+ 
+diff --git a/packages/client/ui-settings-account/src/client/BalanceView.tsx b/packages/client/ui-settings-account/src/client/BalanceView.tsx
+index cd09709c0367d639ab357c44a064851679b2b1ae..75175734d440d560fcfefd7c4ff5285c49b18a9d 100644
+--- a/packages/client/ui-settings-account/src/client/BalanceView.tsx
++++ b/packages/client/ui-settings-account/src/client/BalanceView.tsx
+@@ -141,6 +141,8 @@ const TOAST_KEYS = {
+   saveFailed: 'balance.saveFailed',
+   cleared: 'balance.cleared',
+   clearFailed: 'balance.clearFailed',
++  accountChanged: 'balance.accountChanged',
++  previousCleared: 'balance.previousCleared',
+ } as const
+ 
+ /** @param props - Shared balance state and live preferences. @returns The built-in settings section. */
+@@ -153,13 +155,16 @@ export function BalanceSettings({ useBalance, useBalancePreferences, inspectHist
+   const [retainDraft, setRetainDraft] = useState<string | null>(null)
+   const [cleanupMode, setCleanupMode] = useState<CleanupMode>('age')
+   const [cleanupDraft, setCleanupDraft] = useState('30')
+-  const [armed, setArmed] = useState(false)
++  const historyTag = state.data?.historyTag
++  const [armedHistory, arm] = useState<typeof historyTag>()
++  const armed = historyTag !== undefined && armedHistory === historyTag
+   const id = useId()
+   useEffect(() => {
+-    if (!armed) return
+-    const timer = window.setTimeout(() => { setArmed(false) }, 5_000)
++    if (armedHistory === undefined) return
++    if (armedHistory !== historyTag) { arm(undefined); return }
++    const timer = window.setTimeout(() => { arm(undefined) }, 5_000)
+     return () => { window.clearTimeout(timer) }
+-  }, [armed])
++  }, [armedHistory, historyTag])
+   if (preferences === undefined) return null
+   const interval = draft ?? String(preferences.refreshSeconds)
+   const invalid = draft !== null && (!Number.isInteger(Number(draft)) || Number(draft) < 3 || Number(draft) > 3600)
+@@ -210,15 +215,15 @@ export function BalanceSettings({ useBalance, useBalancePreferences, inspectHist
+         <div className={css.cleanup} role="group" aria-label={t('balance.cleanup')}>
+           <Select label={t('balance.cleanup')} value={cleanupMode} disabled={busy || !preferences.enabled}
+             options={[{ value: 'age', label: t('balance.cleanupByAge') }, { value: 'count', label: t('balance.cleanupByCount') }, { value: 'all', label: t('balance.cleanupAll') }]}
+-            onChange={(value) => { setCleanupMode(value); setArmed(false) }} />
++            onChange={(value) => { setCleanupMode(value); arm(undefined) }} />
+           {cleanupMode !== 'all' && <div className={css.interval}><Input id={`${id}-cleanup`} aria-label={t(cleanupMode === 'count' ? 'balance.keepCount' : 'balance.keepDays')} type="number" min={1} max={cleanupLimit} step={1}
+             value={cleanupDraft} aria-invalid={cleanupInvalid} aria-describedby={cleanupInvalid ? `${id}-cleanup-error` : undefined} disabled={busy || !preferences.enabled}
+-            onChange={(event) => { setCleanupDraft(event.target.value); setArmed(false) }} /></div>}
+-          <Button size="sm" variant={armed ? 'primary' : 'outline'} disabled={cleanupInvalid || busy || !preferences.enabled}
++            onChange={(event) => { setCleanupDraft(event.target.value); arm(undefined) }} /></div>}
++          <Button size="sm" variant={armed ? 'primary' : 'outline'} disabled={cleanupInvalid || busy || !preferences.enabled || historyTag === undefined}
+             onClick={() => {
+-              if (cleanupMode === 'all' && !armed) { setArmed(true); return }
+-              setArmed(false)
+-              void clear(request)
++              if (cleanupMode === 'all' && !armed) { arm(historyTag); return }
++              arm(undefined)
++              void clear(request, historyTag)
+             }}>{armed ? t('balance.cleanupConfirm') : t('balance.cleanupNow')}</Button>
+         </div>
+       </PreferenceControlRow>
+diff --git a/packages/client/ui-settings-account/src/client/balance-controller.ts b/packages/client/ui-settings-account/src/client/balance-controller.ts
+index e4168fef5f880017a7a5aaf20cb0f8cb3adb5573..55cee3c5139fc435a80400182eb58d67b5abe038 100644
+--- a/packages/client/ui-settings-account/src/client/balance-controller.ts
++++ b/packages/client/ui-settings-account/src/client/balance-controller.ts
+@@ -1,7 +1,7 @@
+ /** One polling lifetime shared by the balance settings page and sidebar. */
+ import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+ import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
+-import type { BalanceCleanupRequest, BalancePreferences, BalanceSidebarRange, BalanceSnapshot } from '@deepseek-ai/dsh-balance/types'
++import type { BalanceCleanupRequest, BalanceCleanupSnapshot, BalanceHistoryTag, BalancePreferences, BalanceSidebarRange, BalanceSnapshot } from '@deepseek-ai/dsh-balance/types'
+ 
+ /** Current query, clock, and settings-write feedback. */
+ export interface BalanceViewState {
+@@ -11,7 +11,7 @@ export interface BalanceViewState {
+   readonly now: number
+   readonly saving: boolean
+   readonly clearing: boolean
+-  readonly toast: 'saved' | 'saveFailed' | 'cleared' | 'clearFailed' | null
++  readonly toast: 'saved' | 'saveFailed' | 'cleared' | 'clearFailed' | 'accountChanged' | 'previousCleared' | null
+   readonly toastId: number
+ }
+ 
+@@ -29,7 +29,7 @@ export class BalanceController {
+   private readonly clock: ReturnType<typeof setInterval>
+   private readonly stopPreferences: () => void
+   private readonly saves = new Set<Promise<boolean>>()
+-  private readonly cleanups = new Set<Promise<BalanceSnapshot>>()
++  private readonly cleanups = new Set<Promise<BalanceCleanupSnapshot>>()
+ 
+   /**
+    * @param preferences - Shared Host-backed form.
+@@ -37,7 +37,7 @@ export class BalanceController {
+    * @param clearSamples - Authenticated stored-sample cleanup.
+    */
+   constructor(readonly preferences: ConfigForm<BalancePreferences>, private readonly query: (view: BalanceSidebarRange | 'history') => Promise<BalanceSnapshot>,
+-    private readonly clearSamples: (request: BalanceCleanupRequest, view: BalanceSidebarRange | 'history') => Promise<BalanceSnapshot>) {
++    private readonly clearSamples: (request: BalanceCleanupRequest, view: BalanceSidebarRange | 'history', expectedHistory: BalanceHistoryTag) => Promise<BalanceCleanupSnapshot>) {
+     this.stopPreferences = preferences.subscribe(() => { this.refresh() })
+     this.clock = setInterval(() => { this.state.set({ ...this.state.getSnapshot(), now: Date.now() }) }, 60_000)
+     this.refresh()
+@@ -80,21 +80,26 @@ export class BalanceController {
+   /**
+    * Remove stored samples under the current account and publish the remaining history.
+    * @param request - Cleanup mode and its bound.
++   * @param expectedHistory - Tag of the account history the user reviewed.
+    * @returns Whether the Host accepted the cleanup.
+    */
+-  readonly clear = async (request: BalanceCleanupRequest): Promise<boolean> => {
++  readonly clear = async (
++    request: BalanceCleanupRequest, expectedHistory = this.state.getSnapshot().data?.historyTag,
++  ): Promise<boolean> => {
+     const active = () => !this.lifetime.signal.aborted
+-    if (!active()) return false
++    if (!active() || expectedHistory === undefined) return false
+     const generation = this.revision
+     let accepted = false
+-    let cleanup: Promise<BalanceSnapshot> | undefined
++    let accountChanged = false
++    let cleanup: Promise<BalanceCleanupSnapshot> | undefined
+     try {
+-      cleanup = this.clearSamples(request, this.view)
++      cleanup = this.clearSamples(request, this.view, expectedHistory)
+       this.cleanups.add(cleanup)
+       this.state.set({ ...this.state.getSnapshot(), clearing: true })
+       const data = await cleanup
+-      accepted = data.status === 'ready' || data.status === 'empty'
+-      if (accepted && this.accepts(generation)) {
++      accepted = data.cleanupApplied === true || data.status === 'ready' || data.status === 'empty'
++      accountChanged = data.error === 'changed'
++      if (accepted && !accountChanged && this.accepts(generation)) {
+         this.state.set({ ...this.state.getSnapshot(), data, failed: false, loading: false, now: Date.now() })
+       }
+     } catch (_error) {
+@@ -103,8 +108,11 @@ export class BalanceController {
+       if (cleanup !== undefined) this.cleanups.delete(cleanup)
+     }
+     if (active()) {
+-      this.state.set({ ...this.state.getSnapshot(), clearing: this.cleanups.size > 0,
+-        toast: accepted ? 'cleared' : 'clearFailed', toastId: this.state.getSnapshot().toastId + 1 })
++      const state = this.state.getSnapshot()
++      const toast = accountChanged ? (accepted ? 'previousCleared' : 'accountChanged') : (accepted ? 'cleared' : 'clearFailed')
++      this.state.set({ ...state, clearing: this.cleanups.size > 0,
++        ...(state.data?.historyTag === expectedHistory ? { toast, toastId: state.toastId + 1 } : {}) })
++      if (accountChanged && state.data?.historyTag === expectedHistory) this.invalidate()
+     }
+     return accepted
+   }
+diff --git a/packages/client/ui-settings-account/src/client/balance-locales.ts b/packages/client/ui-settings-account/src/client/balance-locales.ts
+index afb761f1a7bfb20e2e70bacab21eac6ba55bbce3..2ee9b434a834d99aa607c8a6480a4e12f4980c6d 100644
+--- a/packages/client/ui-settings-account/src/client/balance-locales.ts
++++ b/packages/client/ui-settings-account/src/client/balance-locales.ts
+@@ -17,6 +17,8 @@ export const balanceEn = {
+   'balance.keepRangeError': 'Enter a whole number from {min} to {max}',
+   'balance.autoCleanup': 'Automatic cleanup', 'balance.autoOff': 'Off',
+   'balance.autoCleanupHint': 'Automatic cleanup runs whenever a new sample is saved.',
++  'balance.accountChanged': 'Review the refreshed balance account before cleaning up its history.',
++  'balance.previousCleared': 'Cleanup finished for the previously selected account.',
+   'balance.cleared': 'Stored samples cleaned up', 'balance.clearFailed': 'Could not clean up stored samples. Try again.',
+   'balance.source': 'Data source', 'balance.local': 'Local records', 'balance.api': 'Live API',
+   'balance.apiHint': 'Fetch the current balance and add a local sample. The public API does not return past balance history.',
+@@ -56,6 +58,8 @@ export const balanceZh: Record<keyof typeof balanceEn, string> = {
+   'balance.keepRangeError': '请输入 {min}–{max} 之间的整数',
+   'balance.autoCleanup': '自动清理', 'balance.autoOff': '关闭',
+   'balance.autoCleanupHint': '自动清理在每次保存新采样时执行。',
++  'balance.accountChanged': '请核对刷新后的余额账号，再清理采样。',
++  'balance.previousCleared': '已完成先前所选账号的采样清理。',
+   'balance.cleared': '已清理存储的采样', 'balance.clearFailed': '清理采样失败，请重试',
+   'balance.source': '数据源', 'balance.local': '本机记录', 'balance.api': 'API 实时',
+   'balance.apiHint': '读取当前余额并保存本机采样。公开 API 不提供过去的余额历史，曲线从首次采样开始累积。',
+diff --git a/packages/client/ui-settings-account/src/client/balance.ts b/packages/client/ui-settings-account/src/client/balance.ts
+index 9024200b25bd2dd5d1dceebcde3b1baf28df1f5a..c50f8dcb6f1c75eb300d8d5321dfde891dae2cc5 100644
+--- a/packages/client/ui-settings-account/src/client/balance.ts
++++ b/packages/client/ui-settings-account/src/client/balance.ts
+@@ -21,9 +21,9 @@ export function registerBalance(ctx: Context, account: HostObservable<AccountSna
+         const result = await scope.remote.balance.get(client, view)
+         if (!result.ok) throw result.error
+         return result.value
+-      }, async (request, view) => {
++      }, async (request, view, expectedHistory) => {
+         const client = accountClientMetadata(scope.locale.getSnapshot().active, process.env.DSH_CLIENT_VERSION)
+-        const result = await scope.remote.balance.clear(client, request, view)
++        const result = await scope.remote.balance.clear(client, request, view, expectedHistory)
+         if (!result.ok) throw result.error
+         return result.value
+       })
+diff --git a/packages/client/ui-settings-account/tests/balance-controller.client.spec.ts b/packages/client/ui-settings-account/tests/balance-controller.client.spec.ts
+index 1822a3fcf10e198f3181e4c28b8301ecc0097ffe..2999f89cbbea841723985277cdddf68fa0ca92f7 100644
+--- a/packages/client/ui-settings-account/tests/balance-controller.client.spec.ts
++++ b/packages/client/ui-settings-account/tests/balance-controller.client.spec.ts
+@@ -4,7 +4,8 @@ import type { BalanceCleanupRequest, BalancePreferences, BalanceSnapshot } from
+ import { BalanceController } from '../src/client/balance-controller.ts'
+ 
+ afterEach(() => { vi.useRealTimers() })
+-const sample = (amount: string): BalanceSnapshot => ({ status: 'ready', source: 'api', account: 'api-key', sampleCount: 1,
++const tag = 'test-history' as NonNullable<BalanceSnapshot['historyTag']>
++const sample = (amount: string): BalanceSnapshot => ({ historyTag: tag, status: 'ready', source: 'api', account: 'api-key', sampleCount: 1,
+   samples: [{ time: 1, wallets: [{ currency: 'CNY', toppedUp: amount, granted: '0' }] }] })
+ const clearSamples = vi.fn(async (_request: BalanceCleanupRequest): Promise<BalanceSnapshot> => sample('0'))
+ 
+@@ -95,7 +96,7 @@ it('publishes the remaining history after a cleanup and reports its outcome', as
+   try {
+     await vi.advanceTimersByTimeAsync(0)
+     expect(await controller.clear({ mode: 'count', keep: 500 })).toBe(true)
+-    expect(cleanup).toHaveBeenCalledWith({ mode: 'count', keep: 500 }, '7')
++    expect(cleanup).toHaveBeenCalledWith({ mode: 'count', keep: 500 }, '7', tag)
+     expect(controller.state.getSnapshot()).toMatchObject({
+       data: { status: 'empty', sampleCount: 0 }, clearing: false, toast: 'cleared',
+     })
+@@ -151,3 +152,20 @@ it('reports a failed cleanup without discarding the shown history', async () =>
+     expect(controller.state.getSnapshot()).toMatchObject({ data: shown, clearing: false, toast: 'clearFailed' })
+   } finally { await controller.dispose() }
+ })
++
++it.each([true, false])('refreshes a changed balance account and reports whether cleanup committed (%s)', async (committed) => {
++  vi.useFakeTimers()
++  const previous = sample('10.00'), current = { ...sample('2.00'), historyTag: 'next-history' as typeof tag }
++  const query = vi.fn().mockResolvedValueOnce(previous).mockResolvedValue(current)
++  const controller = new BalanceController(preferences().scope, query, async () => ({
++    status: 'unavailable', source: 'local', error: 'changed', samples: [], sampleCount: 0, account: null,
++    ...(committed ? { cleanupApplied: true } : {}),
++  }))
++  try {
++    await vi.advanceTimersByTimeAsync(0)
++    expect(await controller.clear({ mode: 'all' }, tag)).toBe(committed)
++    await vi.advanceTimersByTimeAsync(0)
++    expect(controller.state.getSnapshot()).toMatchObject({ data: current, clearing: false,
++      toast: committed ? 'previousCleared' : 'accountChanged' })
++  } finally { await controller.dispose() }
++})
+diff --git a/packages/client/ui-settings-account/tests/balance-view.client.spec.tsx b/packages/client/ui-settings-account/tests/balance-view.client.spec.tsx
+index e852a942c8c4005ccbbef002d120be69b8ab02e6..647fdf405d8993babf0111301428f9b67c375d2c 100644
+--- a/packages/client/ui-settings-account/tests/balance-view.client.spec.tsx
++++ b/packages/client/ui-settings-account/tests/balance-view.client.spec.tsx
+@@ -12,7 +12,7 @@ afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals() })
+ 
+ function fixture(granted = '0') {
+   vi.stubGlobal('matchMedia', () => Object.assign(new EventTarget(), { matches: true }))
+-  const data: BalanceSnapshot = { status: 'ready', source: 'api', account: 'api-key', sampleCount: 2,
++  const data: BalanceSnapshot = { historyTag: 'test-history' as NonNullable<BalanceSnapshot['historyTag']>, status: 'ready', source: 'api', account: 'api-key', sampleCount: 2,
+     samples: [0, 60_000].map(time => ({ time, wallets: [{ currency: 'CNY', toppedUp: '12.50', granted }] })) }
+   const state = createSnapshotStore<BalanceViewState>({
+     data, loading: false, failed: false, now: 0, saving: false, clearing: false, toast: null, toastId: 0,
+diff --git a/packages/credentials/balance/README.i18n.yaml b/packages/credentials/balance/README.i18n.yaml
+index cb9c75df4896925602c0ba1e8e802cfcc41822a9..b7a30d75b2491cf7a60fae21ef140355b2ea7421 100644
+--- a/packages/credentials/balance/README.i18n.yaml
++++ b/packages/credentials/balance/README.i18n.yaml
+@@ -15,8 +15,8 @@
+   en: d540c52e6484d8e9
+   zh: 965b00c849948e3e
+ /deepseek-ai-dsh-balance/sampling-and-retention:
+-  en: f0d465cc439b95eb
+-  zh: 453febab3c8a665d
++  en: 0084813d06620a89
++  zh: 777772b9497fd3a8
+ /deepseek-ai-dsh-balance/model-experience:
+   en: 7fc189cbe0751423
+   zh: a3980725a55575d9
+diff --git a/packages/credentials/balance/README.md b/packages/credentials/balance/README.md
+index d9481d316e1364785da4d1cbb2269dff54b7333a..d1b9fe6bd18e8013233edb04f851d9ef85781e80 100644
+--- a/packages/credentials/balance/README.md
++++ b/packages/credentials/balance/README.md
+@@ -27,6 +27,10 @@ The default refresh interval is 15 seconds. Choose an integer from 3 to 3600 sec
+ 
+ Saving a sample cleans up records older than 30 days by default. Existing choices to disable cleanup or retain a sample count take precedence. Quota settings read the full retained history. The sidebar starts with a seven-day view and also offers one or 30 days, ending at the most recent sample. For a limited response it keeps both endpoints, prioritizes recent balance increases and fills the remaining positions across the range. On-disk samples retain their timestamps and original precision.
+ 
++Manual cleanup applies to the account history shown in settings. If the account changes before confirmation or while cleanup waits for an earlier sample, review the refreshed history and confirm your selection. A write already submitted for the previous account can finish only in that account’s history.
++
++The read result carries a `historyTag` for that account history on this Host. Pass it as `expectedHistory` to `clear`. The response sets `cleanupApplied` to true when the write commits, including if the account changes during the write. A changed identity receives an empty sample list.
++
+ -----
+ 
+ <a id="model-experience"></a>
+diff --git a/packages/credentials/balance/README.zh.md b/packages/credentials/balance/README.zh.md
+index c21ee792a1759feccd90b31a9eee096848af900d..d0df800b8e1f9e3b907475a2fb22300c6a2aefc6 100644
+--- a/packages/credentials/balance/README.zh.md
++++ b/packages/credentials/balance/README.zh.md
+@@ -27,6 +27,10 @@ kind: "package-reference"
+ 
+ 保存新采样时默认清理 30 天以前的记录，显式选择关闭或按条数清理的配置继续生效。设置页返回全部保留记录。侧栏默认显示，按最近一次采样向前取 7 天，可选 1 天或 30 天，超过单次传输上限时，保留首尾采样，并优先保留较近的余额回升前后采样。其余位置均匀补点。本机历史仍保存原始小数和时间。
+ 
++手动清理作用于设置中显示的账号历史。确认前或排队等待采样时切换账号，请先核对当前账号的记录，再重新确认。若原账号的清理已提交写入，写入仅作用于原账号。
++
++读取结果的 `historyTag` 标识这个 Host 中的账号历史。调用 `clear` 时将其传入 `expectedHistory`。清理成功写入后，回执中的 `cleanupApplied` 为真，即使账号在写入期间切换。身份已变时返回的采样列表为空。
++
+ -----
+ 
+ <a id="model-experience"></a>
+diff --git a/packages/credentials/balance/package.json b/packages/credentials/balance/package.json
+index f8c8193f282d23b1eea3385f24459195ef9ea302..f037a3403f9372d30e19c6476889757d037f612e 100644
+--- a/packages/credentials/balance/package.json
++++ b/packages/credentials/balance/package.json
+@@ -52,6 +52,7 @@
+   "dependencies": {
+     "@deepseek-ai/cosmokit": "workspace:~",
+     "@deepseek-ai/schemastery": "workspace:~",
++    "@deepseek-ai/dsh-brand": "workspace:*",
+     "@deepseek-ai/dsh-credentials": "workspace:*",
+     "@deepseek-ai/dsh-storage-domain": "workspace:*",
+     "@deepseek-ai/dsh-typert-protocol": "workspace:*",
+diff --git a/packages/credentials/balance/src/engine.ts b/packages/credentials/balance/src/engine.ts
+index 859f7a0b2aecddf33d660d03cce2fedff0d8f618..771c230b18fdef7b986f448d021d74ba9f3195f1 100644
+--- a/packages/credentials/balance/src/engine.ts
++++ b/packages/credentials/balance/src/engine.ts
+@@ -1,8 +1,8 @@
+ /** Serial, account-scoped sampling; no credential or raw response enters the stored history. */
+-import { createHash } from 'node:crypto'
++import { createHash, createHmac, randomBytes } from 'node:crypto'
+ import { z } from 'zod'
+ import type { AccountClientMetadata } from '@deepseek-ai/dsh-deepseek-account/types'
+-import type { BalanceAutoCleanup, BalanceSidebarRange, BalanceCleanupRequest, BalanceSample, BalanceSnapshot, BalanceWallet } from './types.ts'
++import type { BalanceAutoCleanup, BalanceHistoryTag, BalanceSidebarRange, BalanceCleanupRequest, BalanceCleanupSnapshot, BalanceSample, BalanceSnapshot, BalanceWallet } from './types.ts'
+ 
+ /** One credential generation resolved on the Host. */
+ export interface BalanceIdentity {
+@@ -138,10 +138,15 @@ function snapshotSamples(samples: readonly BalanceSample[], limit: number, view?
+ /** Owns sampling, credential-change checks, and write settlement before disposal. */
+ export class BalanceEngine {
+   private readonly lifetime = new AbortController()
++  private readonly tagSecret = randomBytes(32)
+   private tail: Promise<void> = Promise.resolve()
+   /** @param options - Provider-owned IO and validated limits. */
+   constructor(private readonly options: BalanceEngineOptions) {}
+ 
++  private historyTag(identity: BalanceIdentity): BalanceHistoryTag {
++    return createHmac('sha256', this.tagSecret).update(identity.key).digest('hex') as BalanceHistoryTag
++  }
++
+   /**
+    * Read cached history or append one successful API sample.
+    * @param client - Request identity used by the account provider.
+@@ -161,16 +166,15 @@ export class BalanceEngine {
+ 
+   private async query(client: AccountClientMetadata, source: 'local' | 'api'): Promise<Omit<BalanceSnapshot, 'sampleCount'>> {
+     let samples: readonly BalanceSample[] = []
+-    let account: BalanceSnapshot['account'] = null
++    let identity: BalanceIdentity | null = null
+     let failure: 'request' | 'storage' = 'request'
+     try {
+       this.lifetime.signal.throwIfAborted()
+-      const identity = await this.options.identify(client, source === 'api')
+-      if (identity === null) return { status: 'signed-out', source, account, samples }
+-      account = identity.account
++      identity = await this.options.identify(client, source === 'api')
++      if (identity === null) return { status: 'signed-out', source, account: null, samples }
+       failure = 'storage'
+       samples = this.options.read(identity.key) ?? []
+-      if (source === 'local') return { status: samples.length === 0 ? 'empty' : 'ready', source, account, samples }
++      if (source === 'local') return this.snapshot(identity, source, samples.length === 0 ? 'empty' : 'ready', samples)
+       failure = 'request'
+       const wallets = await identity.query(AbortSignal.any([this.lifetime.signal, AbortSignal.timeout(this.options.timeoutMs)]))
+       this.lifetime.signal.throwIfAborted()
+@@ -181,12 +185,22 @@ export class BalanceEngine {
+       failure = 'storage'
+       this.lifetime.signal.throwIfAborted()
+       await this.options.write(identity.key, next)
+-      return { status: 'ready', source, account, samples: next }
++      return this.snapshot(identity, source, 'ready', next)
+     } catch (_error) {
+-      return { status: 'unavailable', source, account, samples, error: failure }
++      return identity === null ? { status: 'unavailable', source, account: null, samples: [], error: failure }
++        : this.snapshot(identity, source, 'unavailable', samples, failure)
+     }
+   }
+ 
++  private async snapshot(identity: BalanceIdentity, source: BalanceSnapshot['source'], status: BalanceSnapshot['status'],
++    samples: readonly BalanceSample[], error?: BalanceSnapshot['error']): Promise<Omit<BalanceSnapshot, 'sampleCount'>> {
++    if (!await identity.current().catch(() => false)) {
++      return { status: 'unavailable', source, account: null, samples: [], error: 'changed' }
++    }
++    return { status, source, account: identity.account, historyTag: this.historyTag(identity), samples,
++      ...(error === undefined ? {} : { error }) }
++  }
++
+   /** Stop admission and await every query and durable write before storage closes. @returns Quiescent completion. */
+   async close(): Promise<void> { this.lifetime.abort(); await this.tail }
+ 
+@@ -195,10 +209,13 @@ export class BalanceEngine {
+    * @param client - Request identity used by the account provider.
+    * @param request - Cleanup mode and its bound.
+    * @param view - Full history or the time window to downsample.
+-   * @returns The remaining history under the same shape as a local read.
++   * @param expectedHistory - History shown when the user requested cleanup, when supplied by the client.
++   * @returns The remaining history and its account tag.
+    */
+-  clear(client: AccountClientMetadata, request: BalanceCleanupRequest, view?: 'history' | BalanceSidebarRange): Promise<BalanceSnapshot> {
+-    const operation = this.tail.then(() => this.remove(client, request)).then(result => ({
++  clear(client: AccountClientMetadata, request: BalanceCleanupRequest, view?: 'history' | BalanceSidebarRange, expectedHistory?: BalanceHistoryTag): Promise<BalanceCleanupSnapshot> {
++    // Older clients omit the tag. Capture their target before waiting for pending writes.
++    const target = this.lifetime.signal.aborted ? undefined : this.options.identify(client, false).catch(() => undefined)
++    const operation = this.tail.then(async () => this.remove(await target, request, expectedHistory)).then(result => ({
+       ...result,
+       sampleCount: result.samples.length,
+       samples: snapshotSamples(result.samples, this.options.displayLimit, view),
+@@ -207,17 +224,22 @@ export class BalanceEngine {
+     return operation
+   }
+ 
+-  private async remove(client: AccountClientMetadata, request: BalanceCleanupRequest): Promise<Omit<BalanceSnapshot, 'sampleCount'>> {
+-    let samples: readonly BalanceSample[] = []
++  private async remove(identity: BalanceIdentity | null | undefined, request: BalanceCleanupRequest,
++    expectedHistory?: BalanceHistoryTag): Promise<Omit<BalanceCleanupSnapshot, 'sampleCount'>> {
++    if (identity === undefined) return { status: 'unavailable', source: 'local', account: null, samples: [], error: 'storage' }
++    if (identity === null) return expectedHistory === undefined
++      ? { status: 'signed-out', source: 'local', account: null, samples: [] }
++      : { status: 'unavailable', source: 'local', account: null, samples: [], error: 'changed' }
+     try {
+       this.lifetime.signal.throwIfAborted()
+-      const identity = await this.options.identify(client, false)
+-      if (identity === null) return { status: 'signed-out', source: 'local', account: null, samples }
+-      samples = this.options.read(identity.key) ?? []
++      if ((expectedHistory !== undefined && expectedHistory !== this.historyTag(identity)) || !await identity.current()) {
++        return { status: 'unavailable', source: 'local', account: null, samples: [], error: 'changed' }
++      }
++      const samples = this.options.read(identity.key) ?? []
+       const next = cleanSamples(samples, request, this.options.now())
+       this.lifetime.signal.throwIfAborted()
+       await this.options.write(identity.key, next)
+-      return { status: next.length === 0 ? 'empty' : 'ready', source: 'local', account: identity.account, samples: next }
++      return { ...await this.snapshot(identity, 'local', next.length === 0 ? 'empty' : 'ready', next), cleanupApplied: true }
+     } catch (_error) {
+       return { status: 'unavailable', source: 'local', account: null, samples: [], error: 'storage' }
+     }
+diff --git a/packages/credentials/balance/src/index.ts b/packages/credentials/balance/src/index.ts
+index 65a2123e3c9110b2ceaa4862db6e7154e73e84d1..e29afb14d1b0d9f2221d024a1368b2c498e773ea 100644
+--- a/packages/credentials/balance/src/index.ts
++++ b/packages/credentials/balance/src/index.ts
+@@ -11,7 +11,7 @@ import type {} from '@deepseek-ai/dsh-settings'
+ import type { AccountClientMetadata } from '@deepseek-ai/dsh-deepseek-account/types'
+ import { BalanceEngine, balanceAmount, balanceSample, balanceStorageKey } from './engine.ts'
+ import type { BalanceIdentity } from './engine.ts'
+-import type { BalanceAutoCleanup, BalanceSidebarRange, BalanceSample, BalanceCleanupRequest, BalanceSnapshot } from './types.ts'
++import type { BalanceAutoCleanup, BalanceHistoryTag, BalanceSidebarRange, BalanceSample, BalanceCleanupRequest, BalanceCleanupSnapshot, BalanceSnapshot } from './types.ts'
+ export type * from './types.ts'
+ 
+ /** Deployment and live user preferences for balance queries. */
+@@ -104,11 +104,12 @@ export class BalanceRemote extends TypertRemoteService {
+    * @param client - Platform request metadata.
+    * @param request - Cleanup mode and its bound.
+    * @param view - History detail requested by the active client view.
++   * @param expectedHistory - Opaque tag of the account history the user reviewed.
+    * @returns The remaining history.
+    */
+   @Remote
+-  clear(client: AccountClientMetadata, request: BalanceCleanupRequest, view?: 'history' | BalanceSidebarRange): Promise<BalanceSnapshot> {
+-    return this.options.engine.clear(client, cleanupSchema.parse(request), view)
++  clear(client: AccountClientMetadata, request: BalanceCleanupRequest, view?: 'history' | BalanceSidebarRange, expectedHistory?: BalanceHistoryTag): Promise<BalanceCleanupSnapshot> {
++    return this.options.engine.clear(client, cleanupSchema.parse(request), view, expectedHistory)
+   }
+ }
+ 
+@@ -151,7 +152,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
+     const key = (await ctx.credentials.resolve(ref))?.value
+     if (!key) return null
+     return { key: balanceStorageKey(`api:${origin.origin}:${key}`), account: 'api-key',
+-      current: async () => (await ctx.credentials.resolve(ref))?.value === key,
++      current: async () => (await ctx.credentials.resolve(ref))?.value === key && await ctx.deepseekAccount.getPlatformSession() === null,
+       query: async (signal) => {
+         const response = await fetch(new URL('/user/balance', origin), { signal, redirect: 'error', headers: { authorization: `Bearer ${key}` } })
+         if (!response.ok) throw new Error('balance: API query unavailable')
+diff --git a/packages/credentials/balance/src/types.ts b/packages/credentials/balance/src/types.ts
+index c1ea4f45f8651ef8aaf9e84457edba82f88e9561..784f507177a83b44fc0d95db3579bf5cd4fc83b4 100644
+--- a/packages/credentials/balance/src/types.ts
++++ b/packages/credentials/balance/src/types.ts
+@@ -1,4 +1,10 @@
+ /** Credential-free balance observations exposed to the application. */
++import type { Branded } from '@deepseek-ai/dsh-brand'
++
++/** Identifies the displayed account history for cleanup within one running Host. */
++export type BalanceHistoryTag = Branded<'BalanceHistoryTag'>
++
++/** Topped-up and granted amounts for a single currency in one observation. */
+ export interface BalanceWallet {
+   readonly currency: 'CNY' | 'USD'
+   readonly toppedUp: string
+@@ -45,5 +51,13 @@ export interface BalanceSnapshot {
+   readonly account: 'account' | 'api-key' | null
+   readonly samples: readonly BalanceSample[]
+   readonly sampleCount: number
++  /** Opaque cleanup precondition for a history resolved by this Host. */
++  readonly historyTag?: BalanceHistoryTag
+   readonly error?: 'request' | 'storage' | 'changed'
+ }
++
++/** Manual cleanup outcome, including writes completed before an account switch. */
++export interface BalanceCleanupSnapshot extends BalanceSnapshot {
++  /** The Host committed the cleanup to the selected history. */
++  readonly cleanupApplied?: true
++}
+diff --git a/packages/credentials/balance/tests/engine.spec.ts b/packages/credentials/balance/tests/engine.spec.ts
+index 050eed3fcee328fba3d2e337a99a295a526eb608..eff6ee58245dea56868529ff2cab21a2aaed938c 100644
+--- a/packages/credentials/balance/tests/engine.spec.ts
++++ b/packages/credentials/balance/tests/engine.spec.ts
+@@ -139,3 +139,78 @@ it('reports a cleanup against a signed-out account without touching storage', as
+   expect(await b.engine.clear(client, { mode: 'all' })).toMatchObject({ status: 'signed-out', sampleCount: 0 })
+   expect(b.write).not.toHaveBeenCalled()
+ })
++
++it('leaves both histories untouched when the account switches while cleanup is queued', async () => {
++  const first = spaced(4), second = spaced(2)
++  const b = setup(first)
++  b.rows.set('two', second)
++  const entered = Promise.withResolvers<undefined>()
++  const finish = Promise.withResolvers<BalanceSample['wallets']>()
++  vi.mocked(b.identity.query).mockImplementation(() => { entered.resolve(undefined); return finish.promise })
++  const sampling = b.engine.read(client, 'api')
++  try {
++    await entered.promise
++    const clearing = b.engine.clear(client, { mode: 'all' })
++    vi.mocked(b.identity.current).mockResolvedValue(false)
++    b.identify.mockResolvedValue({ ...b.identity, key: 'two', current: async () => true })
++    finish.resolve(wallets)
++    await sampling
++    const result = await clearing
++    expect(b.rows.get('two')).toEqual(second)
++    expect(b.rows.get('one')).toEqual(first)
++    expect(b.write).not.toHaveBeenCalled()
++    expect(result).toMatchObject({ status: 'unavailable', account: null, samples: [], error: 'changed' })
++  } finally { finish.resolve(wallets); await sampling }
++})
++
++it('rejects cleanup tags from another account or Host and keeps the original tag across reads', async () => {
++  const b = setup(spaced(4))
++  const first = await b.engine.read(client, 'local')
++  expect(first.historyTag).toMatch(/^[0-9a-f]{64}$/u)
++  expect(first.historyTag).not.toBe(balanceStorageKey('one'))
++  const freshHost = setup(spaced(2))
++  expect((await freshHost.engine.clear(client, { mode: 'all' }, 'history', first.historyTag)).error).toBe('changed')
++  expect(freshHost.write).not.toHaveBeenCalled()
++  b.rows.set('two', spaced(2))
++  b.identify.mockResolvedValueOnce({ ...b.identity, key: 'two' })
++  expect((await b.engine.clear(client, { mode: 'all' }, 'history', first.historyTag)).error).toBe('changed')
++  b.identify.mockResolvedValueOnce(null)
++  expect((await b.engine.clear(client, { mode: 'all' }, 'history', first.historyTag)).error).toBe('changed')
++  expect(b.write).not.toHaveBeenCalled()
++  expect((await b.engine.read(client, 'local')).historyTag).toBe(first.historyTag)
++  expect((await b.engine.clear(client, { mode: 'all' }, 'history', first.historyTag)).status).toBe('empty')
++  expect(b.rows.get('two')).toEqual(spaced(2))
++})
++
++it('withholds a cached reading when a failed provider request outlives its account', async () => {
++  const b = setup(spaced(2))
++  vi.mocked(b.identity.query).mockRejectedValue(new Error('connection closed'))
++  vi.mocked(b.identity.current).mockRejectedValue(new Error('signed out'))
++  const result = await b.engine.read(client, 'api')
++  expect(result).toMatchObject({ status: 'unavailable', samples: [], account: null, error: 'changed' })
++  expect(result.historyTag).toBeUndefined()
++  expect(b.write).not.toHaveBeenCalled()
++})
++
++it('acknowledges a committed cleanup without disclosing the previous account after a switch', async () => {
++  const b = setup(spaced(3))
++  const before = await b.engine.read(client, 'local')
++  const entered = Promise.withResolvers<undefined>(), finish = Promise.withResolvers<undefined>()
++  b.rows.set('two', spaced(2))
++  b.write.mockImplementationOnce(async (key, samples) => {
++    entered.resolve(undefined)
++    await finish.promise
++    b.rows.set(key, samples)
++  })
++  const clearing = b.engine.clear(client, { mode: 'count', keep: 1 }, 'history', before.historyTag)
++  try {
++    await entered.promise
++    vi.mocked(b.identity.current).mockResolvedValue(false)
++    finish.resolve(undefined)
++    const result = await clearing
++    expect(result).toMatchObject({ cleanupApplied: true, status: 'unavailable', error: 'changed', account: null, samples: [] })
++    expect(result.historyTag).toBeUndefined()
++    expect(b.rows.get('one')).toEqual(spaced(3).slice(-1))
++    expect(b.rows.get('two')).toEqual(spaced(2))
++  } finally { finish.resolve(undefined); await clearing }
++})
+diff --git a/packages/credentials/balance/tsconfig.json b/packages/credentials/balance/tsconfig.json
+index 6421434359d1400a49d72e2ec665716b0a48047d..141bb31f58775d8bc448bd2622357e34f652ec3a 100644
+--- a/packages/credentials/balance/tsconfig.json
++++ b/packages/credentials/balance/tsconfig.json
+@@ -8,6 +8,9 @@
+     "src"
+   ],
+   "references": [
++    {
++      "path": "../../util/brand"
++    },
+     {
+       "path": "../../../vendor/cordis"
+     },
+diff --git a/packages/extensions/tool-cordis/src/api-catalog.ts b/packages/extensions/tool-cordis/src/api-catalog.ts
+index 4c9a4c722ba3c94504dde9aace28a05156da3055..aa3e76ceddc265c9598e81a1da4b9f2f2f22a510 100644
+--- a/packages/extensions/tool-cordis/src/api-catalog.ts
++++ b/packages/extensions/tool-cordis/src/api-catalog.ts
+@@ -5352,9 +5352,9 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
+         returns: 'Sanitized current state and local sampling history.',
+       },
+       {
+-        signature: '@Remote clear(client: AccountClientMetadata, request: BalanceCleanupRequest, view?: \'history\' | BalanceSidebarRange): Promise<BalanceSnapshot>',
++        signature: '@Remote clear(client: AccountClientMetadata, request: BalanceCleanupRequest, view?: \'history\' | BalanceSidebarRange, expectedHistory?: BalanceHistoryTag): Promise<BalanceCleanupSnapshot>',
+         description: 'Remove stored samples for the current account.',
+-        parameters: [{ name: 'client', description: 'Platform request metadata.' }, { name: 'request', description: 'Cleanup mode and its bound.' }, { name: 'view', description: 'History detail requested by the active client view.' }],
++        parameters: [{ name: 'client', description: 'Platform request metadata.' }, { name: 'request', description: 'Cleanup mode and its bound.' }, { name: 'view', description: 'History detail requested by the active client view.' }, { name: 'expectedHistory', description: 'Opaque tag of the account history the user reviewed.' }],
+         returns: 'The remaining history.',
+       },
+     ],
+@@ -7057,6 +7057,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
+     name: 'BalanceCleanupRequest',
+     declaration: 'export type BalanceCleanupRequest = {\n    readonly mode: \'all\';\n} | {\n    readonly mode: \'count\';\n    readonly keep: number;\n} | {\n    readonly mode: \'age\';\n    readonly days: number;\n};',
+   },
++  {
++    name: 'BalanceCleanupSnapshot',
++    declaration: 'export interface BalanceCleanupSnapshot extends BalanceSnapshot {\n    readonly cleanupApplied?: true;\n}',
++  },
++  {
++    name: 'BalanceHistoryTag',
++    declaration: 'export type BalanceHistoryTag = Branded<\'BalanceHistoryTag\'>;',
++  },
+   {
+     name: 'BalanceSample',
+     declaration: 'export interface BalanceSample {\n    readonly time: number;\n    readonly wallets: readonly BalanceWallet[];\n}',
+@@ -7067,7 +7075,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
+   },
+   {
+     name: 'BalanceSnapshot',
+-    declaration: 'export interface BalanceSnapshot {\n    readonly status: \'ready\' | \'empty\' | \'signed-out\' | \'disabled\' | \'unavailable\';\n    readonly source: \'local\' | \'api\';\n    readonly account: \'account\' | \'api-key\' | null;\n    readonly samples: readonly BalanceSample[];\n    readonly sampleCount: number;\n    readonly error?: \'request\' | \'storage\' | \'changed\';\n}',
++    declaration: 'export interface BalanceSnapshot {\n    readonly status: \'ready\' | \'empty\' | \'signed-out\' | \'disabled\' | \'unavailable\';\n    readonly source: \'local\' | \'api\';\n    readonly account: \'account\' | \'api-key\' | null;\n    readonly samples: readonly BalanceSample[];\n    readonly sampleCount: number;\n    readonly historyTag?: BalanceHistoryTag;\n    readonly error?: \'request\' | \'storage\' | \'changed\';\n}',
+   },
+   {
+     name: 'BalanceWallet',
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 7c5c665493e4e1b4bcebc168233cb38ee3bdc95d..c52233b5ec93cf808db97f9bb54bc0df4e3d66a7 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -9748,6 +9748,9 @@ importers:
+       '@deepseek-ai/cosmokit':
+         specifier: link:../../../vendor/cosmokit
+         version: link:../../../vendor/cosmokit
++      '@deepseek-ai/dsh-brand':
++        specifier: workspace:*
++        version: link:../../util/brand
+       '@deepseek-ai/dsh-credentials':
+         specifier: workspace:*
+         version: link:../credentials
+diff --git a/scripts/gen-cordis-catalog.ts b/scripts/gen-cordis-catalog.ts
+index 290088f9d47cdd005f3a6ff53a6330da1fbcb0d3..615bab1be2cc683d2e204535c96cabcb6510d564 100644
+--- a/scripts/gen-cordis-catalog.ts
++++ b/scripts/gen-cordis-catalog.ts
+@@ -1114,6 +1114,8 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
+   SessionAsideResetRequest: 'Side context clearing and generation retries are documented in packages/api/session-controller/README.md',
+   SessionPredictionRequest: 'SessionPredictionRequest fields and operation guarantees are owned by packages/api/session-controller/README.md',
+   SessionPredictionValue: 'SessionPredictionValue fields and operation guarantees are owned by packages/api/session-controller/README.md',
++  BalanceCleanupSnapshot: 'packages/credentials/balance/README.md',
++  BalanceHistoryTag: 'packages/credentials/balance/README.md',
+   BalanceCleanupRequest: 'packages/credentials/balance/README.md',
+   BalanceSidebarRange: 'packages/credentials/balance/README.md',
+   BalanceSnapshot: 'packages/credentials/balance/README.md',

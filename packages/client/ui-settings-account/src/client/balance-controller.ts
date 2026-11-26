@@ -1,7 +1,7 @@
 /** One polling lifetime shared by the balance settings page and sidebar. */
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
-import type { BalanceCleanupRequest, BalancePreferences, BalanceSidebarRange, BalanceSnapshot } from '@deepseek-ai/dsh-balance/types'
+import type { BalanceCleanupRequest, BalanceCleanupSnapshot, BalanceHistoryTag, BalancePreferences, BalanceSidebarRange, BalanceSnapshot } from '@deepseek-ai/dsh-balance/types'
 
 /** Current query, clock, and settings-write feedback. */
 export interface BalanceViewState {
@@ -11,7 +11,7 @@ export interface BalanceViewState {
   readonly now: number
   readonly saving: boolean
   readonly clearing: boolean
-  readonly toast: 'saved' | 'saveFailed' | 'cleared' | 'clearFailed' | null
+  readonly toast: 'saved' | 'saveFailed' | 'cleared' | 'clearFailed' | 'accountChanged' | 'previousCleared' | null
   readonly toastId: number
 }
 
@@ -29,7 +29,7 @@ export class BalanceController {
   private readonly clock: ReturnType<typeof setInterval>
   private readonly stopPreferences: () => void
   private readonly saves = new Set<Promise<boolean>>()
-  private readonly cleanups = new Set<Promise<BalanceSnapshot>>()
+  private readonly cleanups = new Set<Promise<BalanceCleanupSnapshot>>()
 
   /**
    * @param preferences - Shared Host-backed form.
@@ -37,7 +37,7 @@ export class BalanceController {
    * @param clearSamples - Authenticated stored-sample cleanup.
    */
   constructor(readonly preferences: ConfigForm<BalancePreferences>, private readonly query: (view: BalanceSidebarRange | 'history') => Promise<BalanceSnapshot>,
-    private readonly clearSamples: (request: BalanceCleanupRequest, view: BalanceSidebarRange | 'history') => Promise<BalanceSnapshot>) {
+    private readonly clearSamples: (request: BalanceCleanupRequest, view: BalanceSidebarRange | 'history', expectedHistory: BalanceHistoryTag) => Promise<BalanceCleanupSnapshot>) {
     this.stopPreferences = preferences.subscribe(() => { this.refresh() })
     this.clock = setInterval(() => { this.state.set({ ...this.state.getSnapshot(), now: Date.now() }) }, 60_000)
     this.refresh()
@@ -80,21 +80,26 @@ export class BalanceController {
   /**
    * Remove stored samples under the current account and publish the remaining history.
    * @param request - Cleanup mode and its bound.
+   * @param expectedHistory - Tag of the account history the user reviewed.
    * @returns Whether the Host accepted the cleanup.
    */
-  readonly clear = async (request: BalanceCleanupRequest): Promise<boolean> => {
+  readonly clear = async (
+    request: BalanceCleanupRequest, expectedHistory = this.state.getSnapshot().data?.historyTag,
+  ): Promise<boolean> => {
     const active = () => !this.lifetime.signal.aborted
-    if (!active()) return false
+    if (!active() || expectedHistory === undefined) return false
     const generation = this.revision
     let accepted = false
-    let cleanup: Promise<BalanceSnapshot> | undefined
+    let accountChanged = false
+    let cleanup: Promise<BalanceCleanupSnapshot> | undefined
     try {
-      cleanup = this.clearSamples(request, this.view)
+      cleanup = this.clearSamples(request, this.view, expectedHistory)
       this.cleanups.add(cleanup)
       this.state.set({ ...this.state.getSnapshot(), clearing: true })
       const data = await cleanup
-      accepted = data.status === 'ready' || data.status === 'empty'
-      if (accepted && this.accepts(generation)) {
+      accepted = data.cleanupApplied === true || data.status === 'ready' || data.status === 'empty'
+      accountChanged = data.error === 'changed'
+      if (accepted && !accountChanged && this.accepts(generation)) {
         this.state.set({ ...this.state.getSnapshot(), data, failed: false, loading: false, now: Date.now() })
       }
     } catch (_error) {
@@ -103,8 +108,11 @@ export class BalanceController {
       if (cleanup !== undefined) this.cleanups.delete(cleanup)
     }
     if (active()) {
-      this.state.set({ ...this.state.getSnapshot(), clearing: this.cleanups.size > 0,
-        toast: accepted ? 'cleared' : 'clearFailed', toastId: this.state.getSnapshot().toastId + 1 })
+      const state = this.state.getSnapshot()
+      const toast = accountChanged ? (accepted ? 'previousCleared' : 'accountChanged') : (accepted ? 'cleared' : 'clearFailed')
+      this.state.set({ ...state, clearing: this.cleanups.size > 0,
+        ...(state.data?.historyTag === expectedHistory ? { toast, toastId: state.toastId + 1 } : {}) })
+      if (accountChanged && state.data?.historyTag === expectedHistory) this.invalidate()
     }
     return accepted
   }

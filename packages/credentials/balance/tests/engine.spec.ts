@@ -139,3 +139,78 @@ it('reports a cleanup against a signed-out account without touching storage', as
   expect(await b.engine.clear(client, { mode: 'all' })).toMatchObject({ status: 'signed-out', sampleCount: 0 })
   expect(b.write).not.toHaveBeenCalled()
 })
+
+it('leaves both histories untouched when the account switches while cleanup is queued', async () => {
+  const first = spaced(4), second = spaced(2)
+  const b = setup(first)
+  b.rows.set('two', second)
+  const entered = Promise.withResolvers<undefined>()
+  const finish = Promise.withResolvers<BalanceSample['wallets']>()
+  vi.mocked(b.identity.query).mockImplementation(() => { entered.resolve(undefined); return finish.promise })
+  const sampling = b.engine.read(client, 'api')
+  try {
+    await entered.promise
+    const clearing = b.engine.clear(client, { mode: 'all' })
+    vi.mocked(b.identity.current).mockResolvedValue(false)
+    b.identify.mockResolvedValue({ ...b.identity, key: 'two', current: async () => true })
+    finish.resolve(wallets)
+    await sampling
+    const result = await clearing
+    expect(b.rows.get('two')).toEqual(second)
+    expect(b.rows.get('one')).toEqual(first)
+    expect(b.write).not.toHaveBeenCalled()
+    expect(result).toMatchObject({ status: 'unavailable', account: null, samples: [], error: 'changed' })
+  } finally { finish.resolve(wallets); await sampling }
+})
+
+it('rejects cleanup tags from another account or Host and keeps the original tag across reads', async () => {
+  const b = setup(spaced(4))
+  const first = await b.engine.read(client, 'local')
+  expect(first.historyTag).toMatch(/^[0-9a-f]{64}$/u)
+  expect(first.historyTag).not.toBe(balanceStorageKey('one'))
+  const freshHost = setup(spaced(2))
+  expect((await freshHost.engine.clear(client, { mode: 'all' }, 'history', first.historyTag)).error).toBe('changed')
+  expect(freshHost.write).not.toHaveBeenCalled()
+  b.rows.set('two', spaced(2))
+  b.identify.mockResolvedValueOnce({ ...b.identity, key: 'two' })
+  expect((await b.engine.clear(client, { mode: 'all' }, 'history', first.historyTag)).error).toBe('changed')
+  b.identify.mockResolvedValueOnce(null)
+  expect((await b.engine.clear(client, { mode: 'all' }, 'history', first.historyTag)).error).toBe('changed')
+  expect(b.write).not.toHaveBeenCalled()
+  expect((await b.engine.read(client, 'local')).historyTag).toBe(first.historyTag)
+  expect((await b.engine.clear(client, { mode: 'all' }, 'history', first.historyTag)).status).toBe('empty')
+  expect(b.rows.get('two')).toEqual(spaced(2))
+})
+
+it('withholds a cached reading when a failed provider request outlives its account', async () => {
+  const b = setup(spaced(2))
+  vi.mocked(b.identity.query).mockRejectedValue(new Error('connection closed'))
+  vi.mocked(b.identity.current).mockRejectedValue(new Error('signed out'))
+  const result = await b.engine.read(client, 'api')
+  expect(result).toMatchObject({ status: 'unavailable', samples: [], account: null, error: 'changed' })
+  expect(result.historyTag).toBeUndefined()
+  expect(b.write).not.toHaveBeenCalled()
+})
+
+it('acknowledges a committed cleanup without disclosing the previous account after a switch', async () => {
+  const b = setup(spaced(3))
+  const before = await b.engine.read(client, 'local')
+  const entered = Promise.withResolvers<undefined>(), finish = Promise.withResolvers<undefined>()
+  b.rows.set('two', spaced(2))
+  b.write.mockImplementationOnce(async (key, samples) => {
+    entered.resolve(undefined)
+    await finish.promise
+    b.rows.set(key, samples)
+  })
+  const clearing = b.engine.clear(client, { mode: 'count', keep: 1 }, 'history', before.historyTag)
+  try {
+    await entered.promise
+    vi.mocked(b.identity.current).mockResolvedValue(false)
+    finish.resolve(undefined)
+    const result = await clearing
+    expect(result).toMatchObject({ cleanupApplied: true, status: 'unavailable', error: 'changed', account: null, samples: [] })
+    expect(result.historyTag).toBeUndefined()
+    expect(b.rows.get('one')).toEqual(spaced(3).slice(-1))
+    expect(b.rows.get('two')).toEqual(spaced(2))
+  } finally { finish.resolve(undefined); await clearing }
+})

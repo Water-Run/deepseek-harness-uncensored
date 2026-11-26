@@ -11,7 +11,7 @@ import type {} from '@deepseek-ai/dsh-settings'
 import type { AccountClientMetadata } from '@deepseek-ai/dsh-deepseek-account/types'
 import { BalanceEngine, balanceAmount, balanceSample, balanceStorageKey } from './engine.ts'
 import type { BalanceIdentity } from './engine.ts'
-import type { BalanceAutoCleanup, BalanceSidebarRange, BalanceSample, BalanceCleanupRequest, BalanceSnapshot } from './types.ts'
+import type { BalanceAutoCleanup, BalanceHistoryTag, BalanceSidebarRange, BalanceSample, BalanceCleanupRequest, BalanceCleanupSnapshot, BalanceSnapshot } from './types.ts'
 export type * from './types.ts'
 
 /** Deployment and live user preferences for balance queries. */
@@ -104,11 +104,12 @@ export class BalanceRemote extends TypertRemoteService {
    * @param client - Platform request metadata.
    * @param request - Cleanup mode and its bound.
    * @param view - History detail requested by the active client view.
+   * @param expectedHistory - Opaque tag of the account history the user reviewed.
    * @returns The remaining history.
    */
   @Remote
-  clear(client: AccountClientMetadata, request: BalanceCleanupRequest, view?: 'history' | BalanceSidebarRange): Promise<BalanceSnapshot> {
-    return this.options.engine.clear(client, cleanupSchema.parse(request), view)
+  clear(client: AccountClientMetadata, request: BalanceCleanupRequest, view?: 'history' | BalanceSidebarRange, expectedHistory?: BalanceHistoryTag): Promise<BalanceCleanupSnapshot> {
+    return this.options.engine.clear(client, cleanupSchema.parse(request), view, expectedHistory)
   }
 }
 
@@ -151,7 +152,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     const key = (await ctx.credentials.resolve(ref))?.value
     if (!key) return null
     return { key: balanceStorageKey(`api:${origin.origin}:${key}`), account: 'api-key',
-      current: async () => (await ctx.credentials.resolve(ref))?.value === key,
+      current: async () => (await ctx.credentials.resolve(ref))?.value === key && await ctx.deepseekAccount.getPlatformSession() === null,
       query: async (signal) => {
         const response = await fetch(new URL('/user/balance', origin), { signal, redirect: 'error', headers: { authorization: `Bearer ${key}` } })
         if (!response.ok) throw new Error('balance: API query unavailable')

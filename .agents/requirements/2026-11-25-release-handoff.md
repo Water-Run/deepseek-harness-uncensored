@@ -507,6 +507,17 @@ pnpm exec vitest run --maxWorkers=2 packages/credentials/balance/tests packages/
 pnpm run test:web:built apps/web/tests/balance-cleanup.e2e.ts apps/web/tests/balance-history-layout.e2e.ts apps/web/tests/entry-customization.e2e.ts apps/web/tests/writing-spending-settings.e2e.ts --maxWorkers=1
 ```
 
+#### 清理期间切换余额账号
+
+在已构建的候选根目录运行下列两项。第一项让账号 A 的采样保持未完成，提交清理后切换到 B 再放行采样。修复前 B 的两条记录被清空。通过条件是两个账号的记录都保留，清理响应标明账号已切换。已有客户端省略历史标识时也覆盖此例。第二项从实际额度页提交清理，使用独立资料和模拟余额提供方。浏览器仍显示 A 时切到 B，点原确认后应显示 B 的历史。再次确认才清理 B，重新读取 A 仍有它原来的金额。如果写入已在 A 开始才切换账号，单元用例还会核对提交回执。此时清理完成在 A，B 的采样原样保留，返回值中没有 A 的金额。
+
+```sh
+pnpm exec vitest run packages/credentials/balance/tests/engine.spec.ts
+pnpm run test:web:built apps/web/tests/balance-cleanup.e2e.ts
+```
+
+固定候选树 `105c984163db68d3c6d5482667d977a81315d202` 已从补丁还原，构建内记录的 DSHU `2026.11.25.0`、DSH `0.2.3-alpha.2` 和源码树均与清单相符。主线与候选分别通过 30 项余额单元测试和 5 项 Chromium 额度测试。在双账号用例中，B 的余额为 22.00，处理 A 留下的旧确认后该记录仍在。重新确认清空 B 后，A 的 11.00 仍可读取。[五个安装包的旧资料验收记录](#同一源码树的五件套演练)对应较早的 `0eb8ef6e8e17`，最终安装包需再跑一次双账号用例。
+
 ### Windows 安装版的余额历史与清理偏好
 
 分别从上一正式版 `2026.11.24.3` 的 Windows x64 安装器开始。使用两个独立的临时账户，各带入一份写作工作区及旧版余额数据。一组旧配置未指定 `autoCleanup`，另一组显式设置为 `off`。两个账户均使用合成的 API Key 和仅在回环地址监听的余额服务。
