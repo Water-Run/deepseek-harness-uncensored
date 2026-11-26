@@ -4,14 +4,14 @@ Windows 是首要桌面平台。Linux x86_64 验收有 Fedora、Debian 和 Rocky
 
 ## 11 月 26 日新增实机
 
-从维护机通过 SSH 直接登录两台 x86_64 实机。两台均通过既有 SSH 主机密钥校验，`systemd-detect-virt` 均返回 `none`。连接参数保存在维护机的 `%USERPROFILE%/DSHU-Deliveries/20261126/linux-native-hosts.json`。表中磁盘数字为预检时对应主目录文件系统的可用空间。
+从 Windows 维护机按[平台目标矩阵](2026-11-24-platform-targets.md#目标矩阵)直接通过 SSH 登录 `yynicepc` 和 `waterrun`。两台均通过既有 SSH 主机密钥校验，`systemd-detect-virt` 均返回 `none`。本地连接回执在 `%USERPROFILE%/DSHU-Deliveries/20261126/linux-native-hosts.json`。下表的磁盘数字为 11 月 26 日复核时主目录所在文件系统的可用空间。
 
 | 设备 | 实测系统和容量 | 已确认的工具与适用验收 |
 | --- | --- | --- |
-| Debian 实机 | Debian 13，内核 `6.12.118+deb13-amd64`，16 个逻辑 CPU，约 31.1 GiB RAM、110.8 GiB 可用磁盘 | 有 musl-gcc、dpkg-deb、fakeroot、Xvfb 和 rootless Podman。用于 x64 构建、DEB 覆盖升级及隔离桌面验收。用户 PATH 中的 `node` 指向 Bun，系统 Node.js 为 `24.19.0`。新版候选构建使用作业私有的 Node.js `24.22.3` 和 pnpm `11.28.5`。 |
-| Rocky Linux 实机 | Rocky Linux 10.2，内核 `6.12.0-264.17.1.el10_3.x86_64`，8 个逻辑 CPU，约 15.2 GiB RAM、38.7 GiB 可用磁盘 | 用户 Node.js `24.22.3`、pnpm `11.28.5`、rpmbuild 和 rootless Podman。可在 Fedora 兼容容器内验证 RPM 和旧资料升级。 |
+| Debian 实机 `yynicepc` | Debian 13，内核 `6.12.118+deb13-amd64`，16 个逻辑 CPU，约 31.1 GiB RAM、76.6 GiB 可用磁盘 | 有 musl-gcc、dpkg-deb、fakeroot、Xvfb 和 rootless Podman。用于 x64 构建、DEB 覆盖升级及隔离桌面验收。用户 PATH 中的 `node` 指向 Bun，系统 Node.js 为 `24.19.0`。新版候选构建使用作业私有的 Node.js `24.22.3` 和 pnpm `11.28.5`。 |
+| Rocky Linux 实机 `waterrun` | Rocky Linux 10.2，内核 `6.12.0-264.17.1.el10_3.x86_64`，8 个逻辑 CPU，约 15.2 GiB RAM、64.4 GiB 可用磁盘 | 用户 Node.js `24.22.3`、pnpm `11.28.5`、rpmbuild、Weston 和 rootless Podman。用于 Fedora 容器内的 RPM 与旧资料升级验收，也是 DGX Spark 和 Mac Studio 的 SSH 跳板。 |
 
-两台机器的预检均能解析 `libcrypt.so.1`。构建和验收在各自账号的专用目录或无特权容器内进行。使用现有工具链前记录实际解析的路径与版本。两台均为 x86_64，Linux arm64 安装验收需另用相应平台。Fedora 跳板仍能登录，跳板到 Fedora 的 SSH 转发在本次预检时拒绝连接。
+两台机器的预检均能解析 `libcrypt.so.1`。构建和验收在各自账号的专用目录或无特权容器内进行。使用现有工具链前记录实际解析的路径与版本。Linux arm64 的设备及连接见[原生 ARM64 设备](2026-11-24-platform-targets.md#11-月-26-日原生-arm64-设备)。Fedora 跳板仍能登录，跳板到 Fedora 的 SSH 转发在 11 月 26 日的首次预检时拒绝连接。
 
 Debian 实机的 Debian 13 容器通过 apt 验证了从两个正式版覆盖升级。Rocky 实机上的 Rocky 10.3 容器使用默认软件源时，公开版 `2026.11.24.3` 的 RPM 因缺少 `libXScrnSaver` 停在安装阶段。在同一实机的 Fedora 44 容器中，RPM 从两个正式版覆盖升级均通过。四组都核对了普通用户运行、未压缩 JSONL 和 zstd 会话的续写与重开。[当前 Linux x64 候选的实装升级](2026-11-25-release-handoff.md#当前-linux-x64-候选的实装升级)
 

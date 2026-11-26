@@ -7,10 +7,21 @@
 | 目标 | 设备 | 接入方式 | 备注 |
 | --- | --- | --- | --- |
 | Windows x64 | 本机 | 直接构建 | 打包命令在本仓库根目录执行 |
-| Linux x64 · RPM | `waterrun@192.168.10.40:22222` | `ssh -p 22222 waterrun@192.168.10.40` | 该机另有 Web 控制台 `https://192.168.10.40:9090/` |
-| Linux x64 · DEB | `yynicepc@192.168.10.57:26022` | `ssh -p 26022 yynicepc@192.168.10.57` | Debian 13，内核 6.12.118+deb13-amd64 |
-| Linux arm64 | 经跳板 `192.168.10.40` 进入 `dgxspark` | `ssh -p 22222 waterrun@192.168.10.40` 后 `ssh dgxspark` | NVIDIA DGX Spark，Ubuntu 7.5.0 / aarch64，IP `192.168.5.19` |
-| macOS arm64 | 经跳板 `192.168.10.40` 进入 `yymacstudio` | `ssh -p 22222 waterrun@192.168.10.40` 后 `ssh yymacstudio` | Mac Studio，用户 `yymacstudio` |
+| Linux x64 · RPM | Rocky Linux 10.2 实机 `waterrun` | `ssh -p 22222 waterrun@192.168.10.40` | Fedora 容器内回归 RPM。也是两个 ARM64 设备的 SSH 跳板，Web 控制台地址为 `https://192.168.10.40:9090/`。 |
+| Linux x64 · DEB | Debian 13 实机 `yynicepc` | `ssh -p 26022 yynicepc@192.168.10.57` | 构建 Linux x64，并验证 DEB 升级及隔离 X11 桌面。 |
+| Linux arm64 | NVIDIA DGX Spark | `ssh -p 22222 waterrun@192.168.10.40` 后 `ssh dgxspark` | Ubuntu 24.04.5 LTS，aarch64。 |
+| macOS arm64 | Mac Studio | `ssh -p 22222 waterrun@192.168.10.40` 后 `ssh yymacstudio` | macOS 26.6.2，arm64。 |
+
+11 月 26 日从 Windows 维护机复核了两条直连和两条跳板入口，四台设备都通过已有 SSH 主机密钥校验。[两台 x86_64 实机的容量、工具链与验收范围](2026-11-18-linux-test-host.md#11-月-26-日新增实机)
+
+## 11 月 26 日原生 ARM64 设备
+
+| 设备 | 实测系统与容量 | 可用工具 |
+| --- | --- | --- |
+| DGX Spark `spark-49c8` | Linux `7.0.0-1025-nvidia`，20 个逻辑 CPU，约 121.7 GiB RAM，主目录所在卷约 3.1 TiB 可用 | cc、musl-gcc、dpkg-deb、fakeroot、Xvfb，系统 Node.js `24.21.0`、pnpm `11.28.5` |
+| Mac Studio | Darwin `25.6.0`，macOS 构建号 `25G83`，16 个逻辑 CPU，128 GiB RAM，主目录所在卷约 84.6 GiB 可用 | Apple clang 21、Command Line Tools、codesign、Node.js `24.22.3`、pnpm `11.28.5` |
+
+两台都能通过 HTTPS 访问官方 npm 注册表和 Node.js 下载站。候选源码和构建日志使用各账号 `~/.local/state/dshu-verification/` 下的专用目录。安装及会话升级结果以对应候选的回执为准。
 
 ## 验证用 Windows 副机
 
@@ -60,7 +71,7 @@
 
 - 已通过 `192.168.10.40` 跳板投送源码与脚本，构建任务在 `yymacstudio` 上运行；Electron 未设镜像，下载可能超时，结果以任务日志为准。
 
-## 复现约定
+## 2026.11.24.3 的复现约定
 
 - 任何目标的源码都从本机 `git archive HEAD` 投送，不在目标机依赖 GitHub git 协议。
 - Electron 一律带 `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/`。

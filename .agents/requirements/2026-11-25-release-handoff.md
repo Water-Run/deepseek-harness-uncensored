@@ -893,7 +893,7 @@ Windows 安装包与 Linux x64 复用了固定树 `c048b2e78877`。Windows 的 1
 
 ## Linux 候选的原生构建
 
-11 月 26 日实测可从维护机直接登录 Debian 13 和 Rocky Linux 10.2 两台 x86_64 实机。Debian 可承担 x64 构建、DEB 和隔离桌面验收，Rocky Linux 可承担 RPM 升级回归。[设备、工具链及连接记录](2026-11-18-linux-test-host.md#11-月-26-日新增实机)
+从 Windows 维护机直接连接 Debian 13 和 Rocky Linux 10.2 实机。Debian 承担 x64 构建、DEB 和隔离桌面验收。Rocky Linux 承担 RPM 升级回归，并可跳转到原生 ARM64 验收设备。[连接及 ARM64 设备](2026-11-24-platform-targets.md#目标矩阵) · [Linux x64 实机与验收范围](2026-11-18-linux-test-host.md#11-月-26-日新增实机)
 
 Linux 构建使用私有作业目录，并在展开源码、依赖和发行载荷之前把构建进程的 `umask` 设为 `022`。一次试验使用 `077`，同一账户直接从展开目录启动成功。DEB 和 RPM 由包管理器安装后，Host 文件和目录归 root 所有，普通用户启动 CLI 失败。DEB 中的 Host 目录权限为 `0700`，其 `package.json` 和 `lib/cli.js` 均在包内，权限为 `0600`。失败包与回执归档于 `%USERPROFILE%/DSHU-Deliveries/20261126/linux-x64/39dc7d95a408-umask077-failed/`。换用正常发行权限后，从同一固定源码树重新构建。验收 DEB 和 RPM 时，包管理器执行安装或升级，再用普通用户启动 CLI、续写旧会话并重开。同一构建账户在解包目录的启动结果仅覆盖便携使用路径。
 
