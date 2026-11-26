@@ -1,0 +1,72 @@
+{
+  "observedOn": "2026-11-26",
+  "environment": "Windows x64, Windows Sandbox, network disabled, installed NSIS packages",
+  "dshuVersion": "2026.11.25.0",
+  "kernelVersion": "0.2.3-alpha.2",
+  "package": {
+    "tree": "575e507bf05ca3937a1ccfc83d58c8dfaddcde0b",
+    "blocks": 15523,
+    "artifacts": [
+      {
+        "name": "deepseek-harness-uncensored-2026.11.25.0-win-x64-unsigned.exe",
+        "size": 325427946,
+        "sha256": "7bb705d7336fe90935470987a798c25fb71145d1563799545a9832aa00a1338d"
+      },
+      {
+        "name": "deepseek-harness-uncensored-2026.11.25.0-win-x64-unsigned.exe.blockmap",
+        "size": 337500,
+        "sha256": "844e029e2159acce75cb1146758615afe4c093c73d29ab6f0554d31365cc6e34"
+      }
+    ]
+  },
+  "precedingPackage": {
+    "tree": "cfe7869c4d97cf267f70f6287d9b6ddbb1244af4",
+    "sha256": "f50ac5dbfa001ea422ac11709bead4d23cb4041e0cfe2f04d182bf5c2943f890"
+  },
+  "retainedProfile": {
+    "sourceRelease": "v2026.11.24.3",
+    "workspace": "Retained print workshop",
+    "session": "retained-print-notebook",
+    "surface": "Side question"
+  },
+  "modelFixture": {
+    "transport": "loopback",
+    "inputTokens": 12,
+    "outputTokens": 4,
+    "expectedDeltaMicroCny": 56,
+    "submittedChatReplies": 0
+  },
+  "control": {
+    "attemptsBefore": 1,
+    "attemptsPending": 2,
+    "afterUsageResponse": "Timed out waiting for the open popover and footer to update; the open detail still showed 2 unpriced attempts and zero priced cost."
+  },
+  "candidate": {
+    "unit": "micro-CNY for footer and popover",
+    "before": {
+      "footer": 0,
+      "popover": 0,
+      "attempts": 1
+    },
+    "pending": {
+      "footer": 0,
+      "popover": 0,
+      "attempts": 2
+    },
+    "after": {
+      "footer": 56,
+      "popover": 56,
+      "attempts": 2
+    }
+  },
+  "browserRecovery": {
+    "dispatchedToRestoredSession": 1,
+    "loggedRecoveryNotices": 1,
+    "loggedAttempts": 2,
+    "unpricedAttempts": 1,
+    "spendWindow": "5h",
+    "spentCny": 0.000108,
+    "reservedCny": 0,
+    "uncertainCny": 0
+  }
+}

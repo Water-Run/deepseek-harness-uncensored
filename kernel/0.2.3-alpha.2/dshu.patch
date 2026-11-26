@@ -3454,16 +3454,16 @@ index 0000000000000000000000000000000000000000..85a7ef9dee1c89ad0a58ccc9a89bf533
 +}, 120_000)
 diff --git a/apps/web/tests/writing-spending.e2e.ts b/apps/web/tests/writing-spending.e2e.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..124210d8ee71c134dd81f6ec0bdea25a02f55beb
+index 0000000000000000000000000000000000000000..d2e471f6a5e665756d1560d84df1e9ad7ab63477
 --- /dev/null
 +++ b/apps/web/tests/writing-spending.e2e.ts
-@@ -0,0 +1,151 @@
+@@ -0,0 +1,192 @@
 +/** Writing materials and concurrent rolling limits through the shipped Web Host. */
 +import { fileURLToPath } from 'node:url'
 +import { mkdir } from 'node:fs/promises'
 +import { join } from 'node:path'
 +import { chromium, type Page } from 'playwright'
-+import { newEnglishPage } from './support.ts'
++import { newEnglishPage, openSettings } from './support.ts'
 +import { expect, it } from 'vitest'
 +import { brandString } from '@deepseek-ai/dsh-brand'
 +import { LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
@@ -3473,9 +3473,13 @@ index 0000000000000000000000000000000000000000..124210d8ee71c134dd81f6ec0bdea25a
 +
 +class WritingAdapter extends LlmAdapter {
 +  readonly requests: GenerateOptions[] = []
++  readonly finishPrediction = Promise.withResolvers<undefined>()
 +  override async listModels(provider: string) { return [{ provider, id: 'writer', name: 'Writer' }] }
 +  override async *stream(request: GenerateOptions): AsyncIterable<StreamChunk> {
 +    this.requests.push(request)
++    if (request.messages.some(message => message.role === 'user' && message.source?.kind === 'input-prediction')) {
++      await this.finishPrediction.promise
++    }
 +    yield { type: 'block-start', index: 0, blockType: 'text' }
 +    yield { type: 'text-delta', index: 0, text: 'Draft.' }
 +    yield { type: 'block-end', index: 0, block: { type: 'text', text: 'Draft.' } }
@@ -3495,7 +3499,7 @@ index 0000000000000000000000000000000000000000..124210d8ee71c134dd81f6ec0bdea25a
 +  await row.click()
 +}
 +
-+it('admits selected style and canon only after both windows recover and logs each withdrawal', async () => {
++it('prices a composer prediction separately and dispatches a writing continuation once after both windows recover', async () => {
 +  const scaffold = await launchWebScaffold({
 +    extraOverlayPath: ['./pin-browse-picker.overlay.yml', './fixtures/writing-spending/rate.overlay.yml'].map(path => fileURLToPath(new URL(path, import.meta.url))),
 +  })
@@ -3530,7 +3534,8 @@ index 0000000000000000000000000000000000000000..124210d8ee71c134dd81f6ec0bdea25a
 +    await ctx.sessionController.selectModel({ sessionId, provider: 'writing-smoke', model: 'writer' })
 +    for (const period of ['5h', '7d'] as const) await ctx.spendLimit.configureWindow({ period, limit: 2, enabled: true })
 +    await send(sessionId, 'first')
-+    await expect.poll(async () => (await ctx.spendLimit.get()).pausedSessions.map(row => row.sessionId), { timeout: 15_000 }).toContain(sessionId)
++    await expect.poll(async () => (await ctx.spendLimit.get()).pausedSessions.map(row => row.sessionId),
++      { timeout: 15_000 }).toContain(sessionId)
 +    await ctx.spendLimit.reset('5h')
 +    expect((await ctx.spendLimit.get()).pausedSessions.map(row => row.sessionId)).toContain(sessionId)
 +    expect(adapter.requests).toHaveLength(1)
@@ -3546,7 +3551,8 @@ index 0000000000000000000000000000000000000000..124210d8ee71c134dd81f6ec0bdea25a
 +    expect(second).toBe(sessionId)
 +    expect(adapter.requests).toHaveLength(3)
 +    const withdrawal = materials(adapter.requests[2]!).at(-1)
-+    expect(withdrawal?.content[0]).toMatchObject({ text: expect.stringContaining('Disregard earlier writing-material instructions') })
++    const notice = withdrawal?.content[0]
++    expect(notice?.type === 'text' && notice.text).toContain('Disregard earlier writing-material instructions')
 +    using observed = await ctx.sessionQuery.observeSession(sessionId)
 +    const logged = observed.events.filter(event => event.type === 'user/message' && event.data.source.kind === 'mode-dossiers')
 +    expect(logged.map(event => event.data)).toEqual(materials(adapter.requests[2]!))
@@ -3555,6 +3561,7 @@ index 0000000000000000000000000000000000000000..124210d8ee71c134dd81f6ec0bdea25a
 +    const browser = await chromium.launch()
 +    try {
 +      const page = await newEnglishPage(browser)
++      await page.addInitScript(() => { localStorage.setItem('dsh.uncensored.prediction', '0') })
 +      await page.emulateMedia({ reducedMotion: 'reduce' })
 +      await page.goto(scaffold.authenticatedUrl)
 +      await selectConversation(page, standard.sessionId)
@@ -3567,7 +3574,7 @@ index 0000000000000000000000000000000000000000..124210d8ee71c134dd81f6ec0bdea25a
 +        await page.setViewportSize({ width, height: 840 })
 +        await reading.click()
 +        const detail = page.getByRole('dialog', { name: 'Conversation cost' })
-+        await detail.getByText('2 recorded model requests', { exact: true }).waitFor()
++        await detail.getByText('Model attempts (2)', { exact: true }).waitFor()
 +        const slider = detail.getByRole('slider', { name: 'Cumulative estimated cost' })
 +        await slider.press('Home')
 +        expect(await slider.getAttribute('aria-valuenow')).toBe('0')
@@ -3577,18 +3584,48 @@ index 0000000000000000000000000000000000000000..124210d8ee71c134dd81f6ec0bdea25a
 +        expect(box).not.toBeNull()
 +        expect(box!.x).toBeGreaterThanOrEqual(0)
 +        expect(box!.x + box!.width).toBeLessThanOrEqual(width)
-+        await page.screenshot({ path: join(output, 'cost-' + width + '.png') })
++        await page.screenshot({ path: join(output, `cost-${width}.png`) })
 +        await slider.press('Escape')
 +        await detail.waitFor({ state: 'hidden' })
 +        expect(await reading.evaluate(element => element === document.activeElement)).toBe(true)
 +      }
-+    } finally { await browser.close() }
++      await page.setViewportSize({ width: 1280, height: 840 })
++      await openSettings(page, 'en')
++      const settings = page.getByRole('dialog', { name: 'Settings', exact: true })
++      await settings.getByRole('navigation').getByRole('button', { name: 'General', exact: true }).click()
++      const prediction = settings.getByRole('switch', { name: 'Input prediction', exact: true })
++      expect(await prediction.getAttribute('aria-checked')).toBe('false')
++      await prediction.click()
++      await page.keyboard.press('Escape')
++      const partial = page.getByRole('button', { name: 'Conversation cost: ≥ ￥0.000216', exact: true })
++      await partial.click()
++      const detail = page.getByRole('dialog', { name: 'Conversation cost' })
++      await detail.getByText('Model attempts (3)', { exact: true }).waitFor()
++      expect(await ctx.spendLimit.sessionUsage(sessionId)).toMatchObject({ requests: 3, unpricedRequests: 1, total: 0.000216 })
++      adapter.finishPrediction.resolve(undefined)
++      await expect.poll(() => ctx.spendLimit.sessionUsage(sessionId), { timeout: 15_000 }).toMatchObject({
++        requests: 3, unpricedRequests: 0, total: 0.000324,
++      })
++      expect(adapter.requests).toHaveLength(4)
++      const background = adapter.requests[3]
++      expect(background?.sessionId).toBe(sessionId)
++      expect(background?.messages.filter(message => message.role === 'user').map(message => message.source?.kind)).toEqual(['input-prediction'])
++      const updated = page.getByRole('button', { name: 'Conversation cost: ￥0.000324', exact: true })
++      await updated.waitFor()
++      await detail.getByText('￥0.000324', { exact: true }).first().waitFor()
++      await detail.getByText('Model attempts (3)', { exact: true }).waitFor()
++      await page.screenshot({ path: join(output, 'prediction-settled.png') })
++      await page.keyboard.press('Escape')
++    } finally {
++      adapter.finishPrediction.resolve(undefined)
++      await browser.close()
++    }
 +
 +    const coldId = brandString<SessionId>('writing-disposed-while-waiting')
 +    const handle = await ctx.agents.create({
 +      sessionId: coldId, agentOptions: ctx.agentDefaultModel.currentSelection(),
 +      meta: { cwd: scaffold.workspaceCwd, agentPreset: 'writing' },
-+      setup: async agentCtx => { await ctx.agentPresets.mount(agentCtx, 'writing') },
++      setup: async (agentCtx) => { await ctx.agentPresets.mount(agentCtx, 'writing') },
 +    })
 +    await workspace.attachSession(coldId)
 +    const ceiling = 1 + (adapter.requests[2]!.maxTokens ?? 500_000) / 1_000_000
@@ -3600,13 +3637,17 @@ index 0000000000000000000000000000000000000000..124210d8ee71c134dd81f6ec0bdea25a
 +    expect((await ctx.spendLimit.get()).pausedSessions.find(row => row.sessionId === coldId)?.state).toBe('blocked')
 +    const [resumed] = await Promise.all([scaffold.whenTurnSettled(), ctx.spendLimit.reset('5h')])
 +    expect(resumed).toBe(coldId)
-+    expect(adapter.requests).toHaveLength(4)
++    expect(adapter.requests).toHaveLength(5)
++    expect(adapter.requests.filter(request => request.sessionId === coldId)).toHaveLength(1)
 +    await expect.poll(async () => (await ctx.spendLimit.get()).pausedSessions, { timeout: 15_000 }).toEqual([])
 +    using restored = await ctx.sessionQuery.observeSession(coldId)
 +    const notices = restored.events.filter(event => event.type === 'user/message' && event.data.source.kind === 'spend-limit')
 +    expect(notices).toHaveLength(1)
 +    await ctx.spendLimit.resume()
-+    expect(adapter.requests).toHaveLength(4)
++    expect(adapter.requests).toHaveLength(5)
++    expect(await ctx.spendLimit.sessionUsage(coldId)).toMatchObject({ total: 0.000108, requests: 2, unpricedRequests: 1 })
++    const window = (await ctx.spendLimit.get()).windows.find(item => item.period === '5h')
++    expect(window).toMatchObject({ spent: 0.000108, reserved: 0, uncertain: 0 })
 +  } finally { await scaffold.close() }
 +}, 120_000)
 diff --git a/apps/web/tsconfig.json b/apps/web/tsconfig.json
@@ -3866,7 +3907,7 @@ index 237bd16bb75669b31cb1141567c825771fad3260..ae557bd1a56b591465600b24e060ddf5
  | `ctx.settingsController` | `core` | [`api-settings-controller`](../packages/api/settings-controller) | - | - | - | 把用户设置 seam 投影到生成的 Remote namespace：读取一律脱敏，所有拒绝在这里分类，而不在 seam Definition 上。 |
  | `ctx.workspaceFiles` | `core` | [`api-workspace-files`](../packages/api/workspace-files) | - | - | - | 为会话工作区根内的文件提供 stat、分页文本、字节窗口、目录列举与变更流，经 lstat、包含关系与 stat 重检限定。 |
 diff --git a/docs/config-catalog.md b/docs/config-catalog.md
-index eb81a3b5a726553a885bbc99fdf475f0074a0b09..a97b16a4eaf02356d54727cd2fd80c8f81eb57c5 100644
+index eb81a3b5a726553a885bbc99fdf475f0074a0b09..805400d1a409ec3999168491b953510d3f9ce8c4 100644
 --- a/docs/config-catalog.md
 +++ b/docs/config-catalog.md
 @@ -268,21 +268,70 @@ export interface Config {
@@ -4067,7 +4108,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..a97b16a4eaf02356d54727cd2fd80c8f
 +## `@deepseek-ai/dsh-spend-limit`
 +
 +- `inject`: `llm`
-+- `source`: [`packages/guard/spend-limit/src/index.ts:18`](../packages/guard/spend-limit/src/index.ts)
++- `source`: [`packages/guard/spend-limit/src/index.ts:19`](../packages/guard/spend-limit/src/index.ts)
 +
 +```ts config-catalog
 +/** Deployment-owned ledger path and conservative rates. User limits live in the ledger. */
@@ -4157,7 +4198,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..a97b16a4eaf02356d54727cd2fd80c8f
  | `@deepseek-ai/dsh-sandbox-windows-acl` | — | [`packages/sandbox/sandbox-windows-acl/src/index.ts`](../packages/sandbox/sandbox-windows-acl/src/index.ts) |
  | `@deepseek-ai/dsh-scope` | — | [`packages/core/scope/src/index.ts`](../packages/core/scope/src/index.ts) |
 diff --git a/docs/config-catalog.zh.md b/docs/config-catalog.zh.md
-index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..2b8a0a036a73771095eb89a250fe23b4dfe282f9 100644
+index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..7b18ddf6b2905dddad06546bfaadd230e071cf08 100644
 --- a/docs/config-catalog.zh.md
 +++ b/docs/config-catalog.zh.md
 @@ -270,21 +270,70 @@ export interface Config {
@@ -4358,7 +4399,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..2b8a0a036a73771095eb89a250fe23b4
 +## `@deepseek-ai/dsh-spend-limit`
 +
 +- `inject`: `llm`
-+- `source`: [`packages/guard/spend-limit/src/index.ts:18`](../packages/guard/spend-limit/src/index.ts)
++- `source`: [`packages/guard/spend-limit/src/index.ts:19`](../packages/guard/spend-limit/src/index.ts)
 +
 +```ts config-catalog
 +/** Deployment-owned ledger path and conservative rates. User limits live in the ledger. */
@@ -4612,7 +4653,7 @@ index 60fc5a0efb3fdc492db0b3b5d312bed9b862c1f9..9ff575adf0b13e8c9427b0311bfc5e85
  | `slots/changed` | `ui-renderer` (`emit`) | - |
  | `theme/change` | `ui-theme` (`emit`) | `ui-layout`, `ui-theme` |
 diff --git a/docs/persistence-catalog.i18n.yaml b/docs/persistence-catalog.i18n.yaml
-index 1263125f863f09fbcfe5188accb798d3e3ebbc39..78cec278b9183cb0b239e8b51c7fa4459c182c27 100644
+index 1263125f863f09fbcfe5188accb798d3e3ebbc39..a19b073949907a88a3f3602433d5ea2b5b0d4ce1 100644
 --- a/docs/persistence-catalog.i18n.yaml
 +++ b/docs/persistence-catalog.i18n.yaml
 @@ -9,8 +9,8 @@
@@ -4939,8 +4980,8 @@ index 1263125f863f09fbcfe5188accb798d3e3ebbc39..78cec278b9183cb0b239e8b51c7fa445
  /session-persistence-event-catalog/resolved-persistence-types/string:
 -  en: 5266b7e8f6dfb88c
 -  zh: 009c7af9bd3c41e0
-+  en: 656cc43e4517a1d4
-+  zh: 081237cdb2e96588
++  en: d4ef3c664a73eada
++  zh: ebe6caecd9dcf511
  /session-persistence-event-catalog/resolved-persistence-types/string~2:
    en: 0089620bf4638263
    zh: 1922bef1713094bb
@@ -5331,7 +5372,7 @@ index 1263125f863f09fbcfe5188accb798d3e3ebbc39..78cec278b9183cb0b239e8b51c7fa445
    en: 99c8837344178a47
    zh: bf746f5678346596
 diff --git a/docs/persistence-catalog.md b/docs/persistence-catalog.md
-index 331cf9e566f0d4bf4a3dd5dc404a254f8b6ba8e5..9b7134e22729636a014908a80bf1fe5a6e716c69 100644
+index 331cf9e566f0d4bf4a3dd5dc404a254f8b6ba8e5..33ec3e2369aa6d92ad166d91e42af5170adb62e7 100644
 --- a/docs/persistence-catalog.md
 +++ b/docs/persistence-catalog.md
 @@ -24,7 +24,7 @@ The [format references](persistence-changes/historical-formats/README.md) cover
@@ -6005,7 +6046,7 @@ index 331cf9e566f0d4bf4a3dd5dc404a254f8b6ba8e5..9b7134e22729636a014908a80bf1fe5a
  SHA-256: `4cd48f3e5108bd6ebedf7301c3638839b8b2b9db8dbd493974177fbdeb91a01b`
  
 -Sources: [`packages/api/session-controller/src/types.ts:383`](../packages/api/session-controller/src/types.ts) · [`packages/attachment/attachment/src/brand.ts:6`](../packages/attachment/attachment/src/brand.ts) · [`packages/compaction/compaction/src/brand.ts:4`](../packages/compaction/compaction/src/brand.ts) · [`packages/core/session/src/types.ts:21`](../packages/core/session/src/types.ts) · [`packages/experimental/webhook/src/brand.ts:12`](../packages/experimental/webhook/src/brand.ts) · [`packages/experimental/webhook/src/brand.ts:6`](../packages/experimental/webhook/src/brand.ts) · [`packages/experimental/webhook/src/brand.ts:9`](../packages/experimental/webhook/src/brand.ts) · [`packages/feedback/message-feedback/src/types.ts:14`](../packages/feedback/message-feedback/src/types.ts) · [`packages/goal/goal/src/types.ts:17`](../packages/goal/goal/src/types.ts) · [`packages/interaction/action-cards/src/types.ts:12`](../packages/interaction/action-cards/src/types.ts) · [`packages/interaction/commands/src/brand.ts:22`](../packages/interaction/commands/src/brand.ts) · [`packages/interaction/user-approval/src/types.ts:17`](../packages/interaction/user-approval/src/types.ts) · [`packages/jobs/jobs/src/brand.ts:9`](../packages/jobs/jobs/src/brand.ts) · [`packages/llm/llm-retry/src/brand.ts:4`](../packages/llm/llm-retry/src/brand.ts) · [`packages/llm/llm/src/brand.ts:16`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:31`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:43`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:67`](../packages/llm/llm/src/brand.ts) · [`packages/schedule/schedule/src/types.ts:14`](../packages/schedule/schedule/src/types.ts) · [`packages/session/session-title/src/types.ts:17`](../packages/session/session-title/src/types.ts) · [`packages/team/agent-team/src/types.ts:20`](../packages/team/agent-team/src/types.ts) · [`packages/team/agent-team/src/types.ts:32`](../packages/team/agent-team/src/types.ts) · [`packages/team/agent-team/src/types.ts:8`](../packages/team/agent-team/src/types.ts) · [`packages/workflow/workflow/src/types.ts:14`](../packages/workflow/workflow/src/types.ts)
-+Sources: [`packages/api/session-controller/src/types.ts:396`](../packages/api/session-controller/src/types.ts) · [`packages/attachment/attachment/src/brand.ts:6`](../packages/attachment/attachment/src/brand.ts) · [`packages/compaction/compaction/src/brand.ts:4`](../packages/compaction/compaction/src/brand.ts) · [`packages/core/session/src/types.ts:21`](../packages/core/session/src/types.ts) · [`packages/experimental/webhook/src/brand.ts:12`](../packages/experimental/webhook/src/brand.ts) · [`packages/experimental/webhook/src/brand.ts:6`](../packages/experimental/webhook/src/brand.ts) · [`packages/experimental/webhook/src/brand.ts:9`](../packages/experimental/webhook/src/brand.ts) · [`packages/feedback/message-feedback/src/types.ts:14`](../packages/feedback/message-feedback/src/types.ts) · [`packages/goal/goal/src/types.ts:17`](../packages/goal/goal/src/types.ts) · [`packages/guard/spend-limit/src/types.ts:14`](../packages/guard/spend-limit/src/types.ts) · [`packages/interaction/action-cards/src/types.ts:12`](../packages/interaction/action-cards/src/types.ts) · [`packages/interaction/commands/src/brand.ts:22`](../packages/interaction/commands/src/brand.ts) · [`packages/interaction/user-approval/src/types.ts:17`](../packages/interaction/user-approval/src/types.ts) · [`packages/jobs/jobs/src/brand.ts:9`](../packages/jobs/jobs/src/brand.ts) · [`packages/llm/llm-retry/src/brand.ts:4`](../packages/llm/llm-retry/src/brand.ts) · [`packages/llm/llm/src/brand.ts:16`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:31`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:43`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:67`](../packages/llm/llm/src/brand.ts) · [`packages/memory/memory/src/extraction-types.ts:9`](../packages/memory/memory/src/extraction-types.ts) · [`packages/memory/memory/src/types.ts:14`](../packages/memory/memory/src/types.ts) · [`packages/schedule/schedule/src/types.ts:14`](../packages/schedule/schedule/src/types.ts) · [`packages/session/session-title/src/types.ts:17`](../packages/session/session-title/src/types.ts) · [`packages/team/agent-team/src/types.ts:20`](../packages/team/agent-team/src/types.ts) · [`packages/team/agent-team/src/types.ts:32`](../packages/team/agent-team/src/types.ts) · [`packages/team/agent-team/src/types.ts:8`](../packages/team/agent-team/src/types.ts) · [`packages/util/brand/src/index.ts:18`](../packages/util/brand/src/index.ts) · [`packages/workflow/workflow/src/types.ts:14`](../packages/workflow/workflow/src/types.ts)
++Sources: [`packages/api/session-controller/src/types.ts:396`](../packages/api/session-controller/src/types.ts) · [`packages/attachment/attachment/src/brand.ts:6`](../packages/attachment/attachment/src/brand.ts) · [`packages/compaction/compaction/src/brand.ts:4`](../packages/compaction/compaction/src/brand.ts) · [`packages/core/session/src/types.ts:21`](../packages/core/session/src/types.ts) · [`packages/experimental/webhook/src/brand.ts:12`](../packages/experimental/webhook/src/brand.ts) · [`packages/experimental/webhook/src/brand.ts:6`](../packages/experimental/webhook/src/brand.ts) · [`packages/experimental/webhook/src/brand.ts:9`](../packages/experimental/webhook/src/brand.ts) · [`packages/feedback/message-feedback/src/types.ts:14`](../packages/feedback/message-feedback/src/types.ts) · [`packages/goal/goal/src/types.ts:17`](../packages/goal/goal/src/types.ts) · [`packages/guard/spend-limit/src/types.ts:22`](../packages/guard/spend-limit/src/types.ts) · [`packages/interaction/action-cards/src/types.ts:12`](../packages/interaction/action-cards/src/types.ts) · [`packages/interaction/commands/src/brand.ts:22`](../packages/interaction/commands/src/brand.ts) · [`packages/interaction/user-approval/src/types.ts:17`](../packages/interaction/user-approval/src/types.ts) · [`packages/jobs/jobs/src/brand.ts:9`](../packages/jobs/jobs/src/brand.ts) · [`packages/llm/llm-retry/src/brand.ts:4`](../packages/llm/llm-retry/src/brand.ts) · [`packages/llm/llm/src/brand.ts:16`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:31`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:43`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:67`](../packages/llm/llm/src/brand.ts) · [`packages/memory/memory/src/extraction-types.ts:9`](../packages/memory/memory/src/extraction-types.ts) · [`packages/memory/memory/src/types.ts:14`](../packages/memory/memory/src/types.ts) · [`packages/schedule/schedule/src/types.ts:14`](../packages/schedule/schedule/src/types.ts) · [`packages/session/session-title/src/types.ts:17`](../packages/session/session-title/src/types.ts) · [`packages/team/agent-team/src/types.ts:20`](../packages/team/agent-team/src/types.ts) · [`packages/team/agent-team/src/types.ts:32`](../packages/team/agent-team/src/types.ts) · [`packages/team/agent-team/src/types.ts:8`](../packages/team/agent-team/src/types.ts) · [`packages/util/brand/src/index.ts:18`](../packages/util/brand/src/index.ts) · [`packages/workflow/workflow/src/types.ts:14`](../packages/workflow/workflow/src/types.ts)
  
  `string`
  
@@ -6771,7 +6812,7 @@ index 331cf9e566f0d4bf4a3dd5dc404a254f8b6ba8e5..9b7134e22729636a014908a80bf1fe5a
  | `seq` | required | `number` |
  | `sourceEventSeqs` | optional | [`number[]`](#persistence-type-sha256-5d03ba38734809bcbd2a55221bd938b3b3fc34b49bb686c6113e9e4931e3aa78) |
 diff --git a/docs/persistence-catalog.zh.md b/docs/persistence-catalog.zh.md
-index 02720ca979dd9048b5f6ad4134b14ae3af2af512..aa670b69d1d967af442ec8db4e77a76cabfa51cd 100644
+index 02720ca979dd9048b5f6ad4134b14ae3af2af512..ee9902b5d7125bf47376279e770f6866fc2d3200 100644
 --- a/docs/persistence-catalog.zh.md
 +++ b/docs/persistence-catalog.zh.md
 @@ -26,7 +26,7 @@
@@ -7445,7 +7486,7 @@ index 02720ca979dd9048b5f6ad4134b14ae3af2af512..aa670b69d1d967af442ec8db4e77a76c
  SHA-256: `4cd48f3e5108bd6ebedf7301c3638839b8b2b9db8dbd493974177fbdeb91a01b`
  
 -来源：[`packages/api/session-controller/src/types.ts:383`](../packages/api/session-controller/src/types.ts) · [`packages/attachment/attachment/src/brand.ts:6`](../packages/attachment/attachment/src/brand.ts) · [`packages/compaction/compaction/src/brand.ts:4`](../packages/compaction/compaction/src/brand.ts) · [`packages/core/session/src/types.ts:21`](../packages/core/session/src/types.ts) · [`packages/experimental/webhook/src/brand.ts:12`](../packages/experimental/webhook/src/brand.ts) · [`packages/experimental/webhook/src/brand.ts:6`](../packages/experimental/webhook/src/brand.ts) · [`packages/experimental/webhook/src/brand.ts:9`](../packages/experimental/webhook/src/brand.ts) · [`packages/feedback/message-feedback/src/types.ts:14`](../packages/feedback/message-feedback/src/types.ts) · [`packages/goal/goal/src/types.ts:17`](../packages/goal/goal/src/types.ts) · [`packages/interaction/action-cards/src/types.ts:12`](../packages/interaction/action-cards/src/types.ts) · [`packages/interaction/commands/src/brand.ts:22`](../packages/interaction/commands/src/brand.ts) · [`packages/interaction/user-approval/src/types.ts:17`](../packages/interaction/user-approval/src/types.ts) · [`packages/jobs/jobs/src/brand.ts:9`](../packages/jobs/jobs/src/brand.ts) · [`packages/llm/llm-retry/src/brand.ts:4`](../packages/llm/llm-retry/src/brand.ts) · [`packages/llm/llm/src/brand.ts:16`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:31`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:43`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:67`](../packages/llm/llm/src/brand.ts) · [`packages/schedule/schedule/src/types.ts:14`](../packages/schedule/schedule/src/types.ts) · [`packages/session/session-title/src/types.ts:17`](../packages/session/session-title/src/types.ts) · [`packages/team/agent-team/src/types.ts:20`](../packages/team/agent-team/src/types.ts) · [`packages/team/agent-team/src/types.ts:32`](../packages/team/agent-team/src/types.ts) · [`packages/team/agent-team/src/types.ts:8`](../packages/team/agent-team/src/types.ts) · [`packages/workflow/workflow/src/types.ts:14`](../packages/workflow/workflow/src/types.ts)
-+来源：[`packages/api/session-controller/src/types.ts:396`](../packages/api/session-controller/src/types.ts) · [`packages/attachment/attachment/src/brand.ts:6`](../packages/attachment/attachment/src/brand.ts) · [`packages/compaction/compaction/src/brand.ts:4`](../packages/compaction/compaction/src/brand.ts) · [`packages/core/session/src/types.ts:21`](../packages/core/session/src/types.ts) · [`packages/experimental/webhook/src/brand.ts:12`](../packages/experimental/webhook/src/brand.ts) · [`packages/experimental/webhook/src/brand.ts:6`](../packages/experimental/webhook/src/brand.ts) · [`packages/experimental/webhook/src/brand.ts:9`](../packages/experimental/webhook/src/brand.ts) · [`packages/feedback/message-feedback/src/types.ts:14`](../packages/feedback/message-feedback/src/types.ts) · [`packages/goal/goal/src/types.ts:17`](../packages/goal/goal/src/types.ts) · [`packages/guard/spend-limit/src/types.ts:14`](../packages/guard/spend-limit/src/types.ts) · [`packages/interaction/action-cards/src/types.ts:12`](../packages/interaction/action-cards/src/types.ts) · [`packages/interaction/commands/src/brand.ts:22`](../packages/interaction/commands/src/brand.ts) · [`packages/interaction/user-approval/src/types.ts:17`](../packages/interaction/user-approval/src/types.ts) · [`packages/jobs/jobs/src/brand.ts:9`](../packages/jobs/jobs/src/brand.ts) · [`packages/llm/llm-retry/src/brand.ts:4`](../packages/llm/llm-retry/src/brand.ts) · [`packages/llm/llm/src/brand.ts:16`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:31`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:43`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:67`](../packages/llm/llm/src/brand.ts) · [`packages/memory/memory/src/extraction-types.ts:9`](../packages/memory/memory/src/extraction-types.ts) · [`packages/memory/memory/src/types.ts:14`](../packages/memory/memory/src/types.ts) · [`packages/schedule/schedule/src/types.ts:14`](../packages/schedule/schedule/src/types.ts) · [`packages/session/session-title/src/types.ts:17`](../packages/session/session-title/src/types.ts) · [`packages/team/agent-team/src/types.ts:20`](../packages/team/agent-team/src/types.ts) · [`packages/team/agent-team/src/types.ts:32`](../packages/team/agent-team/src/types.ts) · [`packages/team/agent-team/src/types.ts:8`](../packages/team/agent-team/src/types.ts) · [`packages/util/brand/src/index.ts:18`](../packages/util/brand/src/index.ts) · [`packages/workflow/workflow/src/types.ts:14`](../packages/workflow/workflow/src/types.ts)
++来源：[`packages/api/session-controller/src/types.ts:396`](../packages/api/session-controller/src/types.ts) · [`packages/attachment/attachment/src/brand.ts:6`](../packages/attachment/attachment/src/brand.ts) · [`packages/compaction/compaction/src/brand.ts:4`](../packages/compaction/compaction/src/brand.ts) · [`packages/core/session/src/types.ts:21`](../packages/core/session/src/types.ts) · [`packages/experimental/webhook/src/brand.ts:12`](../packages/experimental/webhook/src/brand.ts) · [`packages/experimental/webhook/src/brand.ts:6`](../packages/experimental/webhook/src/brand.ts) · [`packages/experimental/webhook/src/brand.ts:9`](../packages/experimental/webhook/src/brand.ts) · [`packages/feedback/message-feedback/src/types.ts:14`](../packages/feedback/message-feedback/src/types.ts) · [`packages/goal/goal/src/types.ts:17`](../packages/goal/goal/src/types.ts) · [`packages/guard/spend-limit/src/types.ts:22`](../packages/guard/spend-limit/src/types.ts) · [`packages/interaction/action-cards/src/types.ts:12`](../packages/interaction/action-cards/src/types.ts) · [`packages/interaction/commands/src/brand.ts:22`](../packages/interaction/commands/src/brand.ts) · [`packages/interaction/user-approval/src/types.ts:17`](../packages/interaction/user-approval/src/types.ts) · [`packages/jobs/jobs/src/brand.ts:9`](../packages/jobs/jobs/src/brand.ts) · [`packages/llm/llm-retry/src/brand.ts:4`](../packages/llm/llm-retry/src/brand.ts) · [`packages/llm/llm/src/brand.ts:16`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:31`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:43`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:67`](../packages/llm/llm/src/brand.ts) · [`packages/memory/memory/src/extraction-types.ts:9`](../packages/memory/memory/src/extraction-types.ts) · [`packages/memory/memory/src/types.ts:14`](../packages/memory/memory/src/types.ts) · [`packages/schedule/schedule/src/types.ts:14`](../packages/schedule/schedule/src/types.ts) · [`packages/session/session-title/src/types.ts:17`](../packages/session/session-title/src/types.ts) · [`packages/team/agent-team/src/types.ts:20`](../packages/team/agent-team/src/types.ts) · [`packages/team/agent-team/src/types.ts:32`](../packages/team/agent-team/src/types.ts) · [`packages/team/agent-team/src/types.ts:8`](../packages/team/agent-team/src/types.ts) · [`packages/util/brand/src/index.ts:18`](../packages/util/brand/src/index.ts) · [`packages/workflow/workflow/src/types.ts:14`](../packages/workflow/workflow/src/types.ts)
  
  `string`
  
@@ -9218,7 +9259,7 @@ index 8b0a5d6f867abd701b7b54d5bc43e1e49f5bf711..77f30caeb71ca92f6c519bd530a9aadf
  <!-- persistence-format-index:end -->
  
 diff --git a/docs/persistence-schema.json b/docs/persistence-schema.json
-index 60ce8aa5bdb34d579ec3621694453c9736b51d5a..434a240760ed52cda8e6908b2a121ba650b665bc 100644
+index 60ce8aa5bdb34d579ec3621694453c9736b51d5a..d45680b9aebc658783da401dc74abb229fed6ec6 100644
 --- a/docs/persistence-schema.json
 +++ b/docs/persistence-schema.json
 @@ -6,7 +6,7 @@
@@ -9387,7 +9428,7 @@ index 60ce8aa5bdb34d579ec3621694453c9736b51d5a..434a240760ed52cda8e6908b2a121ba6
      {"digest":"4bb451330ff699f36b45539ceb0eb2606ead72084e2c5bb637c36cc80e2252db","names":[],"sources":["packages/core/session/src/types.ts:208"]},
 -    {"digest":"4cd48f3e5108bd6ebedf7301c3638839b8b2b9db8dbd493974177fbdeb91a01b","names":["packages/api/session-controller/src/types.ts#SessionRequestId","packages/attachment/attachment/src/brand.ts#AttachmentId","packages/compaction/compaction/src/brand.ts#CompactionId","packages/core/session/src/types.ts#SessionId","packages/experimental/webhook/src/brand.ts#WebhookDeliveryId","packages/experimental/webhook/src/brand.ts#WebhookRuleId","packages/experimental/webhook/src/brand.ts#WebhookSourceId","packages/feedback/message-feedback/src/types.ts#MessageFeedbackVersion","packages/goal/goal/src/types.ts#GoalId","packages/interaction/action-cards/src/types.ts#ActionCardId","packages/interaction/commands/src/brand.ts#CommandId","packages/interaction/user-approval/src/types.ts#ApprovalRequestId","packages/jobs/jobs/src/brand.ts#JobId","packages/llm/llm-retry/src/brand.ts#RetryId","packages/llm/llm/src/brand.ts#MessageId","packages/llm/llm/src/brand.ts#ProviderRequestId","packages/llm/llm/src/brand.ts#ReasoningEffortId","packages/llm/llm/src/brand.ts#ToolCallId","packages/schedule/schedule/src/types.ts#ScheduleId","packages/session/session-title/src/types.ts#SessionTitleProviderId","packages/team/agent-team/src/types.ts#TeamId","packages/team/agent-team/src/types.ts#TeamMessageId","packages/team/agent-team/src/types.ts#TeamTaskId","packages/workflow/workflow/src/types.ts#WorkflowRunId"],"sources":["packages/api/session-controller/src/types.ts:383","packages/attachment/attachment/src/brand.ts:6","packages/compaction/compaction/src/brand.ts:4","packages/core/session/src/types.ts:21","packages/experimental/webhook/src/brand.ts:12","packages/experimental/webhook/src/brand.ts:6","packages/experimental/webhook/src/brand.ts:9","packages/feedback/message-feedback/src/types.ts:14","packages/goal/goal/src/types.ts:17","packages/interaction/action-cards/src/types.ts:12","packages/interaction/commands/src/brand.ts:22","packages/interaction/user-approval/src/types.ts:17","packages/jobs/jobs/src/brand.ts:9","packages/llm/llm-retry/src/brand.ts:4","packages/llm/llm/src/brand.ts:16","packages/llm/llm/src/brand.ts:31","packages/llm/llm/src/brand.ts:43","packages/llm/llm/src/brand.ts:67","packages/schedule/schedule/src/types.ts:14","packages/session/session-title/src/types.ts:17","packages/team/agent-team/src/types.ts:20","packages/team/agent-team/src/types.ts:32","packages/team/agent-team/src/types.ts:8","packages/workflow/workflow/src/types.ts:14"]},
 +    {"digest":"4bd6ceb8513f107a2cc4700d5599c47bcb85a3f1fd7fa604f61609e44fc4f713","names":["packages/llm/llm/src/message.ts#DeveloperMessage"],"sources":["packages/llm/llm/src/message.ts:182"]},
-+    {"digest":"4cd48f3e5108bd6ebedf7301c3638839b8b2b9db8dbd493974177fbdeb91a01b","names":["packages/api/session-controller/src/types.ts#SessionRequestId","packages/attachment/attachment/src/brand.ts#AttachmentId","packages/compaction/compaction/src/brand.ts#CompactionId","packages/core/session/src/types.ts#SessionId","packages/experimental/webhook/src/brand.ts#WebhookDeliveryId","packages/experimental/webhook/src/brand.ts#WebhookRuleId","packages/experimental/webhook/src/brand.ts#WebhookSourceId","packages/feedback/message-feedback/src/types.ts#MessageFeedbackVersion","packages/goal/goal/src/types.ts#GoalId","packages/guard/spend-limit/src/types.ts#SpendPauseId","packages/interaction/action-cards/src/types.ts#ActionCardId","packages/interaction/commands/src/brand.ts#CommandId","packages/interaction/user-approval/src/types.ts#ApprovalRequestId","packages/jobs/jobs/src/brand.ts#JobId","packages/llm/llm-retry/src/brand.ts#RetryId","packages/llm/llm/src/brand.ts#MessageId","packages/llm/llm/src/brand.ts#ProviderRequestId","packages/llm/llm/src/brand.ts#ReasoningEffortId","packages/llm/llm/src/brand.ts#ToolCallId","packages/memory/memory/src/extraction-types.ts#MemoryExtractionId","packages/memory/memory/src/types.ts#MemoryId","packages/schedule/schedule/src/types.ts#ScheduleId","packages/session/session-title/src/types.ts#SessionTitleProviderId","packages/team/agent-team/src/types.ts#TeamId","packages/team/agent-team/src/types.ts#TeamMessageId","packages/team/agent-team/src/types.ts#TeamTaskId","packages/util/brand/src/index.ts#Branded","packages/workflow/workflow/src/types.ts#WorkflowRunId"],"sources":["packages/api/session-controller/src/types.ts:396","packages/attachment/attachment/src/brand.ts:6","packages/compaction/compaction/src/brand.ts:4","packages/core/session/src/types.ts:21","packages/experimental/webhook/src/brand.ts:12","packages/experimental/webhook/src/brand.ts:6","packages/experimental/webhook/src/brand.ts:9","packages/feedback/message-feedback/src/types.ts:14","packages/goal/goal/src/types.ts:17","packages/guard/spend-limit/src/types.ts:14","packages/interaction/action-cards/src/types.ts:12","packages/interaction/commands/src/brand.ts:22","packages/interaction/user-approval/src/types.ts:17","packages/jobs/jobs/src/brand.ts:9","packages/llm/llm-retry/src/brand.ts:4","packages/llm/llm/src/brand.ts:16","packages/llm/llm/src/brand.ts:31","packages/llm/llm/src/brand.ts:43","packages/llm/llm/src/brand.ts:67","packages/memory/memory/src/extraction-types.ts:9","packages/memory/memory/src/types.ts:14","packages/schedule/schedule/src/types.ts:14","packages/session/session-title/src/types.ts:17","packages/team/agent-team/src/types.ts:20","packages/team/agent-team/src/types.ts:32","packages/team/agent-team/src/types.ts:8","packages/util/brand/src/index.ts:18","packages/workflow/workflow/src/types.ts:14"]},
++    {"digest":"4cd48f3e5108bd6ebedf7301c3638839b8b2b9db8dbd493974177fbdeb91a01b","names":["packages/api/session-controller/src/types.ts#SessionRequestId","packages/attachment/attachment/src/brand.ts#AttachmentId","packages/compaction/compaction/src/brand.ts#CompactionId","packages/core/session/src/types.ts#SessionId","packages/experimental/webhook/src/brand.ts#WebhookDeliveryId","packages/experimental/webhook/src/brand.ts#WebhookRuleId","packages/experimental/webhook/src/brand.ts#WebhookSourceId","packages/feedback/message-feedback/src/types.ts#MessageFeedbackVersion","packages/goal/goal/src/types.ts#GoalId","packages/guard/spend-limit/src/types.ts#SpendPauseId","packages/interaction/action-cards/src/types.ts#ActionCardId","packages/interaction/commands/src/brand.ts#CommandId","packages/interaction/user-approval/src/types.ts#ApprovalRequestId","packages/jobs/jobs/src/brand.ts#JobId","packages/llm/llm-retry/src/brand.ts#RetryId","packages/llm/llm/src/brand.ts#MessageId","packages/llm/llm/src/brand.ts#ProviderRequestId","packages/llm/llm/src/brand.ts#ReasoningEffortId","packages/llm/llm/src/brand.ts#ToolCallId","packages/memory/memory/src/extraction-types.ts#MemoryExtractionId","packages/memory/memory/src/types.ts#MemoryId","packages/schedule/schedule/src/types.ts#ScheduleId","packages/session/session-title/src/types.ts#SessionTitleProviderId","packages/team/agent-team/src/types.ts#TeamId","packages/team/agent-team/src/types.ts#TeamMessageId","packages/team/agent-team/src/types.ts#TeamTaskId","packages/util/brand/src/index.ts#Branded","packages/workflow/workflow/src/types.ts#WorkflowRunId"],"sources":["packages/api/session-controller/src/types.ts:396","packages/attachment/attachment/src/brand.ts:6","packages/compaction/compaction/src/brand.ts:4","packages/core/session/src/types.ts:21","packages/experimental/webhook/src/brand.ts:12","packages/experimental/webhook/src/brand.ts:6","packages/experimental/webhook/src/brand.ts:9","packages/feedback/message-feedback/src/types.ts:14","packages/goal/goal/src/types.ts:17","packages/guard/spend-limit/src/types.ts:22","packages/interaction/action-cards/src/types.ts:12","packages/interaction/commands/src/brand.ts:22","packages/interaction/user-approval/src/types.ts:17","packages/jobs/jobs/src/brand.ts:9","packages/llm/llm-retry/src/brand.ts:4","packages/llm/llm/src/brand.ts:16","packages/llm/llm/src/brand.ts:31","packages/llm/llm/src/brand.ts:43","packages/llm/llm/src/brand.ts:67","packages/memory/memory/src/extraction-types.ts:9","packages/memory/memory/src/types.ts:14","packages/schedule/schedule/src/types.ts:14","packages/session/session-title/src/types.ts:17","packages/team/agent-team/src/types.ts:20","packages/team/agent-team/src/types.ts:32","packages/team/agent-team/src/types.ts:8","packages/util/brand/src/index.ts:18","packages/workflow/workflow/src/types.ts:14"]},
      {"digest":"4d60dddaa65d3da8d4cd014d85ce3d2c2875664dd0433e331d8e9d395289686b","names":["packages/experimental/liveshare/src/host/viewer-principal.ts#ShareViewerPrincipal"],"sources":["packages/experimental/liveshare/src/host/viewer-principal.ts:24"]},
      {"digest":"4e011753f8263f436efaabfbb3b4db53a98fc55342c5ded2daf7208b217be159","names":[],"sources":[]},
      {"digest":"4e44c9118152f6829634bfd508e47669ab0497caffa380c94b4be91f9390d35d","names":[],"sources":[]},
@@ -15800,7 +15841,7 @@ index 0000000000000000000000000000000000000000..cae960bb0440a4401e95175dcddd19f4
 +  expect(document.activeElement).toBe(trigger)
 +})
 diff --git a/packages/client/ui-settings-account/README.i18n.yaml b/packages/client/ui-settings-account/README.i18n.yaml
-index 217a3754e16c0f3effcb7b80ccadbcf7e5ff3f67..dd2507492d467a2feea5e55a5086d0dd816dda09 100644
+index 217a3754e16c0f3effcb7b80ccadbcf7e5ff3f67..80c646da67d9f6b6c1069428bec09b93dfc22c5f 100644
 --- a/packages/client/ui-settings-account/README.i18n.yaml
 +++ b/packages/client/ui-settings-account/README.i18n.yaml
 @@ -9,14 +9,14 @@
@@ -15817,13 +15858,13 @@ index 217a3754e16c0f3effcb7b80ccadbcf7e5ff3f67..dd2507492d467a2feea5e55a5086d0dd
  /deepseek-ai-dsh-client-ui-settings-account/use-this-package:
 -  en: 51864317e5c33943
 -  zh: c0507f3448859ef0
-+  en: f2eda3bed72ed382
-+  zh: 239672e21dd88a28
++  en: 0bf2abd5fb8b303e
++  zh: acac73d3d74aed59
  /deepseek-ai-dsh-client-ui-settings-account/use-this-package/desktop-onboarding:
    en: b17e3d33f66af025
    zh: 780f813205d955d9
 diff --git a/packages/client/ui-settings-account/README.md b/packages/client/ui-settings-account/README.md
-index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..cb13f6689a6da6899c14d21e955f119b894121ac 100644
+index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..369578b118ffce013a704770d63cc1749b5a7241 100644
 --- a/packages/client/ui-settings-account/README.md
 +++ b/packages/client/ui-settings-account/README.md
 @@ -13,9 +13,11 @@ Server-expired account credentials clear the displayed account details and emit
@@ -15844,7 +15885,7 @@ index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..cb13f6689a6da6899c14d21e955f119b
  <a id="use-this-package"></a>
  ## Use this package
  
-+The sign-in dialog offers network troubleshooting only for `no-response` failures. HTTP, business, response-validation, storage, and account-stream failures retain the generic retry message. Manual cleanup can keep one sample. Automatic cleanup by count accepts 2 to 40,320 samples.
++The sign-in dialog offers network troubleshooting only for `no-response` failures. HTTP, business, response-validation, storage, and account-stream failures retain the generic retry message. Manual cleanup can keep one sample. Automatic cleanup by count accepts 2 to 40,320 samples. The reading updates when a composer prediction or memory extraction records usage, including while the cost details are open.
 +
 +The account menu offers **About** before and after sign-in. On wide screens the brand panel fills the left edge of the dialog. On narrow screens it spans the top. The left panel displays the DSHU calendar version and UTC build time. The right panel identifies the kernel, base commit and date, source tree, release component pins and licenses, with links to the candidate manifest, notices and official DSHU releases. Escape returns focus to the account menu.
 +
@@ -15854,7 +15895,7 @@ index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..cb13f6689a6da6899c14d21e955f119b
  
  Desktop and plain Web clients both mount the sidebar account launcher, Account settings, the sign-in step of model onboarding, and the account-state subscription. Desktop main opens the authorization page in the system browser. A plain Web client, identified by the absent Desktop preload bridge, sends `login_source` web with its own origin as the callback origin, preopens a tab during the sign-in click, navigates it to the authorization URL with the same `theme` parameter once its attempt receives one, and closes it on failure, expiry, or cancellation; a blocked popup leaves the copy-link route. Embedded Platform pages, Desktop onboarding, and the native device reader stay Desktop-only, so Web Platform links open new tabs.
 diff --git a/packages/client/ui-settings-account/README.zh.md b/packages/client/ui-settings-account/README.zh.md
-index 7ea45f5067591a84fb43ef786026cc0c1246729b..1d32dc88e9e6d9a04e1439cb277451fdcec3c914 100644
+index 7ea45f5067591a84fb43ef786026cc0c1246729b..77a4617283f86691f017520975a9dea4c4c74e40 100644
 --- a/packages/client/ui-settings-account/README.zh.md
 +++ b/packages/client/ui-settings-account/README.zh.md
 @@ -13,9 +13,11 @@ kind: "package-reference"
@@ -15875,7 +15916,7 @@ index 7ea45f5067591a84fb43ef786026cc0c1246729b..1d32dc88e9e6d9a04e1439cb277451fd
  <a id="use-this-package"></a>
  ## 使用此包
  
-+登录弹窗仅对 `no-response` 失败提示检查网络。HTTP、业务、响应校验、存储和账号状态流失败仍显示通用重试提示。 手动清理可以只保留 1 条采样。按条数自动清理时，可保留 2 至 40,320 条。
++登录弹窗仅对 `no-response` 失败提示检查网络。HTTP、业务、响应校验、存储和账号状态流失败仍显示通用重试提示。 手动清理可以只保留 1 条采样。按条数自动清理时，可保留 2 至 40,320 条。输入预测或记忆提炼记录用量后，底栏金额及已展开的费用详情会随之更新。
 +
 +登录前后均可从账号菜单打开**关于**。宽屏的渐变铺满弹窗左侧，窄屏铺满顶部。左侧展示 DSHU 日期版本和 UTC 编译时间。右侧列出内核版本、基线提交及时间、候选源码树、发行版组件版本与许可，可打开候选清单、第三方许可和 DSHU 正式发行页。按 Escape 后焦点回到账号菜单。
 +
@@ -16225,10 +16266,10 @@ index 0000000000000000000000000000000000000000..7eaca6902a23069dbd645cd9d01e183a
 +.paused { color: var(--dsw-alias-state-error-primary); }
 diff --git a/packages/client/ui-settings-account/src/client/SessionSpending.tsx b/packages/client/ui-settings-account/src/client/SessionSpending.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..e9d693c805190aa0c2e1cffd00eefc0747ea6dc1
+index 0000000000000000000000000000000000000000..e634ffa6867e1f12a5018857f4f5ea69b70bbbd7
 --- /dev/null
 +++ b/packages/client/ui-settings-account/src/client/SessionSpending.tsx
-@@ -0,0 +1,73 @@
+@@ -0,0 +1,77 @@
 +/** Session cost and active-window readings in the conversation footer. */
 +import { useState } from 'react'
 +import { Button, StatPopover } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -16253,13 +16294,17 @@ index 0000000000000000000000000000000000000000..e9d693c805190aa0c2e1cffd00eefc07
 +export function SessionSpending({ sessionId, useSession, useProjection, useResource, useSpending, t }:
 +Pick<PropsRuntime<'conversation.composer.dock'>, 'sessionId' | 'useSession' | 'useProjection'> &
 +Pick<InjectFace<SpendingInjected>, 'useSpending'> &
-+{ t: Translate<keyof typeof spendingEn>; useResource<P extends 'session-cost'>(address: string): ResourceSnapshot<ResourceProtocolMap[P]> }) {
++{ t: Translate<keyof typeof spendingEn>; useResource: <P extends 'session-cost'>(address: string) => ResourceSnapshot<ResourceProtocolMap[P]> }) {
 +  const blank = useSession(value => value.blank)
-+  const running = useSession(value => value.running)
++  const recorded = useProjection('sessionSpendRevision')
 +  const usage = useProjection('tokenUsage')
++  const running = useSession(value => value.running)
 +  const [revision, refresh] = useState(0)
-+  const meter = usage === undefined ? 'none' : [usage.uncachedInputTokens, usage.outputTokens, usage.cacheReadTokens, usage.cacheWriteTokens].join('-')
-+  const result = useResource<'session-cost'>(blank ? '' : `dsh-resource://session-cost/${encodeURIComponent(sessionId)}?v=${meter}-${String(running)}-${revision}`)
++  // Earlier Hosts publish only the token meter and turn state.
++  const costRevision = recorded ?? [
++    usage?.uncachedInputTokens, usage?.outputTokens, usage?.cacheReadTokens, usage?.cacheWriteTokens, running,
++  ].join('-')
++  const result = useResource<'session-cost'>(blank ? '' : `dsh-resource://session-cost/${encodeURIComponent(sessionId)}?v=${costRevision}-${revision}`)
 +  const limitState = useSpending(value => value)
 +  const limits = limitState.data
 +  if (blank) return null
@@ -16275,7 +16320,7 @@ index 0000000000000000000000000000000000000000..e9d693c805190aa0c2e1cffd00eefc07
 +  const shownPercent = percent < 100 ? Math.min(99, Math.round(percent)) : Math.round(percent)
 +  const nearestLabel = nearest === undefined ? '—' : `${nearest.period} ${shownPercent}%`
 +  return <div className={css.pills}>
-+    <StatPopover title={t('spending.sessionCost')} label={label} icon={<ExpenseIcon />} onOpen={() => refresh(value => value + 1)}>
++    <StatPopover title={t('spending.sessionCost')} label={label} icon={<ExpenseIcon />} onOpen={() => { refresh(value => value + 1) }}>
 +      {cost === undefined ? <p className={css.hint}>{t(result.status === 'failed' ? 'spending.sessionFailed' : 'spending.loading')}</p> : <>
 +        <div className={css.total}>{partial ? '≥ ' : ''}{amount(cost.total)}</div>
 +        <BalanceHistory samples={cost.points.map(point => ({ time: point.time, value: point.total }))} symbol="¥"
@@ -16954,7 +16999,7 @@ index 0000000000000000000000000000000000000000..fd960e1191e33abab8ef182259e84eeb
 +}
 diff --git a/packages/client/ui-settings-account/src/client/spending-locales.ts b/packages/client/ui-settings-account/src/client/spending-locales.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..8b77af5fed27c4d04e2738fc36ca6e0adf0ef0cc
+index 0000000000000000000000000000000000000000..094883ee05c0bec8a485be58ee553bec73eed8c2
 --- /dev/null
 +++ b/packages/client/ui-settings-account/src/client/spending-locales.ts
 @@ -0,0 +1,90 @@
@@ -16980,7 +17025,7 @@ index 0000000000000000000000000000000000000000..8b77af5fed27c4d04e2738fc36ca6e0a
 +  'spending.historyHelp': 'Hover or touch to inspect a sample. Use arrow keys when focused.',
 +  'spending.sessionCost': 'Conversation cost', 'spending.sessionCurve': 'Cumulative estimated cost',
 +  'spending.sessionFailed': 'Could not read this conversation’s usage',
-+  'spending.sessionRequests': '{count} recorded model requests',
++  'spending.sessionRequests': 'Model attempts ({count})',
 +  'spending.sessionPartial': '{count} requests have incomplete request details, usage or rates. The total includes known costs.',
 +  'spending.sessionHint': 'Uses current rates for this conversation’s recorded responses, retries, composer predictions and memory extractions. Forks and side questions have their own totals.',
 +  'spending.occupancy': 'Limits · {percent}%',
@@ -17025,7 +17070,7 @@ index 0000000000000000000000000000000000000000..8b77af5fed27c4d04e2738fc36ca6e0a
 +  'spending.historyHelp': '悬停或轻触查看采样，聚焦后可用方向键逐点查看。',
 +  'spending.sessionCost': '本对话费用', 'spending.sessionCurve': '累计费用估算',
 +  'spending.sessionFailed': '无法读取本对话用量',
-+  'spending.sessionRequests': '已记录 {count} 次模型请求',
++  'spending.sessionRequests': '模型调用尝试 {count} 次',
 +  'spending.sessionPartial': '{count} 次请求缺少请求信息、用量或费率。总额包含已知费用',
 +  'spending.sessionHint': '按当前费率估算本对话已记录的回答、重试、输入预测和记忆提炼费用。分叉与旁问的费用分别统计。',
 +  'spending.occupancy': '限额 · {percent}%',
@@ -19254,7 +19299,7 @@ index 0000000000000000000000000000000000000000..2641ac8062f51080beee821136ee54f7
 +}
 diff --git a/packages/guard/spend-limit/README.i18n.yaml b/packages/guard/spend-limit/README.i18n.yaml
 new file mode 100644
-index 0000000000000000000000000000000000000000..0ce4bcccaa227a53b20a7c4f35e05d4de4108a24
+index 0000000000000000000000000000000000000000..4bdcbf440c1b978fc2b2b60019fc425d0cb41455
 --- /dev/null
 +++ b/packages/guard/spend-limit/README.i18n.yaml
 @@ -0,0 +1,43 @@
@@ -19275,8 +19320,8 @@ index 0000000000000000000000000000000000000000..0ce4bcccaa227a53b20a7c4f35e05d4d
 +  en: 801a3956a0c8e2c3
 +  zh: 019c35d3f810197f
 +/spending-limits/charging-and-recovery:
-+  en: 7f70c15f6715be22
-+  zh: 1eb474213dee73c2
++  en: 7dd7c8e15f21f593
++  zh: f869103f078b9d6d
 +/spending-limits/charging-and-recovery/recovery-and-upgrades:
 +  en: b66432feba7d76af
 +  zh: b8b5327fbcd73b86
@@ -19303,7 +19348,7 @@ index 0000000000000000000000000000000000000000..0ce4bcccaa227a53b20a7c4f35e05d4d
 +  zh: 7aeea62eda52b83b
 diff --git a/packages/guard/spend-limit/README.md b/packages/guard/spend-limit/README.md
 new file mode 100644
-index 0000000000000000000000000000000000000000..acabdd3acf6dca0dd62173035d392edc51d25ae6
+index 0000000000000000000000000000000000000000..22312259472201cff7eb1108ed557d00142363df
 --- /dev/null
 +++ b/packages/guard/spend-limit/README.md
 @@ -0,0 +1,63 @@
@@ -19329,7 +19374,7 @@ index 0000000000000000000000000000000000000000..acabdd3acf6dca0dd62173035d392edc
 +
 +The local SQLite ledger serializes reservations across processes. Set the ledger path, polling interval, per-provider rates, context size and search cost in the plugin configuration. The ledger estimates input and output cost before dispatch and settles against reported usage. An incomplete response retains the reserved cost. A recovered process reservation starts its rolling period at recovery. Unknown rates or ledger failures block chargeable requests when limits apply.
 +
-+The session estimate covers its own model responses, retries, composer predictions and memory extractions. Predictions and extractions use the provider and model recorded with each request and the current CNY rates. A missing request ID, route, result, usage or matching rate counts as an unpriced request. Inherited requests belong to their original session. The cumulative curve displays up to 240 points and retains the full priced total.
++The session estimate covers its own model responses, retries, composer predictions and memory extractions. Predictions and extractions use the provider and model recorded with each request and the current CNY rates. A missing request ID, route, result, usage or matching rate counts as an unpriced request. Inherited requests belong to their original session. The cumulative curve displays up to 240 points and retains the full priced total. Open sessions publish the sequence of the last billing event to refresh the displayed estimate. Amounts and rates stay in the owner-only usage RPC. The attempt count includes interrupted attempts with no usage receipt. Those attempts add no amount to the known total.
 +
 +### Recovery and upgrades
 +
@@ -19372,7 +19417,7 @@ index 0000000000000000000000000000000000000000..acabdd3acf6dca0dd62173035d392edc
 +</details>
 diff --git a/packages/guard/spend-limit/README.zh.md b/packages/guard/spend-limit/README.zh.md
 new file mode 100644
-index 0000000000000000000000000000000000000000..0e9182e0a7c23e81c47829e8917ab1286ce1e1ef
+index 0000000000000000000000000000000000000000..7db634414678a26144ffa37c9e3cde5a78868a45
 --- /dev/null
 +++ b/packages/guard/spend-limit/README.zh.md
 @@ -0,0 +1,74 @@
@@ -19404,7 +19449,7 @@ index 0000000000000000000000000000000000000000..0e9182e0a7c23e81c47829e8917ab128
 +
 +单次预留超限和缺少费率分别抛出 `HarnessError`，错误码为 `SPEND_REQUEST_TOO_LARGE` 和 `SPEND_RATE_UNKNOWN`，模型请求不会发送。它们属于本机准入失败，不能按服务商重试处理；调用方按错误码提供调整限额或费率的入口。
 +
-+应用所有者可查看本对话回答、重试、输入预测和记忆提炼的估算费用。预测和提炼使用各自请求中记录的服务商和模型，按当前人民币费率估算。缺少请求标识、路由、结果、用量或匹配费率时，该请求计入无法计价的数量。父会话和祖先会话的消费归各自会话。累计曲线最多显示 240 点，总额包含所有可计价请求。
++应用所有者可查看本对话回答、重试、输入预测和记忆提炼的估算费用。预测和提炼使用各自请求中记录的服务商和模型，按当前人民币费率估算。缺少请求标识、路由、结果、用量或匹配费率时，该请求计入无法计价的数量。父会话和祖先会话的消费归各自会话。累计曲线最多显示 240 点，总额包含所有可计价请求。已打开的会话发布最近一条计费事件的序号，用于刷新显示金额。金额和费率仍通过仅应用所有者可用的费用接口读取。中断且没有用量回执的尝试单独计数，已知费用只累计可计价的用量。
 +
 +### 恢复与升级
 +
@@ -19476,10 +19521,10 @@ index 0000000000000000000000000000000000000000..747a60a9bec0e89cc587f4186881d569
 +}
 diff --git a/packages/guard/spend-limit/package.json b/packages/guard/spend-limit/package.json
 new file mode 100644
-index 0000000000000000000000000000000000000000..f9e925ef06c6faa2e9239f1cee83fe4364c96464
+index 0000000000000000000000000000000000000000..36c0d6a51553dc397978de5c584237ea36286475
 --- /dev/null
 +++ b/packages/guard/spend-limit/package.json
-@@ -0,0 +1,74 @@
+@@ -0,0 +1,75 @@
 +{
 +  "name": "@deepseek-ai/dsh-spend-limit",
 +  "description": "Transactional CNY request budgets shared across conversations and local processes",
@@ -19538,6 +19583,7 @@ index 0000000000000000000000000000000000000000..f9e925ef06c6faa2e9239f1cee83fe43
 +    "@deepseek-ai/dsh-llm": "workspace:*",
 +    "@deepseek-ai/dsh-memory": "workspace:*",
 +    "@deepseek-ai/dsh-session": "workspace:*",
++    "@deepseek-ai/dsh-session-projection": "workspace:*",
 +    "@deepseek-ai/dsh-typert-protocol": "workspace:*",
 +    "zod": "4.6.6"
 +  },
@@ -19856,10 +19902,10 @@ index 0000000000000000000000000000000000000000..6063a78ab7ca989a3dd54de0cef9c30d
 +}
 diff --git a/packages/guard/spend-limit/src/index.ts b/packages/guard/spend-limit/src/index.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..ab5bfb432d0ad21f63a9b8cfe0ffb531f0bd6612
+index 0000000000000000000000000000000000000000..4a0b7f22fe47f1da0d1c85ad3fe3300591ae6f10
 --- /dev/null
 +++ b/packages/guard/spend-limit/src/index.ts
-@@ -0,0 +1,221 @@
+@@ -0,0 +1,232 @@
 +/** Built-in spending admission for model streams and DeepSeek native search. */
 +import type { Context } from '@deepseek-ai/cordis'
 +import schema from '@deepseek-ai/schemastery'
@@ -19867,6 +19913,7 @@ index 0000000000000000000000000000000000000000..ab5bfb432d0ad21f63a9b8cfe0ffb531
 +import type {} from '@deepseek-ai/dsh-llm'
 +import type {} from '@deepseek-ai/dsh-web-search-deepseek'
 +import type {} from '@deepseek-ai/dsh-session-query'
++import type {} from '@deepseek-ai/dsh-session-projection'
 +import { z } from 'zod'
 +import { SpendRecovery, type SpendContinuationHandler } from './continuation.ts'
 +import type { SessionId } from '@deepseek-ai/dsh-session'
@@ -19944,7 +19991,7 @@ index 0000000000000000000000000000000000000000..ab5bfb432d0ad21f63a9b8cfe0ffb531
 +    this.assertOwner('spending/sessionUsage')
 +    const query = this.ctx.get('sessionQuery')
 +    if (query === undefined) throw new RemoteError('gateway/internal', 'Session history is unavailable.', {})
-+    using source = await query.observeSession(sessionId)
++    using source = await query.observeSession(sessionId, { projectionMode: 'none' })
 +    return (await this.runtime.ready).sessionUsage(source.events, source.inheritedEventCount)
 +  }
 +  /**
@@ -20031,6 +20078,16 @@ index 0000000000000000000000000000000000000000..ab5bfb432d0ad21f63a9b8cfe0ffb531
 + * @param config - Validated deployment settings.
 + */
 +export async function apply(ctx: Context, config: Config): Promise<void> {
++  ctx.inject(['sessionProjections'], async (scope) => {
++    const sequence = z.number().int().min(-1)
++    const billingEvents = new Set(['assistant/message', 'assistant/attempt', 'memory/extraction', 'input/prediction'])
++    await scope.sessionProjections.register({
++      key: 'sessionSpendRevision', stateVersion: 1, stateSchema: sequence,
++      init: () => -1,
++      apply: (previous, event) => billingEvents.has(event.type) ? event.seq : previous,
++      wire: { viewSchema: sequence, view: value => value, summary: false },
++    })
++  })
 +  let closing = false
 +  const ready = SpendLedger.open(config.path)
 +    .then(ledger => new SpendGate(ledger, config.rates, config.pollMs, id => recovery.canCapture(id)))
@@ -20655,13 +20712,21 @@ index 0000000000000000000000000000000000000000..5f79eed345b9eef3d35696b82cfeab48
 +}
 diff --git a/packages/guard/spend-limit/src/types.ts b/packages/guard/spend-limit/src/types.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..0480a975f00439ad10e13e6efa27ae427dd3a025
+index 0000000000000000000000000000000000000000..030263de382931c83ce05e1f154176b7526f9bd8
 --- /dev/null
 +++ b/packages/guard/spend-limit/src/types.ts
-@@ -0,0 +1,91 @@
+@@ -0,0 +1,101 @@
 +/** Client-safe preferences and observations for the shared CNY spending ledger. */
 +import type { Branded } from '@deepseek-ai/dsh-brand'
 +import type { SessionId } from '@deepseek-ai/dsh-session/types'
++import type { SessionProjectionSummaryExcluded } from '@deepseek-ai/dsh-session-projection/types'
++
++declare module '@deepseek-ai/dsh-session-projection/types' {
++  interface SessionProjectionMap {
++    /** Sequence of the latest recorded request or usage that can change this session's estimate. */
++    sessionSpendRevision: SessionProjectionSummaryExcluded<number>
++  }
++}
 +
 +declare module '@deepseek-ai/dsh-typert-protocol' {
 +  interface RemoteErrorDetailsMap {
@@ -20746,7 +20811,9 @@ index 0000000000000000000000000000000000000000..0480a975f00439ad10e13e6efa27ae42
 +/** Session-local cost of model responses, retries, predictions and memory extractions at current rates. */
 +export interface SessionSpendUsage {
 +  total: number
++  /** Logged attempts, including interruptions that have no provider usage receipt. */
 +  requests: number
++  /** Attempts with insufficient evidence to price; the total includes only known costs. */
 +  unpricedRequests: number
 +  points: { time: number; total: number }[]
 +}
@@ -21670,18 +21737,20 @@ index 0000000000000000000000000000000000000000..01e4339d2ab1e380ebe3f692cdd88631
 +})
 diff --git a/packages/guard/spend-limit/tests/session-usage.spec.ts b/packages/guard/spend-limit/tests/session-usage.spec.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..dcb7da44b502f51896c5053b1f9c3c5fcae3cd08
+index 0000000000000000000000000000000000000000..93b291c5036f2be13e812d37caf4cf62729ae90f
 --- /dev/null
 +++ b/packages/guard/spend-limit/tests/session-usage.spec.ts
-@@ -0,0 +1,136 @@
+@@ -0,0 +1,170 @@
 +import { expect, it } from 'vitest'
 +import { Context } from '@deepseek-ai/cordis'
 +import SessionStore, { SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
 +import type { SessionEvent } from '@deepseek-ai/dsh-session'
 +import { RetryId } from '@deepseek-ai/dsh-llm-retry'
 +import { sessionSpendUsage } from '../src/session-usage.ts'
++import SessionProjections from '@deepseek-ai/dsh-session-projection'
++import * as spending from '../src/index.ts'
 +import { DEFAULT_RATES } from '../src/pricing.ts'
-+import { createAssistantMessage, createUserMessage, MessageId } from '@deepseek-ai/dsh-llm'
++import LlmRuntime, { createAssistantMessage, createUserMessage, MessageId } from '@deepseek-ai/dsh-llm'
 +import { brandString } from '@deepseek-ai/dsh-brand'
 +import type { MemoryExtractionId } from '@deepseek-ai/dsh-memory/types'
 +
@@ -21754,6 +21823,38 @@ index 0000000000000000000000000000000000000000..dcb7da44b502f51896c5053b1f9c3c5f
 +  expect(sessionSpendUsage(events, DEFAULT_RATES, SessionLogOffset(2))).toMatchObject({ total: 0.00036, requests: 2, unpricedRequests: 1 })
 +})
 +
++it('refreshes fees on recorded usage and excludes the revision from session summaries', async () => {
++  const ctx = new Context()
++  try {
++    await ctx.plugin(SessionStore)
++    await ctx.plugin(SessionProjections)
++    await ctx.plugin(LlmRuntime)
++    const session = ctx.sessions.create()
++    const earlier = session.append('assistant/attempt', attempt(0).data)
++    const plugin = await ctx.plugin(spending, { path: ':memory:', pollMs: 1000, rates: DEFAULT_RATES })
++    const projection = ctx.sessionProjections
++    const read = () => projection.snapshot(session).values.sessionSpendRevision
++    expect(read()).toBe(earlier.seq)
++    const requestId = brandString<MemoryExtractionId>('extract-for-fees')
++    const request = session.append('memory/extraction', {
++      requestId, phase: 'request', turn: 1, throughSeq: 0, scope: { global: false, mode: 'writing' },
++      provider: 'deepseek-official', model: 'deepseek-flash', maxTokens: 100,
++      message: createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'Remember the format.' }] }),
++    })
++    expect(read()).toBe(request.seq)
++    const receipt = session.append('memory/extraction', {
++      requestId, phase: 'result', turn: 1, throughSeq: 0, outcome: 'completed', saved: [],
++      usage: { inputTokens: 20, outputTokens: 10 },
++    })
++    session.append('request/header', header(0).data)
++    expect(read()).toBe(receipt.seq)
++    expect(projection.viewCheckpoint(projection.checkpoint(session)).sessionSpendRevision).toBe(receipt.seq)
++    expect(projection.snapshot(session, projection.summaryKeys()).values).not.toHaveProperty('sessionSpendRevision')
++    await plugin.dispose()
++    expect(read()).toBeUndefined()
++  } finally { await ctx.fiber.dispose() }
++})
++
 +it('charges only the grandchild after two real forks and keeps the inherited route', async () => {
 +  const ctx = new Context()
 +  try {
@@ -21812,10 +21913,10 @@ index 0000000000000000000000000000000000000000..dcb7da44b502f51896c5053b1f9c3c5f
 +})
 diff --git a/packages/guard/spend-limit/tsconfig.json b/packages/guard/spend-limit/tsconfig.json
 new file mode 100644
-index 0000000000000000000000000000000000000000..21345d7dd4696e5766f588367427b04daba819f9
+index 0000000000000000000000000000000000000000..e3fa9ee2d6dc24ee5d062202c839ce0bfc17e6aa
 --- /dev/null
 +++ b/packages/guard/spend-limit/tsconfig.json
-@@ -0,0 +1,43 @@
+@@ -0,0 +1,46 @@
 +{
 +  "extends": "../../../tsconfig.base.json",
 +  "compilerOptions": {
@@ -21838,6 +21939,9 @@ index 0000000000000000000000000000000000000000..21345d7dd4696e5766f588367427b04d
 +    },
 +    {
 +      "path": "../../core/session"
++    },
++    {
++      "path": "../../session/session-projection"
 +    },
 +    {
 +      "path": "../../../vendor/cordis"
@@ -23798,7 +23902,7 @@ index 68e7f032cb3b63ef1c4f09d592321a9144400141..13d56812ef0ea53bbcf605f7ad1e58af
               this._inSocket.destroy();
               this._ptyNative.kill(this._pty, this._useConptyDll);
 diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
-index 774164ab6d006ce397a2f47f6ba84592519d80d6..51d86269fc0609993948277a762246e9a0721a8b 100644
+index 774164ab6d006ce397a2f47f6ba84592519d80d6..1204c58bdab8402aae7dad0869360085371ef6d5 100644
 --- a/pnpm-lock.yaml
 +++ b/pnpm-lock.yaml
 @@ -24,7 +24,7 @@ patchedDependencies:
@@ -24405,7 +24509,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..51d86269fc0609993948277a762246e9
    packages/credentials/credentials:
      dependencies:
        '@deepseek-ai/dsh-brand':
-@@ -14340,6 +14712,52 @@ importers:
+@@ -14340,6 +14712,55 @@ importers:
          specifier: workspace:*
          version: link:../../core/tools
  
@@ -24426,6 +24530,9 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..51d86269fc0609993948277a762246e9
 +      '@deepseek-ai/dsh-session':
 +        specifier: workspace:*
 +        version: link:../../core/session
++      '@deepseek-ai/dsh-session-projection':
++        specifier: workspace:*
++        version: link:../../session/session-projection
 +      '@deepseek-ai/dsh-typert-protocol':
 +        specifier: workspace:*
 +        version: link:../../typert/protocol
@@ -24458,7 +24565,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..51d86269fc0609993948277a762246e9
    packages/guard/timeout-policy:
      devDependencies:
        '@deepseek-ai/cordis':
-@@ -15796,6 +16214,64 @@ importers:
+@@ -15796,6 +16217,64 @@ importers:
          specifier: workspace:*
          version: link:../../core/tools
  
@@ -24523,7 +24630,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..51d86269fc0609993948277a762246e9
    packages/plan/plan-mode:
      dependencies:
        '@deepseek-ai/dsh-brand':
-@@ -18041,6 +18517,22 @@ importers:
+@@ -18041,6 +18520,22 @@ importers:
          specifier: workspace:*
          version: link:../../core/tool-executor-ptc
  
@@ -24546,7 +24653,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..51d86269fc0609993948277a762246e9
    packages/skill/tool-skill:
      dependencies:
        '@deepseek-ai/schemastery':
-@@ -19182,7 +19674,7 @@ importers:
+@@ -19182,7 +19677,7 @@ importers:
          version: 3.1.1
        node-pty:
          specifier: 1.2.0-beta.15
@@ -24555,7 +24662,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..51d86269fc0609993948277a762246e9
      devDependencies:
        '@deepseek-ai/cordis':
          specifier: workspace:~
-@@ -20083,6 +20575,12 @@ importers:
+@@ -20083,6 +20578,12 @@ importers:
          specifier: ^7.8.0
          version: 7.8.0
  
@@ -24568,7 +24675,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..51d86269fc0609993948277a762246e9
    packages/util/ripgrep:
      dependencies:
        '@vscode/ripgrep':
-@@ -20753,6 +21251,9 @@ importers:
+@@ -20753,6 +21254,9 @@ importers:
        '@deepseek-ai/dsh-mcp-client':
          specifier: workspace:*
          version: link:../../packages/mcp/mcp-client
@@ -24578,7 +24685,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..51d86269fc0609993948277a762246e9
        '@deepseek-ai/dsh-message-feedback':
          specifier: workspace:*
          version: link:../../packages/feedback/message-feedback
-@@ -20873,6 +21374,9 @@ importers:
+@@ -20873,6 +21377,9 @@ importers:
        '@deepseek-ai/dsh-skill-office':
          specifier: workspace:*
          version: link:../../packages/skill/skill-office
@@ -24588,7 +24695,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..51d86269fc0609993948277a762246e9
        '@deepseek-ai/dsh-spill':
          specifier: workspace:*
          version: link:../../packages/spill/spill
-@@ -35270,7 +35774,7 @@ snapshots:
+@@ -35270,7 +35777,7 @@ snapshots:
  
    node-int64@0.4.0: {}
  

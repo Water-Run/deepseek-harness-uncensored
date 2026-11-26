@@ -5,6 +5,7 @@ import { principalOf, Remote, RemoteError, TypertRemoteService } from '@deepseek
 import type {} from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-web-search-deepseek'
 import type {} from '@deepseek-ai/dsh-session-query'
+import type {} from '@deepseek-ai/dsh-session-projection'
 import { z } from 'zod'
 import { SpendRecovery, type SpendContinuationHandler } from './continuation.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session'
@@ -78,7 +79,7 @@ export class SpendLimitRemote extends TypertRemoteService {
     this.assertOwner('spending/sessionUsage')
     const query = this.ctx.get('sessionQuery')
     if (query === undefined) throw new RemoteError('gateway/internal', 'Session history is unavailable.', {})
-    using source = await query.observeSession(sessionId)
+    using source = await query.observeSession(sessionId, { projectionMode: 'none' })
     return (await this.runtime.ready).sessionUsage(source.events, source.inheritedEventCount)
   }
   /**
@@ -165,6 +166,16 @@ export class SpendLimitRemote extends TypertRemoteService {
  * @param config - Validated deployment settings.
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
+  ctx.inject(['sessionProjections'], async (scope) => {
+    const sequence = z.number().int().min(-1)
+    const billingEvents = new Set(['assistant/message', 'assistant/attempt', 'memory/extraction', 'input/prediction'])
+    await scope.sessionProjections.register({
+      key: 'sessionSpendRevision', stateVersion: 1, stateSchema: sequence,
+      init: () => -1,
+      apply: (previous, event) => billingEvents.has(event.type) ? event.seq : previous,
+      wire: { viewSchema: sequence, view: value => value, summary: false },
+    })
+  })
   let closing = false
   const ready = SpendLedger.open(config.path)
     .then(ledger => new SpendGate(ledger, config.rates, config.pollMs, id => recovery.canCapture(id)))

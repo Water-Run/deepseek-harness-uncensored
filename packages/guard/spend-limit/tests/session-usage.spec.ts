@@ -4,8 +4,10 @@ import SessionStore, { SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-ses
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import { RetryId } from '@deepseek-ai/dsh-llm-retry'
 import { sessionSpendUsage } from '../src/session-usage.ts'
+import SessionProjections from '@deepseek-ai/dsh-session-projection'
+import * as spending from '../src/index.ts'
 import { DEFAULT_RATES } from '../src/pricing.ts'
-import { createUserMessage, MessageId } from '@deepseek-ai/dsh-llm'
+import LlmRuntime, { createUserMessage, MessageId } from '@deepseek-ai/dsh-llm'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import type { MemoryExtractionId } from '@deepseek-ai/dsh-memory/types'
 
@@ -61,6 +63,38 @@ it('excludes inherited work and reports unknown routes without inventing fees', 
     header(3, 'unpriced-model'), attempt(4, 2), header(5), attempt(6, 3),
   ]
   expect(sessionSpendUsage(events, DEFAULT_RATES, SessionLogOffset(2))).toMatchObject({ total: 0.00036, requests: 2, unpricedRequests: 1 })
+})
+
+it('refreshes fees on recorded usage and excludes the revision from session summaries', async () => {
+  const ctx = new Context()
+  try {
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjections)
+    await ctx.plugin(LlmRuntime)
+    const session = ctx.sessions.create()
+    const earlier = session.append('assistant/attempt', attempt(0).data)
+    const plugin = await ctx.plugin(spending, { path: ':memory:', pollMs: 1000, rates: DEFAULT_RATES })
+    const projection = ctx.sessionProjections
+    const read = () => projection.snapshot(session).values.sessionSpendRevision
+    expect(read()).toBe(earlier.seq)
+    const requestId = brandString<MemoryExtractionId>('extract-for-fees')
+    const request = session.append('memory/extraction', {
+      requestId, phase: 'request', turn: 1, throughSeq: 0, scope: { global: false, mode: 'writing' },
+      provider: 'deepseek-official', model: 'deepseek-flash', maxTokens: 100,
+      message: createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'Remember the format.' }] }),
+    })
+    expect(read()).toBe(request.seq)
+    const receipt = session.append('memory/extraction', {
+      requestId, phase: 'result', turn: 1, throughSeq: 0, outcome: 'completed', saved: [],
+      usage: { inputTokens: 20, outputTokens: 10 },
+    })
+    session.append('request/header', header(0).data)
+    expect(read()).toBe(receipt.seq)
+    expect(projection.viewCheckpoint(projection.checkpoint(session)).sessionSpendRevision).toBe(receipt.seq)
+    expect(projection.snapshot(session, projection.summaryKeys()).values).not.toHaveProperty('sessionSpendRevision')
+    await plugin.dispose()
+    expect(read()).toBeUndefined()
+  } finally { await ctx.fiber.dispose() }
 })
 
 it('charges only the grandchild after two real forks and keeps the inherited route', async () => {

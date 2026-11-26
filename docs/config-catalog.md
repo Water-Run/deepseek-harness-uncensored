@@ -3788,7 +3788,7 @@ export type PackId = (typeof PACK_IDS)[number]
 ## `@deepseek-ai/dsh-spend-limit`
 
 - `inject`: `llm`
-- `source`: [`packages/guard/spend-limit/src/index.ts:18`](../packages/guard/spend-limit/src/index.ts)
+- `source`: [`packages/guard/spend-limit/src/index.ts:19`](../packages/guard/spend-limit/src/index.ts)
 
 ```ts config-catalog
 /** Deployment-owned ledger path and conservative rates. User limits live in the ledger. */

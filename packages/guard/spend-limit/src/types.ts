@@ -1,6 +1,14 @@
 /** Client-safe preferences and observations for the shared CNY spending ledger. */
 import type { Branded } from '@deepseek-ai/dsh-brand'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { SessionProjectionSummaryExcluded } from '@deepseek-ai/dsh-session-projection/types'
+
+declare module '@deepseek-ai/dsh-session-projection/types' {
+  interface SessionProjectionMap {
+    /** Sequence of the latest recorded request or usage that can change this session's estimate. */
+    sessionSpendRevision: SessionProjectionSummaryExcluded<number>
+  }
+}
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface RemoteErrorDetailsMap {
@@ -85,7 +93,9 @@ export interface SpendRate {
 /** Session-local cost of model responses, retries, predictions and memory extractions at current rates. */
 export interface SessionSpendUsage {
   total: number
+  /** Logged attempts, including interruptions that have no provider usage receipt. */
   requests: number
+  /** Attempts with insufficient evidence to price; the total includes only known costs. */
   unpricedRequests: number
   points: { time: number; total: number }[]
 }

@@ -20,11 +20,15 @@ const occupancy = (window: SpendWindow): number => (window.spent + window.reserv
 export function SessionSpending({ sessionId, useSession, useProjection, useResource, useSpending, t }:
 PropsRuntime<'conversation.composer.dock'> & InjectFace<SpendingInjected> & PropsLocale<'settings.account'>) {
   const blank = useSession(value => value.blank)
-  const running = useSession(value => value.running)
+  const recorded = useProjection('sessionSpendRevision')
   const usage = useProjection('tokenUsage')
+  const running = useSession(value => value.running)
   const [revision, refresh] = useState(0)
-  const meter = usage === undefined ? 'none' : [usage.uncachedInputTokens, usage.outputTokens, usage.cacheReadTokens, usage.cacheWriteTokens].join('-')
-  const result = useResource<'session-cost'>(blank ? '' : `dsh-resource://session-cost/${encodeURIComponent(sessionId)}?v=${meter}-${String(running)}-${revision}`)
+  // Earlier Hosts publish only the token meter and turn state.
+  const costRevision = recorded ?? [
+    usage?.uncachedInputTokens, usage?.outputTokens, usage?.cacheReadTokens, usage?.cacheWriteTokens, running,
+  ].join('-')
+  const result = useResource<'session-cost'>(blank ? '' : `dsh-resource://session-cost/${encodeURIComponent(sessionId)}?v=${costRevision}-${revision}`)
   const limitState = useSpending(value => value)
   const limits = limitState.data
   if (blank) return null
@@ -40,7 +44,7 @@ PropsRuntime<'conversation.composer.dock'> & InjectFace<SpendingInjected> & Prop
   const shownPercent = percent < 100 ? Math.min(99, Math.round(percent)) : Math.round(percent)
   const nearestLabel = nearest === undefined ? '—' : `${nearest.period} ${shownPercent}%`
   return <div className={css.pills}>
-    <StatPopover title={t('spending.sessionCost')} label={label} icon={<ExpenseIcon />} onOpen={() => refresh(value => value + 1)}>
+    <StatPopover title={t('spending.sessionCost')} label={label} icon={<ExpenseIcon />} onOpen={() => { refresh(value => value + 1) }}>
       {cost === undefined ? <p className={css.hint}>{t(result.status === 'failed' ? 'spending.sessionFailed' : 'spending.loading')}</p> : <>
         <div className={css.total}>{partial ? '≥ ' : ''}{amount(cost.total)}</div>
         <BalanceHistory samples={cost.points.map(point => ({ time: point.time, value: point.total }))} symbol="¥"
