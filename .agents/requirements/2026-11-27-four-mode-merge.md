@@ -54,6 +54,16 @@ pnpm run verify-client-catalog && pnpm run verify-cordis-catalog && pnpm run ver
 
 ## 产物
 
-Windows x64 未签名安装包、差分索引与安装后 `app.asar` 的摘要见下一节回填。关于页应显示“随包组件与许可”以及 `dsh-purge Community 1.7.20`、`REA 6.9.0` 的版本、提交与许可；缺失时该区块不显示组件。
+Windows x64 未签名安装包由同一候选树 `0f8abcfc16cd` 的干净工作区构建，构建记录带有该候选树标识。打包阶段在 `runtime:install` 处需要放宽 pnpm 的严格依赖构建策略（`--config.strictDepBuilds=false`），否则 REA 的 `frida` 依赖会让运行时安装直接失败；该改动已写入 `apps/desktop/scripts/prepare-dsh.ts` 并纳入补丁。
 
-（产物摘要待本轮打包完成后回填。）
+| 对象 | 字节 | SHA-256 |
+| --- | ---: | --- |
+| `deepseek-harness-uncensored-2026.11.27.0-win-x64-unsigned.exe` | 353,112,650 | `f782838c04d69ea0d62dffd1288e600b73953f5c8c89a51ce3d4d96ac308aace` |
+| 同名 `.blockmap` | 366,676 | `15796ecad1943a63ac3fc0d8f01291a38bfbf80389e17707a0d32e85db0a5157` |
+| 安装后 `resources/app.asar` | 372,580,935 | `daafba5eab6efbf6b001771af75c6e4758ed15ce53bd9c2976a4cc92204c0e13` |
+
+差分索引已按安装包字节重算核对（`verify-windows-installer-blockmap` 输出 size、SHA-256 与 SHA-512 一致）。安装载荷含 366 个运行时包目录，其中包含 `dsh-uncensored-armor`、`dsh-rea`、`dsh-refusal-retry`、`dsh-security-proxy`、`dsh-security-proxy-local`、`dsh-tool-working-directory`、`dsh-skill-playbooks`；`dsh-web-app` 内带 `presets/security.patch.yml` 与 `presets/reverse.patch.yml`，`dsh-skill-playbooks` 内带 `assets/security` 与 `assets/reverse`。打包冒烟测试通过：随包 CLI 离线插件安装与移除、Office 技能加载、DOCX/XLSX/PPTX 转 PDF、图像渲染与表格重算。
+
+关于页应显示“随包组件与许可”以及 `dsh-purge Community 1.7.20`、`REA 6.9.0` 的版本、提交与许可；构建封入的公开值共 18 个，含两类组件的仓库、版本、提交、时间与许可。
+
+安装包与本轮构建记录归档在 `%USERPROFILE%/DSHU-Deliveries/20261127/windows-x64-candidate/0f8abcfc16cd/`（含 `receipt.json`、`SHA256SUMS`、打包运行目录与客户端构建记录）。
