@@ -1,6 +1,6 @@
 # DSHU 2026.11.27.0 四模式并档与缺口记录
 
-更新于 2026-11-27。记录把上一正式版 `v2026.11.24.3` 的专项能力并回 `0.2.3-alpha.2` 候选树的过程、已完成的验收证据，以及仍未移植的部分。候选身份：DSHU `2026.11.27.0`、DSH `0.2.3-alpha.2`、上游 `4b399c39a6d1479cd84ca591b4d7c88e24d38a96`、候选树 `e6b3c3ab66e18d42f670cf17b5e80a99f642434a`。
+更新于 2026-11-27。记录把上一正式版 `v2026.11.24.3` 的专项能力并回 `0.2.3-alpha.2` 候选树的过程、已完成的验收证据，以及仍未移植的部分。候选身份：DSHU `2026.11.27.0`、DSH `0.2.3-alpha.2`、上游 `4b399c39a6d1479cd84ca591b4d7c88e24d38a96`、候选树 `a373337a76be3240729d25586dfdc2d52190e1b`。
 
 ## 背景
 
@@ -29,7 +29,7 @@
 - `pnpm run build:check`：Host 与 Client 聚合检查通过。
 - 定向测试：`uncensored-armor`、`mcp/rea`、`refusal-retry`、`security-proxy-local`、`web-fetch-http`、`tool-working-directory` 共 237 项通过。
 - 目录生成：`verify-client-catalog`、`verify-config-catalog`、`verify-cordis-catalog`、`verify-tool-catalog`、`verify-persistence-catalog`、`verify-cordis-config` 全部通过。
-- 候选树可复现：`node scripts/prepare-kernel-candidate.mjs <新目录>` 由补丁还原得到同一树 `e6b3c3ab66e1`。
+- 候选树可复现：`node scripts/prepare-kernel-candidate.mjs <新目录>` 由补丁还原得到同一树 `a373337a76be`。
 
 ## 品牌回归（2026-11-27 复核发现）
 
@@ -37,7 +37,7 @@
 
 **原因。** 候选树的品牌文件从未与主线同步。D-SHU 的黑色鲸鱼图标、安装器品牌图、欢迎页 `uncensored-pill`、网页 favicon/PWA 清单与产品命中文案，都只存在于主线；`dshu.patch` 一直由候选树自身生成，这些主线改动因此从未进入候选。本轮并档只移植了功能包与关于页文案，没有核对可见品牌，打包冒烟也只检查运行时功能。
 
-**修复。** 从主线同步并重新验证：`apps/desktop/resources/*`（图标与托盘）、`apps/desktop/installer/assets/*`（`brand*` 与卸载侧栏）、`packages/client/ui-primitives/src/BrandWordmark.tsx` 及其模块样式、`apps/desktop/renderer/{assets/welcome-brand.svg,welcome.css,update-dialog.*,mandatory-update.*}`、`apps/desktop/scripts/{render-app-icon.ts,render-installer-brand.ts,render-uncensored-artwork.ts}`、`apps/web/index.html` 与 `apps/web/public/*`，并把安装器 8 种语言与桌面菜单中的 `DeepSeek Harness` 统一为 `DeepSeek Harness Uncensored`。品牌图与图标以主线版本覆盖，安装器素材由 `prepare-windows-installer.ps1` 重新转成 BMP。
+**修复。** 从主线同步并重新验证：`apps/desktop/resources/*`（图标与托盘）、`apps/desktop/installer/assets/*`（`brand*` 与卸载侧栏）、`packages/client/ui-primitives/src/BrandWordmark.tsx` 及其模块样式、`apps/desktop/renderer/{assets/welcome-brand.svg,welcome.css,update-dialog.*,mandatory-update.*}`、`apps/desktop/scripts/{render-app-icon.ts,render-installer-brand.ts,render-uncensored-artwork.ts}`、`apps/web/index.html` 与 `apps/web/public/*`、`packages/client/ui-brand-official/src`（侧栏字标与首页鲸鱼），并把安装器 8 种语言与桌面菜单中的 `DeepSeek Harness` 统一为 `DeepSeek Harness Uncensored`。品牌图与图标以主线版本覆盖，安装器素材由 `prepare-windows-installer.ps1` 重新转成 BMP。候选树同时补上主线的两个运行时依赖补丁：`patches/rea-agents@6.9.0.patch`（此前 REA 只移植了包体，没有带生命周期补丁）与 `patches/ws@8.21.3.patch`（PR #27，空 WebSocket payload 不再写零长度段），并在 `runtime-patch-policy.ts` 登记为共享补丁。
 
 **防复发。** 新增 `apps/desktop/tests/brand-identity.spec.ts`（8 项）：钉住图标、安装器品牌图、欢迎页与网页图形的 SHA-256 与安装器品牌图尺寸；要求 `welcome-brand.svg` 带 `uncensored-pill`、`BrandWordmark.tsx` 使用 `UNCENSORED_PATH`；扫描安装器全部语言、桌面菜单/欢迎/更新文案、网页标题与 PWA 清单必须命名为 DSHU；并要求品牌图生成脚本存在。主线与候选树各有一份，`pnpm run test` 与候选构建的聚合检查都会执行。
 
@@ -66,16 +66,16 @@ pnpm run verify-client-catalog && pnpm run verify-cordis-catalog && pnpm run ver
 
 ## 产物
 
-Windows x64 未签名安装包由同一候选树 `0f8abcfc16cd` 的干净工作区构建，构建记录带有该候选树标识。打包阶段在 `runtime:install` 处需要放宽 pnpm 的严格依赖构建策略（`--config.strictDepBuilds=false`），否则 REA 的 `frida` 依赖会让运行时安装直接失败；该改动已写入 `apps/desktop/scripts/prepare-dsh.ts` 并纳入补丁。
+Windows x64 未签名安装包由同一候选树 `a373337a76be` 的干净工作区构建，构建记录带有该候选树标识。打包阶段在 `runtime:install` 处需要放宽 pnpm 的严格依赖构建策略（`--config.strictDepBuilds=false`），否则 REA 的 `frida` 依赖会让运行时安装直接失败；该改动已写入 `apps/desktop/scripts/prepare-dsh.ts` 并纳入补丁。
 
 | 对象 | 字节 | SHA-256 |
 | --- | ---: | --- |
-| `deepseek-harness-uncensored-2026.11.27.0-win-x64-unsigned.exe` | 353,112,650 | `f782838c04d69ea0d62dffd1288e600b73953f5c8c89a51ce3d4d96ac308aace` |
-| 同名 `.blockmap` | 366,676 | `15796ecad1943a63ac3fc0d8f01291a38bfbf80389e17707a0d32e85db0a5157` |
-| 安装后 `resources/app.asar` | 372,580,935 | `daafba5eab6efbf6b001771af75c6e4758ed15ce53bd9c2976a4cc92204c0e13` |
+| `deepseek-harness-uncensored-2026.11.27.0-win-x64-unsigned.exe` | 352,860,750 | `af451c4a95d9a66eddb38db8b0d32ec7cfeeef37b87fe9d12a7668318a570b1c` |
+| 同名 `.blockmap` | 366,261 | `c321b9b877dc5f4cc731635a03108cc78a8efaac25d705dbbeaa3b4c6f40deb6` |
+| 安装后 `resources/app.asar` | 372,498,456 | `5264feb4381e5ba89525ab758bbf13877dff5bb6d2037cd714a05e1c1c3dea7c` |
 
 差分索引已按安装包字节重算核对（`verify-windows-installer-blockmap` 输出 size、SHA-256 与 SHA-512 一致）。安装载荷含 366 个运行时包目录，其中包含 `dsh-uncensored-armor`、`dsh-rea`、`dsh-refusal-retry`、`dsh-security-proxy`、`dsh-security-proxy-local`、`dsh-tool-working-directory`、`dsh-skill-playbooks`；`dsh-web-app` 内带 `presets/security.patch.yml` 与 `presets/reverse.patch.yml`，`dsh-skill-playbooks` 内带 `assets/security` 与 `assets/reverse`。打包冒烟测试通过：随包 CLI 离线插件安装与移除、Office 技能加载、DOCX/XLSX/PPTX 转 PDF、图像渲染与表格重算。
 
 关于页应显示“随包组件与许可”以及 `dsh-purge Community 1.7.20`、`REA 6.9.0` 的版本、提交与许可；构建封入的公开值共 18 个，含两类组件的仓库、版本、提交、时间与许可。
 
-安装包与本轮构建记录归档在 `%USERPROFILE%/DSHU-Deliveries/20261127/windows-x64-candidate/0f8abcfc16cd/`（含 `receipt.json`、`SHA256SUMS`、打包运行目录与客户端构建记录）。
+安装包与本轮构建记录归档在 `%USERPROFILE%/DSHU-Deliveries/20261127/windows-x64-candidate/a373337a76be/`（含 `receipt.json`、`SHA256SUMS`、打包运行目录与客户端构建记录）。
