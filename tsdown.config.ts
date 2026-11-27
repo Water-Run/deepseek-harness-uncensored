@@ -1,19 +1,8 @@
-import { globSync, readFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { existsSync, globSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { defineConfig } from 'tsdown'
 import { decoratorPlugin } from './packages/typert/generator/lib/types/tsdown-plugin.js'
 import { workspacePackageGlobs } from './scripts/workspace-package-globs.ts'
-
-/** Packages a compiler aggregate references; the workspace build covers exactly these. */
-function referencedPackages(): Set<string> {
-  const referenced = new Set<string>()
-  for (const aggregate of ['tsconfig.host.json', 'tsconfig.client.json']) {
-    for (const reference of JSON.parse(readFileSync(aggregate, 'utf8')).references as { path: string }[]) {
-      referenced.add(resolve(dirname(reference.path)))
-    }
-  }
-  return referenced
-}
 
 function isBuildFaceClient(value: unknown): boolean {
   if (value === undefined || value === 'host') return false
@@ -32,9 +21,17 @@ function isBuildFaceClient(value: unknown): boolean {
  */
 export default defineConfig(({ env }) => {
   const client = isBuildFaceClient(env?.DSH_BUILD_FACE)
-  const referenced = referencedPackages()
+  // A package whose TypeScript face emitted no entry has nothing to bundle; skipping it keeps the
+  // workspace build aligned with the compiler output instead of failing on an unresolved entry.
+  const emitted = (workspace: string): boolean => {
+    const dir = resolve(workspace)
+    const candidates = client
+      ? ['lib/types/client/index.js', 'lib/types/index.js']
+      : ['lib/types/index.js', 'lib/types/startup.js']
+    return candidates.some(candidate => existsSync(join(dir, candidate)))
+  }
   const packages = workspacePackageGlobs(globSync(['vendor/*/package.json', 'packages/*/*/package.json'], { cwd: import.meta.dirname }))
-    .filter(workspace => referenced.has(resolve(workspace)))
+    .filter(emitted)
   return {
     workspace: [...packages, 'apps/cli', ...client ? [] : ['apps/desktop-host']],
     entry: client ? '' : ['lib/types/{index,startup}.js'],
