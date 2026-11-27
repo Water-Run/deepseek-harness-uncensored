@@ -2,6 +2,8 @@
 
 当前下一正式版以 `v2026.11.24.3` 为功能基线。接手顺序、最终平台验收和可编辑的 Release 说明集中在[下一正式版入口](HANDOFF.md#下一正式版)。
 
+[四模式并档记录](requirements/2026-11-27-four-mode-merge.md)登记候选树 `e6b3c3ab66e1`（DSHU `2026.11.27.0`）把破甲核心、REA、拒答重试与网安/逆向预设并回 alpha.2 内核的过程、237 项定向测试与仍缺的 target-protection、代理面板、插件设置页与 PTC Python 运行时。
+
 [暂停提示与额度设置](requirements/2026-11-25-release-handoff.md#从超额暂停的会话打开额度设置)记录缺失入口、修复和真实会话恢复测试。Windows 打包与安装验收的存储处理见 [D 盘开发目录与验收资料](requirements/2026-11-25-release-handoff.md#d-盘开发目录与验收资料)。
 
 [会话费用与额度恢复](requirements/2026-11-25-release-handoff.md#会话费用的实时入账与额度恢复)记录输入预测入账后页脚和明细的自动刷新，以及写作会话在额度重设后实际发送的请求数。Windows x64 安装包已用相同的旧版旁问资料分别复现和复验。

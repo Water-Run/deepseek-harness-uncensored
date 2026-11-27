@@ -2,9 +2,9 @@
 
 ## 下一正式版
 
-线上基准为 `v2026.11.24.3`。当前 DSH `0.2.3-alpha.2` 候选覆盖缺省和写作，两者均有旧资料升级记录。接手者从[固定候选清单](../kernel/0.2.3-alpha.2/source.json)取得源码身份，按以下顺序交付。
+线上基准为 `v2026.11.24.3`。当前候选为 DSHU `2026.11.27.0`、DSH `0.2.3-alpha.2`，候选树 `e6b3c3ab66e1`，已把破甲核心、REA、拒答重试与网安/逆向预设并回缺省与写作两种模式，四种模式同包交付。网安代理面板与真实目标保护仍未移植，逐项缺口与复验命令见[四模式并档记录](requirements/2026-11-27-four-mode-merge.md)。接手者从[固定候选清单](../kernel/0.2.3-alpha.2/source.json)取得源码身份，按以下顺序交付。
 
-1. **对齐功能。** 以[上一版逐项对照](requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表)和[专项待办](requirements/2026-11-25-release-handoff.md#专项维护者待办)登记余下差异、负责人和证据。正式发行范围为四模式。关于页的组件状态须与实际安装内容一致。[关于页验收](requirements/2026-11-25-release-handoff.md#合并后的关于页)
+1. **对齐功能。** 以[上一版逐项对照](requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表)和[专项待办](requirements/2026-11-25-release-handoff.md#专项维护者待办)登记余下差异、负责人和证据。正式发行范围为四模式；本轮已并入破甲、REA、网安/逆向预设，剩余缺口见[四模式并档记录](requirements/2026-11-27-four-mode-merge.md)。关于页的组件状态须与实际安装内容一致。[关于页验收](requirements/2026-11-25-release-handoff.md#合并后的关于页)
 2. **验收最终安装文件。** 对同一源码树，从首发版和上一正式版分别升级，核对含输入建议与保护审计的旧对话、旁问计费、签名和实际在线更新。两版均有可复用的普通及压缩会话样本。余额清理另有[双账号切换用例](requirements/2026-11-25-release-handoff.md#清理期间切换余额账号)。Windows 静置问题保留独立结论。[五件套实测](requirements/2026-11-25-release-handoff.md#同一源码树的五件套演练) · [旧会话复验](requirements/2026-11-25-release-handoff.md#含保护审计的旧会话) · [平台矩阵](requirements/2026-11-25-release-handoff.md#桌面与平台验收) · [Windows 静置](requirements/2026-11-25-release-handoff.md#issue-26-的-windows-静置卡死)
 3. **准备发行正文。** 编辑[下一版 Release 说明](../发布稿/Release-下一版.md)。在候选根目录用 `deliver:github --notes-file` 传入定稿，生成含下载表、五个文件的可见 SHA-256 和更新器清单的 `release-notes.md`。首发版用户需要手动覆盖安装，`2026.11.24.3` 可在应用内检查更新。[完整命令](requirements/2026-11-25-release-handoff.md#发布前最后一次核对) · [两个旧版的更新路径](requirements/2026-11-25-release-handoff.md#两个已发布版本如何发现新安装包)
 
