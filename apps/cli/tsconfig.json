@@ -63,9 +63,6 @@
       "path": "../../packages/test-support/loader-smoke"
     },
     {
-      "path": "../../packages/session-query/session-query-sqlite"
-    },
-    {
       "path": "../../packages/session-query/session-query"
     },
     {

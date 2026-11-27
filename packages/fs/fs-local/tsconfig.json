@@ -4,9 +4,13 @@
     "rootDir": "src",
     "outDir": "lib/types"
   },
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
   "references": [
-    { "path": "../../sandbox/sandbox" },
+    {
+      "path": "../../util/brand"
+    },
     {
       "path": "../fs-patch"
     },
@@ -24,6 +28,9 @@
     },
     {
       "path": "../fs"
+    },
+    {
+      "path": "../../sandbox/sandbox"
     }
   ]
 }

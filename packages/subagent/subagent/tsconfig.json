@@ -24,9 +24,6 @@
       "path": "../../core/agent"
     },
     {
-      "path": "../../guard/security-proxy"
-    },
-    {
       "path": "../../llm/llm"
     },
     {
@@ -76,6 +73,9 @@
     },
     {
       "path": "../../session/working-directory"
+    },
+    {
+      "path": "../../guard/security-proxy"
     }
   ]
 }

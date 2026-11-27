@@ -4,7 +4,7 @@
  */
 
 import { Context, Service } from '@deepseek-ai/cordis'
-import type { BrowserUseProviderName } from './brand.ts'
+import type { BrowserUseProviderName } from './types.ts'
 
 /** Deployment-owned execution permission retained through native browser shutdown. */
 export interface BrowserExecutionLease {

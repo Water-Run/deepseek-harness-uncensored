@@ -1,7 +1,7 @@
 - banner:
   - navigation "Session hierarchy": Use the bash tool to
-  - 'button "Conversation mode: Default" [disabled]': Default
-  - button "Side question"
+  - text: Standard mode
+  - button "Session panel"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -11,13 +11,7 @@
 - text: "Use the bash tool to run exactly: echo WEB_E2E_OK. Then reply with the single word DONE and stop. {{clock}}"
 - button "Copy"
 - status: Completed
-- button "Completed in {{duration}}" [disabled] [expanded]
-- button "Context injection runtime-context"
-- button "Context injection skill-catalog"
-- button "Context injection time-context"
-- button "Think The user wants me to run a simple bash command and reply with \"DONE\"."
-- button "Bash Echo the test string"
-- button "Think The command executed successfully and output \"WEB_E2E_OK\". I just need to reply with \"DONE\"."
+- button "Completed in {{duration}}"
 - paragraph: DONE
 - button "Copy"
 - button "Good response"
@@ -26,11 +20,9 @@
 - text: {{clock}}
 - textbox "Message or run a task, / commands, @ files or sessions"
 - button "Add files or run commands"
-- 'button "Access mode, current: Full access"': Full access
+- 'button "Access mode, current: Workspace Write"': Workspace Write
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
-- 'button "Turns: 1 · Steps: 2 · {{throughput}} tok/s"': "Turns: 1 · Steps: {{throughput}} tok/s"
+- button "1 turns 2 steps · {{throughput}} tok/s": 1 turns 2 steps{{throughput}} tok/s
 - button "15.8K tok · Cache hit 99%": 15.8K tokCache hit 99%
-- 'button "Conversation cost: ￥0.001947"': ￥0.001947
-- 'button "Spending limits: Off"': "Off"
 - button "6% of context used": 6%

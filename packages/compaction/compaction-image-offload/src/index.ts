@@ -8,6 +8,7 @@
  * @module @deepseek-ai/dsh-compaction-image-offload
  */
 
+import type {} from '@deepseek-ai/dsh-session/context'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-compaction'
 import type { RequestErrorAction } from '@deepseek-ai/dsh-agent'

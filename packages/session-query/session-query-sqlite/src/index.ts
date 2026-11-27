@@ -4,6 +4,7 @@
  * @module @deepseek-ai/dsh-session-query-sqlite
  */
 
+import type {} from '@deepseek-ai/dsh-session/context'
 import { createHash, randomUUID } from 'node:crypto'
 import { stat } from 'node:fs/promises'
 import { SESSION_FORMAT_VERSION, SessionSeq } from '@deepseek-ai/dsh-session'

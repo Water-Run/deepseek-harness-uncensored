@@ -38,15 +38,6 @@ The provider has no configuration fields. It loads the exact Cua Driver npm vers
 
 Use an attachment store and a model route that explicitly declares image input to receive screenshots. The [MCP result adapter](../../mcp/mcp-client/README.md) owns image admission and diagnostic behavior; programmatic callers retain the canonical raw result when a model cannot receive its images. Calls use Cua Driver's upstream tool parameters and results.
 
-<a id="target-protected-composition"></a>
-### Target-protected composition
-
-Use `@deepseek-ai/dsh-experimental-computer-use-cua-driver-native/protected` in place of the ordinary provider when the composition supplies [target protection](../../guard/target-protection/README.md). This entry requires that service and rejects activation before importing the native SDK whenever unconstrained effects are forbidden. Production rules, mainland protection, or protected owner files prevent activation; a persistent rules or audit database is itself a protected owner file. A test-host exception cannot constrain desktop input to that host.
-
-Admission is checked again before discovery completes and before each native call, including retained tool definitions. A policy change aborts calls and withdraws the catalog; reload the provider after the policy permits execution. Removing the target owner also withdraws the provider. Cleanup waits for native calls and SDK shutdown before releasing the provider reservation and target resources. Failed shutdown retains those resources and requires a host restart. Cancellation cannot undo input already delivered.
-
-This optional entry does not sandbox the desktop or change the ordinary provider. Protected deployments must use structured guarded operations for permitted target work.
-
 ### Host requirements
 
 The native dependency supplies platform binaries through npm optional dependencies. Keep optional dependencies enabled. Grant desktop permissions to the application that launches DSH; this provider neither installs a permission-owning app nor changes OS grants. The native runtime shares the host process, so native crashes can terminate that process. Use the [installed MCP provider](../computer-use-cua-driver-mcp/README.md) when the separate Cua Driver application should own permissions and execution.
@@ -71,10 +62,12 @@ The provider reserves the shared computer-use registration before loading native
 
 | File | Role |
 |---|---|
-| [src/native.ts](src/native.ts) | Native runtime ownership, catalog validation, tool registration, and provider guidance |
-| [src/protected.ts](src/protected.ts) | Target admission and revocable native execution ownership |
+| [src/index.ts](src/index.ts) | Native runtime ownership, catalog validation, tool registration, and provider guidance |
+| [src/error.ts](src/error.ts) | `CuaDriverError` and its closed code list |
 
 Tool definitions reuse the existing MCP result adapter. Cua Driver's JSON catalog determines the schemas; its raw result supplies canonical text, structured output, and image bytes. The computer-use service carries only the provider name and exclusive registration.
+
+A rejected native call throws `CuaDriverError` with `CUA_DRIVER_FAILED`, keeping the SDK's message and its error as `cause`; once the call or the provider is canceled, the cancellation propagates instead. A raw result that is not JSON throws `CUA_DRIVER_INVALID_RESULT`. Upstream tool refusals reported in a result stay with the MCP result adapter.
 
 </details>
 

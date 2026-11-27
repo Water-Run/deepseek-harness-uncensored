@@ -13,11 +13,23 @@
     "src/types.ts"
   ],
   "references": [
-    { "path": "../../../vendor/cordis" },
-    { "path": "../../util/brand" },
-    { "path": "../../util/crypto" },
-    { "path": "../../attachment/attachment" },
-    { "path": "../../core/session" },
-    { "path": "../../typert/protocol" }
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../util/brand"
+    },
+    {
+      "path": "../../util/crypto"
+    },
+    {
+      "path": "../../attachment/attachment"
+    },
+    {
+      "path": "../../core/session/tsconfig.client.json"
+    },
+    {
+      "path": "../../typert/protocol"
+    }
   ]
 }

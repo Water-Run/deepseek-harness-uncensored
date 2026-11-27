@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type {} from '../src/client/index.ts'
 import { contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
 import type { ShortcutCatalogEntry, ShortcutCommandId } from '@deepseek-ai/dsh-client-shortcuts/client'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'

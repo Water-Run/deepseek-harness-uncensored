@@ -1,6 +1,6 @@
 - banner:
   - navigation "Session hierarchy": Use the read tool twice
-  - button "Side question"
+  - button "Session panel"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:

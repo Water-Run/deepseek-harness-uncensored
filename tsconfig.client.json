@@ -1,182 +1,549 @@
 {
-  // Client-side typecheck aggregate: packages/client tests and top-level Client benchmarks.
-  // Split from the host aggregate because both sides merge cordis Context
-  // under the same keys (sessions, loader) with different services; shared
-  // leaves (session/llm/tools/...) build once and are referenced by
-  // both programs through each client package's own references.
   "extends": "./tsconfig.base.client.json",
   "compilerOptions": {
     "noEmit": true,
     "rewriteRelativeImportExtensions": false,
-    // Tests execute under vitest on node (e2e files spawn processes); browser
-    // purity of package src is each package's own tsconfig plus
-    // scripts/client-bundle-purity.spec.ts.
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
   "include": [
-    // The native/renderer keyboard fixture imports only these Cordis-free Desktop modules.
     "apps/desktop/tests/keyboard.spec.ts",
     "apps/desktop/src/keyboard.ts",
     "apps/desktop/src/keybindings.ts",
     "apps/desktop/src/browser-guests.ts",
-    "apps/desktop/src/browser-trust.ts",
     "apps/desktop/src/ipc.ts",
     "apps/desktop/src/update-overlay.ts",
     "apps/desktop/src/windows-layout.ts",
     "apps/desktop/tests/**/*.client.spec.tsx",
-    // Source-subpath test imports can arrive through workspace links whose
-    // realpath semantics vary by host. Load package CSS declarations directly.
-    "packages/client/*/src/css-modules.d.ts",
-    "packages/experimental/*/src/css-modules.d.ts",
-    "packages/client/*/tests/**/*.ts",
     "packages/client/*/tests/**/*.tsx",
-    "benchmarks/**/*.client.ts",
     "benchmarks/**/*.client.tsx",
-    "benchmarks/support/**/*.ts",
-    "packages/*/*/tests/**/*.client.spec.ts",
     "packages/*/*/tests/**/*.client.spec.tsx",
     "packages/*/*/tests/**/*.client.tsx",
-    "packages/*/*/tests/**/*.client.ts",
-    // Client package outside packages/client with a local CSS module face.
     "packages/extensions/ui-cordis/src/css-modules.d.ts",
     "packages/client/tsdown.client.ts",
-    "packages/client/ui-settings-account/tsdown.config.ts",
     "scripts/client-build-environment.ts",
     "scripts/shipped-locales.ts",
     "scripts/bundle-input-isolation.ts",
     "scripts/experimental-package-policy.ts",
-    "scripts/*.client.spec.ts",
     "scripts/client-bundle-css.spec.ts",
-    "scripts/client-bundle-purity.spec.ts"
+    "scripts/client-bundle-purity.spec.ts",
+    "apps/desktop/src/browser-trust.ts",
+    "packages/client/ui-settings-account/tsdown.config.ts",
+    "packages/client/ui-account-notifications/tests/notification-fixture.ts",
+    "packages/client/ui-agent-preset/tests/component-fixture.client.ts",
+    "packages/client/ui-chat/tests/presentation-fixture.client.ts",
+    "packages/client/ui-chat/tests/chat-snapshot-fixture.client.ts",
+    "packages/client/ui-chat/tests/turn-navigator-fixture.ts",
+    "packages/client/ui-conversation/tests/continuation-fixture.ts",
+    "packages/client/ui-conversation/tests/control-row-dom.ts",
+    "packages/client/ui-dockkit/tests/fixtures.client.ts",
+    "packages/client/ui-primitives/tests/labels.client.ts",
+    "packages/client/ui-schedule/tests/zone-fixture.ts",
+    "packages/client/ui-settings-models/tests/settings-schema.client.ts",
+    "packages/client/ui-sidebar-documentpreview/tests/fixtures.client.ts",
+    "packages/client/ui-sidebar-files/tests/scripted-list.client.ts",
+    "packages/client/ui-sidebar-files/tests/search-fixture.client.ts",
+    "packages/client/ui-sidebar-files/tests/scripted-watch.client.ts",
+    "packages/client/ui-tool/tests/tool-fixtures.client.ts",
+    "packages/client/ui-trajectory/tests/locale.client.ts",
+    "packages/client/ui-workspace/tests/section-scroller.client.ts",
+    "packages/experimental/client-ui-voice-input/tests/audio-fixture.client.ts",
+    "packages/experimental/session-inspector/tests/table-geometry.client.ts",
+    "packages/experimental/session-inspector/tests/chat-node-fixture.client.ts",
+    "packages/experimental/client-ui-cot-translation/src/preferences.ts",
+    "packages/experimental/client-ui-cot-translation/src/client/translation.ts",
+    "packages/experimental/client-ui-cot-translation/src/client/locales.ts",
+    "packages/experimental/client-ui-cot-translation/src/types.ts",
+    "packages/experimental/translator/src/types.ts",
+    "packages/experimental/client-ui-cot-translation/src/client/preferences-form.ts",
+    "packages/experimental/client-ui-cot-translation/src/client/TranslationSettings.tsx",
+    "packages/experimental/client-ui-cot-translation/src/client/TranslationBody.tsx",
+    "packages/experimental/client-ui-forge/src/types.ts",
+    "packages/experimental/client-ui-forge/src/client/locales.ts",
+    "packages/experimental/client-ui-forge/src/client/menu-search.ts",
+    "packages/experimental/client-ui-forge/src/client/file-tree.ts",
+    "packages/experimental/client-ui-forge/src/client/ChangeRequestOverview.tsx",
+    "packages/experimental/client-ui-forge/src/client/format.ts",
+    "packages/experimental/client-ui-forge/src/client/glyphs.tsx",
+    "packages/experimental/client-ui-forge/src/client/SubmitReview.tsx",
+    "packages/experimental/client-ui-forge/src/client/CommitMenu.tsx",
+    "packages/experimental/client-ui-forge/src/client/ReviewControls.tsx",
+    "packages/experimental/client-ui-forge/src/client/host-viewed.ts",
+    "packages/experimental/client-ui-forge/src/client/FileTreePane.tsx",
+    "packages/experimental/client-ui-forge/src/client/RefreshGlyph.tsx",
+    "packages/experimental/client-ui-forge/src/client/ViewOptionsMenu.tsx",
+    "packages/experimental/client-ui-forge/src/client/thread-state.ts",
+    "packages/experimental/client-ui-forge/src/client/ThreadList.tsx",
+    "packages/experimental/client-ui-forge/src/client/source.ts",
+    "packages/experimental/client-ui-forge/src/commit-range.ts",
+    "packages/experimental/client-ui-forge/src/client/diff-rows.ts",
+    "packages/experimental/client-ui-forge/src/client/code-selection.ts",
+    "packages/experimental/client-ui-forge/src/client/review.ts",
+    "packages/experimental/client-ui-forge/src/client/ReviewThread.tsx",
+    "packages/experimental/client-ui-forge/src/client/ReviewThreads.tsx",
+    "packages/experimental/client-ui-forge/src/client/FileLabel.tsx",
+    "packages/experimental/client-ui-forge/src/client/viewed-files.ts",
+    "packages/experimental/client-ui-forge/src/client/section-reach.ts",
+    "packages/experimental/client-ui-forge/src/client/ChangedFiles.tsx",
+    "packages/experimental/client-ui-forge/src/client/checkout.ts",
+    "packages/experimental/client-ui-forge/src/client/LocalChangesCard.tsx",
+    "packages/experimental/client-ui-forge/src/client/status.ts",
+    "packages/experimental/client-ui-forge/src/client/review-queue.ts",
+    "packages/experimental/client-ui-forge/src/client/ReviewComposer.tsx",
+    "packages/experimental/client-ui-forge/src/client/review-threads.ts",
+    "packages/experimental/client-ui-forge/src/client/SessionRowForge.tsx",
+    "packages/experimental/client-ui-forge/src/client/toolbar-fold.ts",
+    "packages/experimental/forge/src/types.ts",
+    "packages/experimental/forge-session/src/types.ts",
+    "packages/experimental/client-ui-forge/src/client/BaseMenu.tsx",
+    "packages/experimental/client-ui-forge/src/client/ChangeRequestCard.tsx",
+    "packages/experimental/client-ui-forge/tests/client-fixtures.client.ts",
+    "packages/experimental/client-ui-forge/tests/fonts-dom.client.ts",
+    "packages/experimental/client-ui-forge/src/client/changes-address.ts",
+    "packages/experimental/client-ui-forge/src/client/DiffFile.tsx",
+    "packages/experimental/client-ui-forge/src/client/changes-store.ts",
+    "packages/experimental/client-ui-forge/src/client/ChangesTab.tsx",
+    "packages/experimental/client-ui-forge/tests/thread-fixtures.client.ts",
+    "packages/experimental/client-ui-forge/src/client/ActionToast.tsx",
+    "packages/experimental/client-ui-forge/src/client/ChangesTabTitle.tsx",
+    "packages/experimental/client-ui-forge/src/client/ForgeTabTitle.tsx",
+    "packages/experimental/client-ui-forge/src/client/HeaderButton.tsx",
+    "packages/experimental/client-ui-forge/src/client/ForgeTab.tsx",
+    "packages/experimental/client-ui-forge/src/client/session-list.ts",
+    "packages/experimental/client-ui-forge/src/client/SessionHoverForge.tsx",
+    "packages/experimental/client-ui-forge/src/client/WorktreeProgress.tsx",
+    "packages/experimental/client-ui-forge/src/client/worktree-settings-form.ts",
+    "packages/experimental/client-ui-forge/src/client/WorktreeSettings.tsx",
+    "packages/experimental/client-ui-forge/src/client/WorktreeToggle.tsx",
+    "packages/experimental/cua/src/application-types.ts",
+    "packages/experimental/cua/src/client/controller.ts",
+    "packages/experimental/cua/src/client/ApplicationApproval.tsx",
+    "packages/experimental/cua/src/client/locales.ts",
+    "packages/experimental/cua/src/access-types.ts",
+    "packages/experimental/cua/src/client/PermissionPanel.tsx",
+    "packages/experimental/inspector/src/shared/bridge/ids.ts",
+    "packages/experimental/inspector/src/client/bottom/keyboard.ts",
+    "packages/experimental/inspector/src/client/bottom/resize.tsx",
+    "packages/experimental/inspector/src/client/bottom/locales.ts",
+    "packages/experimental/inspector/src/shared/identity.ts",
+    "packages/experimental/inspector/src/client/bottom/page.tsx",
+    "packages/experimental/liveshare/src/viewer-channel.ts",
+    "packages/experimental/liveshare/src/client/owner-display.ts",
+    "packages/experimental/liveshare/src/client/user-origin.tsx",
+    "packages/experimental/liveshare/src/client/viewer-brand.tsx",
+    "packages/experimental/liveshare/src/client/viewer-model.tsx",
+    "packages/experimental/liveshare/src/client/viewer-permission.tsx",
+    "packages/experimental/liveshare/src/client/viewer-session-plugin.ts",
+    "packages/experimental/liveshare/src/client/viewer-session-row.tsx",
+    "packages/experimental/liveshare/src/client/viewer-share-path.tsx",
+    "packages/experimental/liveshare/src/client/locales.ts",
+    "packages/experimental/liveshare/src/client/owner-shares.ts",
+    "packages/experimental/liveshare/src/client/share-types.ts",
+    "packages/experimental/liveshare/src/owner-identity.ts",
+    "packages/experimental/liveshare/src/client/owner-routes.ts",
+    "packages/experimental/liveshare/src/share-api-types.ts",
+    "packages/experimental/liveshare/src/client/viewer-capabilities.ts",
+    "packages/experimental/liveshare/src/client/ManageSharesDialog.tsx",
+    "packages/experimental/liveshare/src/client/share-navigation.ts",
+    "packages/experimental/liveshare/src/client/ShareDialog.tsx",
+    "packages/experimental/liveshare/src/client/share-relay-address.ts",
+    "packages/experimental/liveshare/src/client/owner-identity.ts",
+    "packages/experimental/liveshare/src/client/owner-login.ts",
+    "packages/experimental/liveshare/src/client/owner-identity-login.ts",
+    "packages/experimental/liveshare/src/client/ShareEditPanel.tsx",
+    "packages/experimental/liveshare/src/client/ShareCreateForm.tsx",
+    "packages/experimental/liveshare/src/client/ShareCapabilitiesPicker.tsx",
+    "packages/experimental/liveshare/src/client/SharePermissionFields.tsx",
+    "packages/experimental/liveshare/src/client/share-options.ts",
+    "packages/experimental/liveshare/src/client/viewer-context.ts",
+    "packages/experimental/liveshare/src/client/viewer-status.ts",
+    "packages/experimental/liveshare/src/read-budgets.ts",
+    "packages/experimental/liveshare/src/client/viewer-seat.tsx",
+    "packages/experimental/liveshare/src/client/viewer-session.ts",
+    "packages/experimental/liveshare/src/client/viewer-status-banner.ts",
+    "packages/experimental/liveshare/src/client/viewer-plugin-warning.ts",
+    "packages/experimental/liveshare/src/client/ShareAction.tsx",
+    "packages/experimental/liveshare/src/client/index.ts",
+    "packages/experimental/liveshare/tests/owner-shares-double.client.ts",
+    "packages/experimental/liveshare/tests/viewer-fixture.client.ts",
+    "packages/experimental/liveshare/tests/viewer-input-fixture.client.ts",
+    "packages/experimental/liveshare/tests/viewer-relay.client.ts",
+    "packages/experimental/liveshare/tests/viewer-page.client.ts",
+    "packages/experimental/liveshare-protocol/src/viewer-carrier.ts",
+    "packages/experimental/liveshare/tests/viewer-page-roster.client.ts",
+    "packages/experimental/liveshare/tests/viewer-staging.client.ts",
+    "packages/experimental/liveshare/tests/viewer-plugin-services.client.ts",
+    "packages/experimental/timeline/src/protocol.ts",
+    "packages/experimental/timeline/src/client/Markdown.tsx",
+    "packages/experimental/timeline/src/client/ReportDetails.tsx",
+    "packages/experimental/timeline/src/client/TaskHistory.tsx",
+    "packages/experimental/timeline/src/client/Schedule.tsx",
+    "packages/experimental/timeline/src/client/TaskTree.tsx",
+    "packages/experimental/timeline/src/client/Details.tsx",
+    "packages/experimental/timeline/src/tasks.ts",
+    "packages/experimental/timeline/src/client/DetailHeader.tsx",
+    "packages/experimental/timeline/src/client/Annotations.tsx",
+    "packages/experimental/timeline/src/client/TimeScale.ts",
+    "packages/experimental/timeline/src/client/Settings.tsx",
+    "packages/experimental/timeline/src/client/navigation.ts",
+    "packages/experimental/timeline/src/controls.ts",
+    "packages/experimental/timeline/src/config.ts",
+    "packages/experimental/timeline/src/client/Progress.tsx",
+    "packages/experimental/timeline/src/client/TimelineIcon.tsx",
+    "packages/experimental/timeline/src/client/store.ts",
+    "packages/experimental/timeline/src/client/TreeTransfer.tsx",
+    "packages/experimental/timeline/src/client/status.ts",
+    "packages/experimental/timeline/src/client/TaskActions.tsx",
+    "packages/experimental/timeline/src/checkpoint.ts",
+    "packages/experimental/timeline/src/client/actions.ts",
+    "packages/experimental/timeline/src/defaults.ts",
+    "packages/experimental/timeline/src/policy.ts",
+    "packages/experimental/timeline/src/periods.ts",
+    "packages/experimental/timeline/src/records.ts",
+    "packages/experimental/timeline/src/client/TaskCard.tsx",
+    "packages/experimental/timeline/src/client/locales.ts",
+    "packages/experimental/timeline/src/client/TaskDock.tsx",
+    "packages/experimental/timeline/src/client/Panel.tsx",
+    "packages/experimental/client-ui-cot-translation/src/client/mount.ts",
+    "packages/experimental/client-ui-cot-translation/src/client/index.ts",
+    "packages/experimental/cua/src/client/mount.ts",
+    "packages/experimental/cua/src/client/index.ts"
   ],
-  // Host unit tests (`*.host.spec.ts`), e2e tests (`*.host.e2e.ts`), and fixtures
-  // (`*.host.ts`) belong to the host aggregate, which excludes `*.client.*`
-  // in turn. `exclude` wins over `include`, so the test glob above stays broad.
-  "exclude": [
-    "packages/client/*/tests/**/*.host.spec.ts",
-    "packages/client/*/tests/**/*.host.e2e.ts",
-    "packages/client/*/tests/**/*.host.ts"
-  ],
+  "exclude": [],
   "references": [
-    { "path": "./packages/experimental/client-ui-action-cards" },
-    { "path": "./packages/experimental/client-ui-creation-recommendations" },
-    { "path": "./packages/experimental/client-ui-plugin-recommendations" },
-    { "path": "./packages/client/ui-file-drag" },
-    { "path": "./packages/session/message-quotes" },
-    { "path": "./packages/experimental/client-ui-cot-translation/tsconfig.client.json" },
-    { "path": "./packages/client/product-analytics/tsconfig.client.json" },
-    { "path": "./apps/desktop/tsconfig.client.json" },
-    { "path": "./packages/util/atomic-write" },
-    { "path": "./packages/experimental/client-ui-voice-input" },
-    { "path": "./packages/experimental/client-ui-claude-code-mods" },
-
-    { "path": "./packages/client/ui-sidebar-terminal" },
-    { "path": "./packages/api/terminal-controller/tsconfig.client.json" },
-    // Producer-to-UI spill tests use the ptc-runtime contract with the real tool registry.
-    { "path": "./packages/ptc-runtime/ptc-runtime" },
-    { "path": "./packages/core/tool-executor-native" },
-    { "path": "./packages/core/tool-executor-ptc" },
-    { "path": "./packages/client/ui-settings-account" },
-    { "path": "./packages/client/ui-security-proxy" },
-    { "path": "./packages/client/ui-account-notifications" },
-    // Shared leaf: web e2e boots the real host webserver (fixture + real-host
-    // smoke policy). webserver has zero workspace deps and no cordis merge,
-    // so it cannot drag host-side Context augmentation into this program.
-    { "path": "./packages/host/webserver" },
-    // Compaction seam: ui-chat type-imports the canonical checkpoint contract
-    // from the cordis-free dsh-compaction/checkpoint leaf. Composite rootDir
-    // rules make that path depend on this project reference.
-    { "path": "./packages/compaction/compaction" },
-    { "path": "./packages/client/store" },
-    { "path": "./packages/client/ui-slots" },
-    { "path": "./packages/client/ui-attachment" },
-    { "path": "./packages/client/ui-primitives" },
-    { "path": "./packages/client/modules" },
-    { "path": "./packages/experimental/inspector/tsconfig.client.json" },
-    { "path": "./packages/experimental/liveshare-protocol/tsconfig.client.json" },
-    { "path": "./packages/experimental/liveshare/tsconfig.client.json" },
-    { "path": "./packages/experimental/session-inspector" },
-    { "path": "./packages/experimental/client-ui-forge/tsconfig.client.json" },
-    { "path": "./packages/client/hmr" },
-    { "path": "./packages/client/connection/tsconfig.client.json" },
-    { "path": "./packages/client/file-upload/tsconfig.client.json" },
-    { "path": "./packages/typert/registry" },
-    { "path": "./packages/api/gateway/tsconfig.client.json" },
-    { "path": "./packages/api/session-controller/tsconfig.client.json" },
-    { "path": "./packages/api/remote-access/tsconfig.client.json" },
-    { "path": "./packages/api/workspace-controller/tsconfig.client.json" },
-    { "path": "./packages/api/remotes/tsconfig.client.json" },
-    { "path": "./packages/extensions/cordis-client-runner" },
-    { "path": "./packages/extensions/ui-cordis" },
-    { "path": "./packages/test-support/client-runtime" },
-    { "path": "./packages/test-support/remote-mock" },
-    { "path": "./packages/test-support/tool-testkit" },
-    { "path": "./packages/client/shortcuts/tsconfig.client.json" },
-    { "path": "./packages/client/ui-shortcuts" },
-    { "path": "./packages/client/ui-context-menu" },
-    { "path": "./packages/client/ui-file-actions" },
-    { "path": "./packages/client/ui-layout" },
-    { "path": "./packages/client/ui-sidebar" },
-    { "path": "./packages/client/ui-brand-official" },
-    { "path": "./packages/client/ui-approval" },
-    { "path": "./packages/client/ui-chat/tsconfig.client.json" },
-    { "path": "./packages/client/ui-conversation/tsconfig.client.json" },
-    { "path": "./packages/client/ui-tool" },
-    { "path": "./packages/client/ui-deliverables/tsconfig.client.json" },
-    { "path": "./packages/client/ui-workflow-run" },
-    { "path": "./packages/client/ui-workspace" },
-    { "path": "./packages/client/ui-input-trigger" },
-    { "path": "./packages/client/ui-commands" },
-    { "path": "./packages/client/ui-skill" },
-    { "path": "./packages/client/ui-reference" },
-    { "path": "./packages/client/ui-secret-mask" },
-    { "path": "./packages/client/ui-subagent" },
-    { "path": "./packages/client/ui-agent-team" },
-    { "path": "./packages/experimental/client-ui-stats" },
-    { "path": "./packages/client/ui-dockkit" },
-    { "path": "./packages/client/ui-sidebar-right" },
-    { "path": "./packages/client/ui-entry-customization" },
-    { "path": "./packages/client/ui-sidebar-documentpreview/tsconfig.client.json" },
-    { "path": "./packages/client/ui-sidebar-browser/tsconfig.client.json" },
-    { "path": "./packages/client/ui-sidebar-files" },
-    { "path": "./packages/client/ui-jobs" },
-    { "path": "./packages/client/ui-schedule" },
-    { "path": "./packages/client/ui-directory-picker-browse" },
-    { "path": "./packages/client/ui-directory-picker-native" },
-    { "path": "./packages/client/ui-goal" },
-    { "path": "./packages/client/ui-message-feedback" },
-    { "path": "./packages/client/ui-model-selection" },
-    { "path": "./packages/client/ui-agent-preset" },
-    { "path": "./packages/client/ui-permission-presets" },
-    { "path": "./packages/client/ui-plan" },
-    { "path": "./packages/client/ui-settings-plugins" },
-    { "path": "./packages/client/ui-settings-shell" },
-    { "path": "./packages/client/ui-settings-agent-loop" },
-    { "path": "./packages/experimental/cua/tsconfig.client.json" },
-    { "path": "./packages/client/ui-settings-session-log" },
-    { "path": "./packages/client/ui-settings-subagent" },
-    { "path": "./packages/client/ui-settings-web-search" },
-    { "path": "./packages/client/ui-settings-memory" },
-    { "path": "./packages/client/ui-user-questions" },
-    { "path": "./packages/client/ui-trajectory/tsconfig.client.json" },
-    { "path": "./packages/experimental/deepseek-chat-import/tsconfig.client.json" },
-    { "path": "./packages/session-query/session-log-export/tsconfig.client.json" },
-    { "path": "./packages/client/ui-open-in-app" },
-    { "path": "./packages/client/ui-theme/tsconfig.client.json" },
-    { "path": "./packages/client/ui-settings/tsconfig.client.json" },
-    { "path": "./packages/client/ui-settings-general/tsconfig.client.json" },
-    { "path": "./packages/client/ui-settings-models" },
-    { "path": "./packages/client/ui-plugin-manager/tsconfig.client.json" },
-    { "path": "./packages/client/ui-plugin-market" },
-    { "path": "./packages/client/ui-settings-plugin-inventory" },
-    { "path": "./packages/client/locale/tsconfig.client.json" },
-    { "path": "./packages/client/ui-renderer" },
-    { "path": "./packages/client/ui-session" },
-    { "path": "./packages/client/resources" },
-    { "path": "./packages/api/workspace-files/tsconfig.client.json" },
-    { "path": "./packages/client/ui-mode-materials" },
-    { "path": "./packages/client/web" },
-    { "path": "./packages/context/file-reference" },
-    { "path": "./apps/web" }
+    {
+      "path": "./packages/client/ui-action-cards"
+    },
+    {
+      "path": "./packages/client/ui-creation-recommendations"
+    },
+    {
+      "path": "./packages/client/ui-plugin-recommendations"
+    },
+    {
+      "path": "./packages/client/ui-file-drag"
+    },
+    {
+      "path": "./packages/session/message-quotes"
+    },
+    {
+      "path": "./packages/client/product-analytics/tsconfig.client.json"
+    },
+    {
+      "path": "./apps/desktop/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/util/atomic-write"
+    },
+    {
+      "path": "./packages/experimental/client-ui-voice-input"
+    },
+    {
+      "path": "./packages/experimental/client-ui-claude-code-mods"
+    },
+    {
+      "path": "./packages/client/ui-sidebar-terminal"
+    },
+    {
+      "path": "./packages/api/terminal-controller/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/ptc-runtime/ptc-runtime"
+    },
+    {
+      "path": "./packages/core/tool-executor-native"
+    },
+    {
+      "path": "./packages/core/tool-executor-ptc"
+    },
+    {
+      "path": "./packages/client/ui-settings-account"
+    },
+    {
+      "path": "./packages/client/ui-account-notifications"
+    },
+    {
+      "path": "./packages/host/webserver"
+    },
+    {
+      "path": "./packages/compaction/compaction"
+    },
+    {
+      "path": "./packages/client/store"
+    },
+    {
+      "path": "./packages/client/ui-slots"
+    },
+    {
+      "path": "./packages/client/ui-attachment"
+    },
+    {
+      "path": "./packages/client/ui-primitives"
+    },
+    {
+      "path": "./packages/client/modules"
+    },
+    {
+      "path": "./packages/client/script-realm"
+    },
+    {
+      "path": "./packages/client/script-realm-iframe"
+    },
+    {
+      "path": "./packages/experimental/session-inspector"
+    },
+    {
+      "path": "./packages/client/config"
+    },
+    {
+      "path": "./packages/client/hmr/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/client/connection/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/client/file-upload/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/client/remote-connection/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/typert/registry"
+    },
+    {
+      "path": "./packages/api/gateway/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/api/session-controller/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/api/remote-access/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/api/workspace-controller/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/api/remotes/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/extensions/cordis-client-runner"
+    },
+    {
+      "path": "./packages/extensions/ui-cordis"
+    },
+    {
+      "path": "./packages/test-support/client-runtime"
+    },
+    {
+      "path": "./packages/test-support/remote-mock"
+    },
+    {
+      "path": "./packages/test-support/tool-testkit"
+    },
+    {
+      "path": "./packages/client/shortcuts/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/client/ui-shortcuts"
+    },
+    {
+      "path": "./packages/client/ui-context-menu"
+    },
+    {
+      "path": "./packages/client/ui-file-actions"
+    },
+    {
+      "path": "./packages/client/ui-layout"
+    },
+    {
+      "path": "./packages/client/ui-sidebar"
+    },
+    {
+      "path": "./packages/client/ui-brand-official"
+    },
+    {
+      "path": "./packages/client/ui-approval"
+    },
+    {
+      "path": "./packages/client/ui-chat/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/client/ui-conversation/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/client/ui-tool"
+    },
+    {
+      "path": "./packages/client/ui-deliverables/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/client/ui-workflow-run"
+    },
+    {
+      "path": "./packages/client/ui-workspace/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/client/ui-input-trigger"
+    },
+    {
+      "path": "./packages/client/ui-commands"
+    },
+    {
+      "path": "./packages/client/ui-skill"
+    },
+    {
+      "path": "./packages/client/ui-reference"
+    },
+    {
+      "path": "./packages/client/ui-secret-mask"
+    },
+    {
+      "path": "./packages/client/ui-subagent"
+    },
+    {
+      "path": "./packages/client/ui-agent-team"
+    },
+    {
+      "path": "./packages/experimental/client-ui-stats"
+    },
+    {
+      "path": "./packages/client/ui-dockkit"
+    },
+    {
+      "path": "./packages/client/ui-sidebar-right"
+    },
+    {
+      "path": "./packages/client/ui-entry-customization"
+    },
+    {
+      "path": "./packages/client/ui-sidebar-documentpreview/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/client/ui-sidebar-browser/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/client/ui-sidebar-files"
+    },
+    {
+      "path": "./packages/client/ui-jobs"
+    },
+    {
+      "path": "./packages/client/ui-schedule"
+    },
+    {
+      "path": "./packages/client/ui-directory-picker-browse"
+    },
+    {
+      "path": "./packages/client/ui-directory-picker-native"
+    },
+    {
+      "path": "./packages/client/ui-goal"
+    },
+    {
+      "path": "./packages/client/ui-message-feedback"
+    },
+    {
+      "path": "./packages/client/ui-model-selection"
+    },
+    {
+      "path": "./packages/client/ui-agent-preset"
+    },
+    {
+      "path": "./packages/client/ui-permission-presets"
+    },
+    {
+      "path": "./packages/client/ui-plan"
+    },
+    {
+      "path": "./packages/client/ui-settings-shell"
+    },
+    {
+      "path": "./packages/client/ui-settings-agent-loop"
+    },
+    {
+      "path": "./packages/client/ui-settings-session-log"
+    },
+    {
+      "path": "./packages/client/ui-settings-subagent"
+    },
+    {
+      "path": "./packages/client/ui-settings-web-search"
+    },
+    {
+      "path": "./packages/client/ui-user-questions"
+    },
+    {
+      "path": "./packages/client/ui-trajectory/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/experimental/deepseek-chat-import/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/session-query/session-log-export/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/client/ui-open-in-app"
+    },
+    {
+      "path": "./packages/client/ui-theme/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/client/ui-settings/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/client/ui-settings-general/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/client/ui-settings-models"
+    },
+    {
+      "path": "./packages/client/ui-plugin-manager/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/client/ui-plugin-market"
+    },
+    {
+      "path": "./packages/client/locale/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/client/ui-renderer"
+    },
+    {
+      "path": "./packages/client/ui-session"
+    },
+    {
+      "path": "./packages/client/resources"
+    },
+    {
+      "path": "./packages/api/workspace-files/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/client/web"
+    },
+    {
+      "path": "./packages/context/file-reference"
+    },
+    {
+      "path": "./packages/client/ui-security-proxy"
+    },
+    {
+      "path": "./packages/client/hmr/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/client/ui-workspace"
+    },
+    {
+      "path": "./packages/client/ui-settings-plugins"
+    },
+    {
+      "path": "./packages/client/ui-settings-memory"
+    },
+    {
+      "path": "./packages/client/ui-settings-plugin-inventory"
+    },
+    {
+      "path": "./packages/client/ui-mode-materials"
+    }
   ]
 }

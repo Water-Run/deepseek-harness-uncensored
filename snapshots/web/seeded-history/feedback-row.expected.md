@@ -1,6 +1,6 @@
 - banner:
   - navigation "Session hierarchy": Use the read tool twice
-  - button "Side question"
+  - button "Session panel"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -30,7 +30,7 @@
 - button "Bad response"
 - button "Branch into a new conversation"
 - text: {{clock}}
-- button "compact Compacted 5 history items (~{{tokens}} tokens)"
+- button "compact Compacted 5 history items (~{{tokens}} tokens) View compaction summary in the sidebar"
 - status: Completed
 - button "Completed in {{duration}}" [disabled]
 - button "Context injection AGENTS.md"
@@ -41,7 +41,5 @@
 - 'button "Access mode, current: Read Only"': Read Only
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
-- 'button "Turns: 1 · Steps: 2 · {{throughput}} tok/s"': "Turns: 1 · Steps: {{throughput}} tok/s"
+- button "1 turns 2 steps · {{throughput}} tok/s": 1 turns 2 steps{{throughput}} tok/s
 - button "16K tok · Cache hit 98%": 16K tokCache hit 98%
-- 'button "Conversation cost: ￥0.002379"': ￥0.002379
-- 'button "Spending limits: Off"': "Off"

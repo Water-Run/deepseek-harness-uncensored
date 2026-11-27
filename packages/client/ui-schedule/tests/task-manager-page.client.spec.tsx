@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type {} from '../src/client/index.ts'
 import { contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'

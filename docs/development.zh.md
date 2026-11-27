@@ -4,15 +4,13 @@
 
 搭建教程引导新贡献者从准备前置条件开始，直到检出目录通过检查。后面的贡献者参考介绍仓库布局、日常工作流和 CI 组织方式。设计依据与实现细节属于链接的 Agent Note 和脚本。
 
-DSHU 使用[仓库 README](../README.md)中的本地构建与验收命令；上游 CI 和网站发布说明仅作参考，不表示本仓库启用了相应工作流。
-
 <a id="setup-tutorial"></a>
 
 ## 搭建教程
 
 ### 前置条件
 
-- Node.js 要求 24.9 或更高版本。CI 覆盖 24.9、最新的 24 和 26；见 [Node 引擎下限 Agent Note](https://github.com/deepseek-ai/deepseek-harness/blob/ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c/.agents/notes/implemented/process/2026-10-15-node-24-runtime-floor.md)。
+- Node.js 要求 24.22.3 或更高的 24.x 版本，或 26.13.1 或更高版本。CI 覆盖 24.22.3、最新的 24 和 26；见 [Node 引擎下限 Agent Note](../.agents/notes/implemented/process/2026-10-15-node-24-runtime-floor.zh.md)。
 - 启用 Node.js TypeScript 类型剥离。仓库构建脚本用 tsdown 的 native 配置加载器加载 `tsdown.config.ts`，因此当 `NODE_OPTIONS` 含 `--no-experimental-strip-types` 或 Node.js 构建缺少 TypeScript 支持时会失败；`pnpm run build` 会先检查这一条件并指出原因。
 - 启用了 Corepack 的 pnpm。仓库在 `package.json` 中固定使用 `pnpm@11.28.5`；如果 `pnpm --version` 无法通过 Corepack 解析，请先运行 `corepack enable`。
 - Git 2.26 或更高版本；钩子设置会启用 Git 的 worktree 专属配置扩展。
@@ -112,7 +110,7 @@ PR 产物 builder 运行 `build:artifacts`；必需的 Linux 与 Windows 普通�
 
 两次 tsdown 都匹配 `vendor/*`、`packages/*/*` 与 `apps/cli`，Host 阶段另外匹配 `apps/desktop-host`；两者都不扫描构建产物来发现 Client 包，也不维护 Host/Client 包过滤表。包内 tsdown 配置根据 `DSH_BUILD_FACE` 决定当前阶段的入口：普通 Client 插件在 Client 阶段同时生成 Node loader 与 browser bundle；`api-remotes` 通过 `hostPhase: true` 提前生成 Host 入口，再在 Client 阶段只生成 browser bundle。tsdown 只消费 `lib/types` 中由前置 tsc 发射的 JavaScript。tsdown 并发构建匹配到的 workspace 成员；`apps/desktop` 的主进程 bundle 需要从工作区 devDependencies 的 `lib/` 产物内联这些包，因此在 Host 阶段之后单独一步打 bundle（[Desktop README](../apps/desktop/README.zh.md#bundled-workspace-dependencies)）。
 
-Typert 通过 `tsconfig.host.json` 分析 Host 类型，在包编译之前生成 Host 反射和 Host-for-Client Remote 声明。仅源码的 [`generate-typert.ts`](../scripts/generate-typert.ts) 阶段拒绝依赖构建产物的工作区导入，包括经由依赖回到生成声明的元数据依赖。Host tsdown 转换源码装饰器，但不重复生成元数据；Client tsdown 同样使用已有元数据。`pnpm run typecheck` 生成元数据，按 reference 顺序编译 Host 与 Client 包，并在每个 aggregate 的包编译完成后以 `tsc -b` 检查它。该命令跳过 native addon、bundle、Web 和 client build record。`lint`、`lint:fix` 与 `doc-typecheck` 通过 `compile-referenced-projects.ts host-contracts` 准备元数据与 Host 包声明；生成失败时不启动依赖它的编译。这些仅生成声明的命令不更新运行时 bundle；启动或测试构建产物之前应运行 `build:artifacts`。
+Typert 通过 `tsconfig.host.json` 分析 Host 类型，在包编译之前生成 Host 反射和 Host-for-Client Remote 声明。仅源码的 [`generate-typert.ts`](../scripts/generate-typert.ts) 阶段拒绝依赖构建产物的工作区导入，包括经由依赖回到生成声明的元数据依赖。Host tsdown 转换源码装饰器，但不重复生成元数据；Client tsdown 同样使用已有元数据。`pnpm run typecheck` 生成元数据，按 reference 顺序编译 Host 与 Client 包，并在每个 aggregate 的包编译完成后以 `tsc -b` 检查它。该命令跳过 native addon、bundle、Web 和 client build record。`lint`、`lint:fix` 与 `doc-typecheck` 通过 `compile-referenced-projects.ts host-contracts` 准备元数据与 Host 包声明；生成失败时不启动依赖它的编译。这些仅生成声明的命令不更新运行时 bundle；启动或测试构建产物之前应运行 `build:artifacts`。 文档围栏用 `ts` 表示 Host API，用 `ts client` 表示 Client API；检查器使用各自的聚合选项与包引用分别编译两侧。
 
 `pnpm run build` 与 `build:artifacts` 会内联根包版本、七位源码 commit，并在 Git 报告本地变化时内联 dirty 标记；调用方提供的其他 `DSH_CLIENT_*` 值也会被继承。`pnpm run build:official` 是与 CI 和 release 产物构建等价的跨平台本地命令，并省略本地 dirty 标记。每次 `build` 或 `build:artifacts` 成功后都会写入一份被 gitignore 的记录，把精确公开值与 Vite 输出及动态 client bundle 绑定；release 打包和 built Web 测试会拒绝缺少记录或被后续局部构建改动的产物。`pnpm run dev:web` 会先执行 `build:artifacts`（`--skip-build` 则复用现有产物树），再读取一次当前版本和 Git 状态，并在本次会话的所有 watcher stage 之间共享该环境；它不会校验完整构建记录，因为 watcher stage 会重写记录覆盖的产物。
 
@@ -156,7 +154,7 @@ vendor manifest 守卫检查 `vendor/*/src` 下的改动是否连同对应的 `v
 
 pi-ai 检查会在内存中重新生成预期元数据。数据过期时，检查拒绝提交，不改写或暂存文件。修改 pi-ai 依赖或生成器后，请按包内的[提供方元数据更新步骤](../packages/llm/llm-pi-ai/README.zh.md#generated-provider-metadata)操作。
 
-除限定范围的配对和提供方元数据检查外，这些钩子有意不运行测试、快照、文档检查、构建或 `hygiene`。贡献者只运行一次[与改动行为相关的检查](../AGENTS.md#run-relevant-checks-locally)；CI 负责全量覆盖率门禁、构建产物冒烟测试，以及 Node 24.9、最新的 24 和 26 兼容性矩阵。
+除限定范围的配对和提供方元数据检查外，这些钩子有意不运行测试、快照、文档检查、构建或 `hygiene`。贡献者只运行一次[与改动行为相关的检查](../AGENTS.md#run-relevant-checks-locally)；CI 负责全量覆盖率门禁、构建产物冒烟测试，以及 Node 24.22.3、最新的 24 和 26 兼容性矩阵。
 
 贡献者可以选择运行 `pnpm run check:all`，执行全面的本地门禁集。该命令独立于 Git 钩子，也不是对 agent 的指令。
 
@@ -166,7 +164,7 @@ pi-ai 检查会在内存中重新生成预期元数据。数据过期时，检�
 
 ### CI 门禁
 
-keyless [CI 工作流](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.3/.github/workflows/ci.yml) 将独立门禁分组到若干宽粒度 lane，并在受支持的 Node 版本上运行一组较小的兼容性检查。产物消费方在各自 lane 内等待一次 build。覆盖率分区复用按平台和运行器池隔离的文件耗时，在配置的 worker 上限内均衡工作量。原生 Windows lane 运行在独立的 [CI Windows 工作流](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.3/.github/workflows/ci-windows.yml)中，Python 检查运行在独立的 [CI Python 工作流](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.3/.github/workflows/ci-python.yml)中，两者都可单独重新运行。必需 benchmark 在标准 GitHub 托管 Linux 上独立运行；[benchmark 运行器说明](../benchmarks/AGENTS.md)拥有路由及 job 超时。单独的真实 API 工作流按其配置的 worker 上限运行 `pnpm run test:e2e`。当前门禁和 job 清单以 [scripts/run-gates.ts](../scripts/run-gates.ts) 和工作流文件为准。
+keyless [CI 工作流](../.github/workflows/ci.yml) 将独立门禁分组到若干宽粒度 lane，并在受支持的 Node 版本上运行一组较小的兼容性检查。产物消费方在各自 lane 内等待一次 build。覆盖率分区复用按平台和运行器池隔离的文件耗时，在配置的 worker 上限内均衡工作量。原生 Windows lane 运行在独立的 [CI Windows 工作流](../.github/workflows/ci-windows.yml)中，Python 检查运行在独立的 [CI Python 工作流](../.github/workflows/ci-python.yml)中，两者都可单独重新运行。必需 benchmark 在标准 GitHub 托管 Linux 上独立运行；[benchmark 运行器说明](../benchmarks/AGENTS.md)拥有路由及 job 超时。单独的真实 API 工作流按其配置的 worker 上限运行 `pnpm run test:e2e`。当前门禁和 job 清单以 [scripts/run-gates.ts](../scripts/run-gates.ts) 和工作流文件为准。
 
 不带凭据的 dsh 依赖布局检查与 dsh/vendor 打包演练仅在 `DSH_CI_FAILOVER_LINUX=selfhosted`，且事件为受信任的 master 推送或同仓库、非 fork、非 Dependabot 拉取请求时使用现有 Linux 自托管池。其余情况（包括手动触发）均使用 `ubuntu-24.94`；手动发布仍使用托管运行器。持久化存储隔离与回退限制见[发布演练运行器说明](../.agents/notes/implemented/process/2026-07-26-ci-failover-runbook.zh.md)。
 
@@ -194,7 +192,6 @@ PTC mode 演示启用代码式工具展示，并运行同一个 headless profile
 pnpm run demo:ptc -- "summarize this workspace"
 ```
 
-<a id="application-commands"></a>
 ### 应用命令
 
 Web 与 Desktop 共用同一对命令。`start:*` 启动上一次 `pnpm run build` 或 `build:artifacts` 的产物；`dev:*` 先执行 `build:artifacts` 再启动。Web 还会在源码修改时持续重建 client bundle，因为它的 Host 从源码运行，而浏览器加载的是构建产物：

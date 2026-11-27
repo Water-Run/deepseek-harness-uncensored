@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type {} from '../src/client/index.ts'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, act } from '@testing-library/react'
 import { bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'

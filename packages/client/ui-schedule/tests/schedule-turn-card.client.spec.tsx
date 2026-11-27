@@ -4,6 +4,7 @@
  * settled `schedule_create` results, the turn-tail election, and the card's
  * rendering and open wiring.
  */
+import type {} from '../src/client/index.ts'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'

@@ -34,6 +34,15 @@
       "path": "../../typert/protocol"
     },
     {
+      "path": "../../util/deque"
+    },
+    {
+      "path": "../../session/session-projection-cache"
+    },
+    {
+      "path": "../../session/working-directory"
+    },
+    {
       "path": "../../util/ripgrep"
     },
     {

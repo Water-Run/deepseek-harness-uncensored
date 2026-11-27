@@ -54,10 +54,10 @@
       "path": "../../session/working-directory"
     },
     {
-      "path": "../../guard/security-proxy"
+      "path": "../../subprocess/subprocess"
     },
     {
-      "path": "../../subprocess/subprocess"
+      "path": "../../guard/security-proxy"
     }
   ]
 }

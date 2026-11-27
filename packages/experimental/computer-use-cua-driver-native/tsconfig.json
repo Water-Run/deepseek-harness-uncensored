@@ -4,15 +4,39 @@
     "rootDir": "src",
     "outDir": "lib/types"
   },
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
   "references": [
-    { "path": "../../../vendor/cordis" },
-    { "path": "../../../vendor/schemastery" },
-    { "path": "../../computer-use/computer-use" },
-    { "path": "../../core/tools" },
-    { "path": "../../core/system-prompt" },
-    { "path": "../../mcp/mcp-client" },
-    { "path": "../../llm/llm" },
-    { "path": "../../guard/target-protection" }
+    {
+      "path": "../../util/brand"
+    },
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../computer-use/computer-use"
+    },
+    {
+      "path": "../../core/tools"
+    },
+    {
+      "path": "../../core/system-prompt"
+    },
+    {
+      "path": "../../util/error"
+    },
+    {
+      "path": "../../mcp/mcp-client"
+    },
+    {
+      "path": "../../llm/llm"
+    },
+    {
+      "path": "../../guard/target-protection"
+    }
   ]
 }

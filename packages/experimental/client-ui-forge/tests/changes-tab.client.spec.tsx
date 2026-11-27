@@ -133,7 +133,7 @@ function ok<T>(value: T): RemoteResult<T> {
 
 /** Threads of #7 at its head, none of them yet, read for `lin`, who may review the change request `octo` opened. */
 function reviewData(overrides: Partial<ForgeReviewData> = {}): ForgeReviewData {
-  return { headSha: HEAD, viewer: 'lin', threads: [], truncated: false, pendingReview: null, viewerCanReview: true, ...overrides }
+  return { headSha: HEAD, viewer: 'lin', threads: [], truncated: false, pendingReview: null, viewerCanReview: true, reviewEvents: [], ...overrides }
 }
 
 /** The pending review of `octo` on #7. */
@@ -2185,7 +2185,7 @@ describe('ChangesTab review threads', () => {
     line('missing', 'src/missing.ts', 'R', 1),
     line('missing-no-url', 'src/missing.ts', 'R', 2, { comments: [reviewComment({ url: null })] }),
   ]
-  const REVIEW: ForgeReviewData = { headSha: HEAD, viewer: 'octo', threads: THREADS, truncated: false, pendingReview: null, viewerCanReview: false }
+  const REVIEW: ForgeReviewData = { headSha: HEAD, viewer: 'octo', threads: THREADS, truncated: false, pendingReview: null, viewerCanReview: false, reviewEvents: [] }
   const reviewed = (review: ForgeReviewData = REVIEW) => (faces: Faces): void => {
     faces.changeRequestDiff.mockImplementation(async () => ok({ ...CHANGE, files: FILES }))
     faces.changeRequestReview.mockImplementation(async () => ok(review))

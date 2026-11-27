@@ -5,7 +5,7 @@
     - 'button "Switch subagent: event-sourcing researcher"': event-sourcing researcher
     - text: /
     - 'button "Switch subagent: example editor"': example editor
-  - button "Side question"
+  - button "Session panel"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -18,7 +18,5 @@
 - button "Completed in {{duration}}" [disabled]
 - textbox "Message or run a task, / commands, @ files or sessions"
 - button "Add files or run commands"
-- 'button "Access mode, current: Full access"': Full access
+- 'button "Access mode, current: Workspace Write"': Workspace Write
 - button "Send message" [disabled]
-- 'button "Conversation cost: ￥0.00"': ￥0.00
-- 'button "Spending limits: Off"': "Off"

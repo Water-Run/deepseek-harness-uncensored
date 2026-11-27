@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import type {} from '../src/client/office/index.ts'
+import type {} from '../src/client/index.ts'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'

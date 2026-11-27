@@ -16,9 +16,13 @@
     "src/connect-protocol.ts",
     "src/loopback-hostname.ts",
     "src/recovery-config.ts",
-    "src/rpc.ts"
+    "src/rpc.ts",
+    "src/types.ts"
   ],
   "references": [
+    {
+      "path": "../config"
+    },
     {
       "path": "../../../vendor/cordis"
     },
@@ -29,7 +33,7 @@
       "path": "../../attachment/attachment"
     },
     {
-      "path": "../../core/session"
+      "path": "../../core/session/tsconfig.client.json"
     },
     {
       "path": "../../credentials/credentials"

@@ -1,5 +1,5 @@
 ---
-description: "DeepSeek Harness 主目录与共享 agent 配置根目录的共享解析，以及用户数据路径、波浪号展开与稳定监听路径。"
+description: "DeepSeek Harness 主目录、其 config、data、state、cache 与 backup 类别路径以及共享 agent 配置根目录的共享解析，以及波浪号展开与稳定监听路径。"
 kind: "package-library"
 ---
 
@@ -31,16 +31,28 @@ kind: "package-library"
 ```ts
 import { resolveDshHome, dshHomePath, dshCachePath } from '@deepseek-ai/dsh-home-paths'
 
-const home = resolveDshHome()                // configured path, else $DSH_UNCENSORED_HOME, else $DSH_HOME, else ~/.dsh-uncensored
+const home = resolveDshHome()                // configured path, else $DSH_HOME, else ~/.dsh
 const settings = dshHomePath('settings')     // join one child onto the resolved home
-const cache = dshCachePath('models')         // <home>/cache/models, default ~/.dsh-uncensored/cache/models
+const cache = dshCachePath('models')         // $DSH_HOME/cache/models, default ~/.dsh/cache/models
 ```
 
-显式配置的路径优先级最高，然后是 `$DSH_UNCENSORED_HOME`，再是 `$DSH_HOME`，最后是默认的 `~/.dsh-uncensored`。指向官方默认目录 `~/.dsh` 的 `$DSH_HOME` 会被忽略。空或仅含空白的变量视为未设置，因此空白的覆盖值绝不会把主目录解析到当前工作目录。面向用户的启动入口（源码 `dsh` 脚本、桌面外壳和安装的命令启动器）在解析任何路径前，用 `$DSH_UNCENSORED_HOME` 或默认目录导出 `$DSH_HOME`，因此从其他安装继承的 `$DSH_HOME` 不会到达此解析器；以编程方式为子进程设置 `$DSH_HOME` 的调用者仍会选中该目录。
+显式配置的路径优先级最高，然后是 `$DSH_HOME`，最后是默认的 `~/.dsh`。空或仅含空白的 `$DSH_HOME` 视为未设置，因此空白的覆盖值绝不会把主目录解析到当前工作目录。
 
 `dshCachePath(...segments)` 从解析出的主目录下的 `cache` 目录派生路径。不传路径段时返回缓存目录本身。传入首个选项对象 `dshCachePath({ dshHome: home }, ...segments)` 可使用显式配置的主目录，遵循相同的优先级与波浪号展开规则。它返回绝对路径，不会创建目录。
 
-桌面与命令行启动入口会在准备 profile 或读取其配置前调用 `assertSeparateDshHome`。它同时检查路径和链接解析结果，拒绝与官方 `~/.dsh` 重叠的目录，包括现有链接下尚未创建的子目录。
+<a id="choosing-a-category"></a>
+### 为新路径选择类别
+
+```ts
+import { dshPath } from '@deepseek-ai/dsh-home-paths'
+
+const index = dshPath('state', 'my-plugin', 'index.json')             // $DSH_HOME/state/my-plugin/index.json
+const models = dshPath({ category: 'cache', dshHome: '~/other-dsh' }, 'my-plugin') // ~/other-dsh/cache/my-plugin
+```
+
+主目录下的新文件使用 `dshPath(category, ...segments)`，并把负责方的目录名作为第一个路径段传入，该目录名通常是去掉 `@deepseek-ai/dsh-` 前缀的包名。`config` 用于用户为配置 harness 而编写的文件；`data` 用于丢失后会导致用户工作成果、登录信息或已安装软件丢失的记录；`state` 用于日志、索引、id，以及 harness 丢失后不会导致用户工作成果丢失的其他记录；`cache` 用于 harness 可以重新构建或重新下载的内容，`backup` 用于备份压缩包，用户可以随时删除，不影响 harness 运行。Loader `!!js` 配置表达式也可以使用同一个函数，例如 `root: !!js dshPath('data', 'my-plugin')`。`dshPath` 返回绝对路径，不会创建目录。
+
+现有条目保留当前位置：`sessions/`、`profiles/`、`skills/`、`AGENTS.md`、`.env` 和 `.credentials.yaml` 等约定的顶层条目保留在顶层，其他每个现有路径所属的类别由 [home 路径类别提案](../../../.agents/notes/proposed/architecture/2026-11-04-dsh-home-path-categories.zh.md)列出。
 
 ### 解析共享 agents 根目录
 
@@ -55,7 +67,7 @@ agentsHomeDisplay(agents)            // ~/.agents, or $DSH_AGENTS_HOME for any c
 
 ### 展示主目录
 
-面向用户的路径请以符号形式渲染根目录，而不是机器路径：默认主目录显示为 `~/.dsh-uncensored`，任何已配置的主目录显示为 `$DSH_HOME`，默认共享 agents 根目录显示为 `~/.agents`，任何已配置的共享 agents 根目录显示为 `$DSH_AGENTS_HOME`。两种展示形式都不会泄露机器的绝对路径。
+面向用户的路径请以符号形式渲染根目录，而不是机器路径：默认主目录显示为 `~/.dsh`，任何已配置的主目录显示为 `$DSH_HOME`，默认共享 agents 根目录显示为 `~/.agents`，任何已配置的共享 agents 根目录显示为 `$DSH_AGENTS_HOME`。两种展示形式都不会泄露机器的绝对路径。
 
 ### 展开用户路径
 
@@ -83,7 +95,7 @@ agentsHomeDisplay(agents)            // ~/.agents, or $DSH_AGENTS_HOME for any c
 
 ### 解析规则
 
-`resolveDshHome` 先读显式覆盖值，然后读 `$DSH_UNCENSORED_HOME`，再读未指向 `~/.dsh` 的 `$DSH_HOME`，最后回退到操作系统主目录拼接 `.dsh-uncensored`。`resolveAgentsHome` 对 `$DSH_AGENTS_HOME` 与 `~/.agents` 读取同样的三层值。选中的值经过波浪号展开并规范化为绝对路径；`dshHomePath` 用 Node 的平台路径规则拼接子路径段。`dshHomeDisplay` 与 `agentsHomeDisplay` 把解析出的路径与默认根目录比较并返回符号标签，因此已配置的根目录绝不泄露其绝对路径。
+`resolveDshHome` 先读显式覆盖值，然后读 `$DSH_HOME`，最后回退到操作系统主目录拼接 `.dsh`。`resolveAgentsHome` 对 `$DSH_AGENTS_HOME` 与 `~/.agents` 读取同样的三层值。选中的值经过波浪号展开并规范化为绝对路径；`dshHomePath` 与 `dshPath` 用 Node 的平台路径规则拼接子路径段。`dshHomeDisplay` 与 `agentsHomeDisplay` 把解析出的路径与默认根目录比较并返回符号标签，因此已配置的根目录绝不泄露其绝对路径。
 
 ### 规范化机制
 

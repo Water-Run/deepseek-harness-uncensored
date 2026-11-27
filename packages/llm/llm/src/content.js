@@ -1,0 +1,313 @@
+/** Content-block structure helpers. @module @deepseek-ai/dsh-llm/content */
+import { assertNever } from '@deepseek-ai/dsh-util-values';
+export { requiredImageOffload } from "./request-images.js";
+/**
+ * Bridge one attachment provider's host object location into the mounted
+ * tool execution world. The consumer supplies the current filesystem
+ * provider's mapping without making attachment or LLM definitions depend on it.
+ * @param attachments - provider that owns the normalized attachment object.
+ * @param mapHostPath - map one absolute host path into the current tool execution world.
+ * @param ref - durable normalized attachment reference.
+ * @returns a read-only execution-world path, or undefined when either provider exposes no mapping.
+ * @throws an attachment error when the durable reference is invalid.
+ */
+export function resolveImageAttachmentAccess(attachments, mapHostPath, ref) {
+    const hostPath = attachments.imageHostPath(ref);
+    if (hostPath === undefined)
+        return undefined;
+    const readonlyPath = mapHostPath(hostPath);
+    return readonlyPath === undefined ? undefined : { readonlyPath };
+}
+function quoted(value) {
+    return JSON.stringify(value);
+}
+function imageIdentity(ref) {
+    return ref.name === undefined
+        ? String(ref.attachmentId)
+        : `${quoted(ref.name)} (${ref.attachmentId})`;
+}
+function extension(mediaType) {
+    switch (mediaType) {
+        case 'image/png': return '.png';
+        case 'image/jpeg': return '.jpg';
+        case 'image/webp': return '.webp';
+        case 'image/gif': return '.gif';
+        default: return assertNever(mediaType, 'image extension');
+    }
+}
+function normalizedAccessText(ref, access) {
+    return ` Normalized copy (read-only; may be resized or re-encoded): ${quoted(access.readonlyPath)} (${ref.width}x${ref.height}px, ${ref.mediaType}).`
+        + ' Source dimensions, format, and byte size may differ.'
+        + ` Copy to a writable path ending in ${extension(ref.mediaType)} before editing.`;
+}
+/**
+ * Stable text shown to a model that cannot accept one durable image reference.
+ * @param ref - durable normalized attachment omitted from the request.
+ * @returns deterministic text-only placeholder.
+ */
+export function textOnlyImageText(ref) {
+    const digest = String(ref.attachmentId).slice('sha256:'.length, 'sha256:'.length + 8);
+    return `[image omitted because this model accepts text only; attachment sha256:${digest}]`;
+}
+/**
+ * Stable model-facing handle for one exact request image. Identity comes from
+ * the occurrence's own durable reference: request versions are prepared per
+ * attachment id, so one shared version may serve occurrences whose display
+ * names differ.
+ * @param ref - the occurrence's durable normalized attachment.
+ * @param version - exact request-image dimensions shown beside the text.
+ * @param access - optional path resolved for the current tool execution world.
+ * @returns attachment handle and request-image dimensions.
+ */
+export function requestImageHandleText(ref, version, access) {
+    const preview = `Image ${imageIdentity(ref)}; request preview ${version.width}x${version.height}px.`;
+    return access === undefined
+        ? `${preview} It may be resized or re-encoded; source dimensions, format, and byte size may differ.`
+        : preview + normalizedAccessText(ref, access);
+}
+/**
+ * Stable per-image placeholder for a request-limit omission.
+ * @param ref - durable normalized attachment omitted from this request.
+ * @param access - optional provider-resolved path for model tools.
+ * @returns identity, normalized metadata, and the available recovery path.
+ */
+export function offloadedImageText(ref, access) {
+    const identity = `image omitted to fit request image limits; ${imageIdentity(ref)}.`;
+    if (access === undefined) {
+        return `[${identity} No local normalized image path is available; ask the user to attach it again if needed.]`;
+    }
+    return `[${identity}${normalizedAccessText(ref, access)}]`;
+}
+/**
+ * True when typed model content contains an image block. This is the one image
+ * walk shared by every image policy (capability gating, text-only
+ * serialization, compaction survey), so a consumer cannot silently diverge.
+ * @param content - typed model content blocks.
+ * @returns whether any block is an image.
+ */
+export function contentHasImage(content) {
+    return content.some(block => block.type === 'image');
+}
+/**
+ * True when typed model content contains a file block.
+ * Reads current content on every call without retaining scan results.
+ * @param content - typed model content blocks.
+ * @returns whether any block is a file.
+ */
+export function contentHasFile(content) {
+    for (const block of content) {
+        if (block.type === 'file')
+            return true;
+    }
+    return false;
+}
+/**
+ * Stable model-facing handle for one durable file reference: the address of
+ * the verbatim stored copy and the instruction to read it on demand. This is
+ * the only representation a provider ever receives for a file.
+ * @param ref - durable verbatim file reference.
+ * @param readonlyPath - execution-world path of the stored copy, when resolvable.
+ * @returns deterministic handle text naming the file, its size, and its address.
+ */
+export function fileHandleText(ref, readonlyPath) {
+    const digest = String(ref.attachmentId).slice('sha256:'.length, 'sha256:'.length + 8);
+    const identity = `File ${quoted(ref.name)} (${ref.bytes} bytes, sha256:${digest})`;
+    if (readonlyPath === undefined) {
+        return `[${identity} was uploaded, but the current execution environment cannot access a readable path. Report that limitation if its contents are needed; do not claim to have read it.]`;
+    }
+    return `[${identity}: verbatim read-only copy saved at ${quoted(readonlyPath)}. Read that path with your file tools when its contents are needed; copy it to a writable location before modifying it. When delegating file work, include this saved path in the delegation prompt; only subagents sharing this execution environment can read it.]`;
+}
+/** Replace every file occurrence with handle text. */
+function replaceFilesWithHandles(blocks, resolvePath) {
+    let next;
+    for (const [index, block] of blocks.entries()) {
+        if (block.type === 'file') {
+            next ??= blocks.slice(0, index);
+            next.push({ type: 'text', text: fileHandleText(block.attachment, resolvePath(block.attachment)) });
+            continue;
+        }
+        next?.push(block);
+    }
+    return next ?? blocks;
+}
+export function projectFilesToText(messages, resolvePath) {
+    if (!messages.some(message => contentHasFile(message.content)))
+        return messages;
+    return messages.map((message) => {
+        const content = replaceFilesWithHandles(message.content, resolvePath);
+        return content === message.content ? message : { ...message, content };
+    });
+}
+/** Replace every offloaded occurrence with its placeholder. */
+function replaceOffloadedImages(blocks, placeholder) {
+    let next;
+    for (const [index, block] of blocks.entries()) {
+        if (block.type === 'image' && block.offloaded === true) {
+            next ??= blocks.slice(0, index);
+            next.push({ type: 'text', text: placeholder(block.attachment) });
+            continue;
+        }
+        next?.push(block);
+    }
+    return next ?? blocks;
+}
+export function projectOffloadedImages(messages, placeholder) {
+    return messages.map((message) => {
+        const content = replaceOffloadedImages(message.content, placeholder);
+        return content === message.content ? message : { ...message, content };
+    });
+}
+/** Replace every image occurrence for a text-only model. */
+function replaceImagesForTextModel(blocks) {
+    let next;
+    for (const [index, block] of blocks.entries()) {
+        if (block.type === 'image') {
+            next ??= blocks.slice(0, index);
+            next.push({ type: 'text', text: textOnlyImageText(block.attachment) });
+            continue;
+        }
+        next?.push(block);
+    }
+    return next ?? blocks;
+}
+export function projectImagesForTextModel(messages) {
+    if (!messages.some(message => contentHasImage(message.content)))
+        return messages;
+    return messages.map((message) => {
+        const content = replaceImagesForTextModel(message.content);
+        return content === message.content ? message : { ...message, content };
+    });
+}
+function withoutDeveloperMessages(messages) {
+    const retained = messages.filter(message => message.role !== 'developer');
+    return retained.length === messages.length ? messages : retained;
+}
+function toolDeclarations(history) {
+    const declarations = new Map(history.tools.map(tool => [tool.name, tool]));
+    for (const update of history.updates) {
+        for (const tool of update.additions) {
+            if (!declarations.has(tool.name)) {
+                // Later additions activate these definitions at their recorded position.
+                declarations.set(tool.name, { ...tool, deferLoading: true });
+            }
+        }
+    }
+    return declarations;
+}
+/** Rebuild declarations on removals or additions to an empty set, where the request prefix changes. */
+function rebaseAdditionOnlyHistory(history, messages) {
+    const available = new Map(history.tools.map(tool => [tool.name, tool]));
+    let baseline = history.tools;
+    let retainedFrom = 0;
+    for (const [index, update] of history.updates.entries()) {
+        const additions = new Map(update.additions.map(tool => [tool.name, tool]));
+        let reset = available.size === 0 && additions.size > 0;
+        // Completeness was checked before projection; Session resolves every addition's definition.
+        for (const block of messages.get(update.messageId)) {
+            if (block.type === 'tool-addition') {
+                const { deferLoading: _loading, ...tool } = additions.get(block.toolName);
+                available.set(tool.name, tool);
+            }
+            else if (block.type === 'tool-removal') {
+                reset = true;
+                available.delete(block.toolName);
+            }
+        }
+        if (reset) {
+            baseline = [...available.values()];
+            retainedFrom = index + 1;
+        }
+    }
+    return retainedFrom === 0 ? history : { tools: baseline, updates: history.updates.slice(retainedFrom) };
+}
+/**
+ * Construct provider declarations from session-folded history without changing logged active tools.
+ * Unsupported routes and incomplete history use current declarations without developer updates.
+ * Explicitly deferred declarations require an addition to activate them.
+ * A rebuild makes previously activated declarations immediate; unactivated declarations stay deferred.
+ * Addition-only routes rebuild when a tool is removed or tools are added to an empty set;
+ * deferred declarations count as existing tools.
+ * Later additions remain deferred and superseded tool blocks are omitted without dropping other content.
+ * @param messages - complete request inputs, or the prefix selected for an auxiliary call.
+ * @param tools - currently active tool schemas.
+ * @param toolUpdate - the resolved route's update mode.
+ * @param history - immutable state folded from committed headers and developer messages.
+ * @returns provider declarations and the corresponding filtered history.
+ */
+export function projectToolUpdates(messages, tools, toolUpdate, history) {
+    if (toolUpdate === undefined) {
+        // Unsupported routes need immediately available tools and no update messages.
+        let immediateTools = tools;
+        if (tools?.some(tool => tool.deferLoading === true)) {
+            immediateTools = tools.map(({ deferLoading: _loading, ...tool }) => tool);
+        }
+        return { messages: withoutDeveloperMessages(messages), tools: immediateTools };
+    }
+    if (history === undefined) {
+        // Current schemas alone cannot resolve definitions referenced by past updates.
+        return { messages: withoutDeveloperMessages(messages), tools };
+    }
+    const updates = new Map(messages.flatMap(message => message.role === 'developer' ? [[message.id, message.content]] : []));
+    if (history.updates.some(update => !updates.has(update.messageId))) {
+        // An auxiliary prefix may omit updates needed to activate historical declarations.
+        return { messages: withoutDeveloperMessages(messages), tools };
+    }
+    const projectedHistory = toolUpdate === 'addition-only' ? rebaseAdditionOnlyHistory(history, updates) : history;
+    const declarations = toolDeclarations(projectedHistory);
+    if (toolUpdate === 'in-history' && history.disabledAfterRejection?.length) {
+        const active = new Set(tools?.map(tool => tool.name));
+        for (const name of history.disabledAfterRejection) {
+            if (!active.has(name))
+                declarations.delete(name);
+        }
+    }
+    const updateIds = new Set(history.updates.map(update => update.messageId));
+    const retainedUpdateIds = new Set(projectedHistory.updates.map(update => update.messageId));
+    // Deferred baseline tools still need their first addition to become available.
+    const offered = new Set(projectedHistory.tools.filter(tool => !tool.deferLoading).map(tool => tool.name));
+    const projectedMessages = [];
+    for (const message of messages) {
+        if (message.role !== 'developer') {
+            projectedMessages.push(message);
+            continue;
+        }
+        // Earlier declaration series do not govern the current tool set.
+        if (!updateIds.has(message.id))
+            continue;
+        const content = message.content.filter((block) => {
+            switch (block.type) {
+                case 'tool-addition':
+                    if (!retainedUpdateIds.has(message.id))
+                        return false;
+                    // Only declared tools that are not already available need activation.
+                    if (!declarations.has(block.toolName) || offered.has(block.toolName))
+                        return false;
+                    offered.add(block.toolName);
+                    return true;
+                case 'tool-removal':
+                    // Addition-only routes cannot deactivate a tool through history.
+                    if (toolUpdate !== 'in-history' || !declarations.has(block.toolName))
+                        return false;
+                    return offered.delete(block.toolName);
+                default:
+                    // Other core and plugin-defined blocks retain their content and order.
+                    return true;
+            }
+        });
+        if (content.length === 0)
+            continue;
+        if (content.length === message.content.length) {
+            projectedMessages.push(message);
+        }
+        else {
+            projectedMessages.push({ ...message, content });
+        }
+    }
+    const unchanged = projectedMessages.length === messages.length
+        && projectedMessages.every((message, index) => message === messages[index]);
+    return {
+        messages: unchanged ? messages : projectedMessages,
+        tools: [...declarations.values()],
+    };
+}
+//# sourceMappingURL=content.js.map

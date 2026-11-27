@@ -50,8 +50,8 @@ export function apply(ctx: Context, config: Config): void {
   }
   const catalog = createModelListingCache(ctx, name, PROVIDER, {
     settings: () => settings().catalog,
-    credential: url => resolveDeepSeekAccountToken(ctx, url),
-    load: (url, token, signal) => requestModelListing(url, { [TOKEN_HEADER]: token }, signal),
+    credential: async url => { const token = await resolveDeepSeekAccountToken(ctx, url); return token === undefined ? undefined : { [TOKEN_HEADER]: token } },
+    load: (url, headers, signal) => requestModelListing(url, headers, signal),
   })
   let loggedListing: ModelListing | undefined
   /** Resolve the catalog, reporting each listing's hidden entries and dropped badges once. */

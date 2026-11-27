@@ -1,5 +1,6 @@
 /** Browser-safe request, result, and lifecycle vocabulary for the Session Remote service. */
 
+import type { SessionListMetadata as BaseSessionListMetadata } from '@deepseek-ai/dsh-session-query'
 import type {} from '@deepseek-ai/dsh-agent/types'
 import type { NativeFileApplication } from '@deepseek-ai/dsh-native-command/types'
 import type {
@@ -29,21 +30,21 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
   }
 }
 
-/** Persisted hints used to summarize a cold Session. */
-export interface SessionListMetadata {
-  /** Whether the folded prefix contains no turn. */
-  readonly blank: boolean
-  /** Latest human-authored prompt time in the folded prefix. */
-  readonly lastPromptAt: number | null
-  /** Latest completed turn failed; cleared when the next turn starts. Older hints may omit it. */
-  readonly lastTurnFailed?: boolean | undefined
-  /** Native side generation and its latest own result. The inherited prefix precedes fromSeq. */
-  readonly side?: {
-    readonly generation: number
-    readonly fromSeq: number
-    readonly asked: boolean
-    readonly result?: { readonly seq: number; readonly interrupted: boolean } | undefined
-  } | undefined
+/** Persisted hints used to summarize a cold Session, extended with DSHU list facts. */
+export type SessionListMetadata = BaseSessionListMetadata
+
+declare module '@deepseek-ai/dsh-session-query' {
+  interface SessionListMetadata {
+    /** Latest completed turn failed; cleared when the next turn starts. Older hints may omit it. */
+    readonly lastTurnFailed?: boolean | undefined
+    /** Native side generation and its latest own result. The inherited prefix precedes fromSeq. */
+    readonly side?: {
+      readonly generation: number
+      readonly fromSeq: number
+      readonly asked: boolean
+      readonly result?: { readonly seq: number; readonly interrupted: boolean } | undefined
+    } | undefined
+  }
 }
 
 /**

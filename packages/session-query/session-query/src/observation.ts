@@ -1,5 +1,6 @@
 /** Shared live/prepared observations for Session page and lifecycle consumers. */
 
+import type {} from '@deepseek-ai/dsh-session/context'
 import type { Context } from '@deepseek-ai/cordis'
 import { SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
 import type { Session, SessionEvent, SessionHeader, SessionId , SessionLogOffset as SessionLogOffsetType , SessionSeqCursor } from '@deepseek-ai/dsh-session'

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type {} from '../src/client/index.ts'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useSyncExternalStore } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'

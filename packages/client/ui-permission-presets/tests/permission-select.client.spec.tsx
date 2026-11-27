@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type {} from '../src/client/index.ts'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'

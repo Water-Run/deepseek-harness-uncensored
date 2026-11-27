@@ -1,7 +1,7 @@
 - banner:
   - navigation "Session hierarchy": Reply with a one-sentence description
-  - 'button "Conversation mode: Default" [disabled]': Default
-  - button "Side question"
+  - text: Standard mode
+  - button "Session panel"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -19,8 +19,6 @@
 - textbox "Message or run a task, / commands, @ files or sessions":
   - paragraph: Queue this follow-up while the current turn is running.
 - button "Add files or run commands"
-- 'button "Access mode, current: Full access"': Full access
+- 'button "Access mode, current: Workspace Write"': Workspace Write
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Queue message"
-- 'button "Conversation cost: ￥0.00"': ￥0.00
-- 'button "Spending limits: Off"': "Off"

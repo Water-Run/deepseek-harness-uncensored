@@ -9,6 +9,7 @@
  * @module @deepseek-ai/dsh-acp
  */
 
+import type {} from '@deepseek-ai/dsh-session/context'
 import type { Context } from '@deepseek-ai/cordis'
 import { Buffer } from 'node:buffer'
 import { randomUUID } from 'node:crypto'

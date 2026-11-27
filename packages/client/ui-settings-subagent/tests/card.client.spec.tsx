@@ -66,7 +66,7 @@ function renderSubagent(
     t,
     useSubagentLimitsCard: bindSnapshotSelector(limits),
     useSubagentModelSelectionCard: bindSnapshotSelector(models),
-  } as SubagentCardProps
+  } as unknown as SubagentCardProps
   render(<SubagentCard {...props} />)
   return { actions, limits, models }
 }

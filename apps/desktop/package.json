@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-desktop",
   "description": "DeepSeek Harness Uncensored (DSHU) desktop application",
-  "version": "2026.1123.0",
+  "version": "2026.1127.0",
   "private": true,
   "license": "GPL-3.0-or-later",
   "author": {
@@ -56,7 +56,8 @@
     "builder-util-runtime": "9.7.0",
     "electron-updater": "^6.8.9",
     "semver": "^7.8.5",
-    "ws": "^8.21.3"
+    "ws": "^8.21.3",
+    "@deepseek-ai/dsh-error": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-app-boot": "workspace:*",
@@ -71,7 +72,7 @@
     "@types/node": "^22.20.1",
     "@types/semver": "^7.8.0",
     "app-builder-lib": "26.17.0",
-    "electron": "^44.7.0",
+    "electron": "^44.11.5",
     "electron-builder": "^26.17.0",
     "extract-zip": "^2.0.1",
     "js-yaml": "^4.3.2",
@@ -96,7 +97,11 @@
     "tencentcloud-sdk-nodejs-teo": "4.1.330",
     "node-gyp": "12.4.0",
     "@deepseek-ai/dsh-api-session-controller": "workspace:*",
-    "@deepseek-ai/dsh-client-ui-settings-account": "workspace:*"
+    "@deepseek-ai/dsh-client-ui-settings-account": "workspace:*",
+    "@deepseek-ai/dsh-brand": "workspace:*",
+    "@deepseek-ai/dsh-client-connection": "workspace:*",
+    "@deepseek-ai/dsh-host-authentication-desktop": "workspace:*",
+    "@deepseek-ai/dsh-host-webserver": "workspace:*"
   },
   "homepage": "https://github.com/Water-Run/deepseek-harness-uncensored",
   "desktopName": "deepseek-harness-uncensored.desktop"

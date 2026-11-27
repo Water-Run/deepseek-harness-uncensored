@@ -16,6 +16,7 @@
  * @module @deepseek-ai/dsh-session-projection-cache
  */
 
+import type {} from '@deepseek-ai/dsh-session/context'
 import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { snapshotJsonValue } from '@deepseek-ai/dsh-util-values'

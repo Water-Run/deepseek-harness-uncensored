@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 /** The switch follows accepted Host state, including refused and delayed saves. */
 import { afterEach, expect, it, vi } from 'vitest'
+import { createElement } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
@@ -29,7 +30,7 @@ function fixture(writable = true) {
     useUpload: bindSnapshotSelector(formState), useMutation: bindSnapshotSelector(preference.state),
     setEnabled: (enabled: boolean) => preference.setEnabled(enabled), dismiss: () => { preference.dismiss() },
     t: (key: keyof typeof en) => en[key],
-  } as ComponentProps<typeof UploadRow>
+  } as unknown as ComponentProps<typeof UploadRow>
   return { formState, set, preference, props }
 }
 
@@ -70,7 +71,8 @@ it('disables input until a pending write settles', async () => {
 it('shows the Chinese label and cannot edit read-only settings', async () => {
   const { props, set } = fixture(false)
   const translated: Record<string, string> = zh
-  const { container } = render(<UploadRow {...props} t={key => translated[key] ?? key} />)
+  const viewProps = { ...props, t: (key: string) => translated[key] ?? key } as unknown as Parameters<typeof UploadRow>[0]
+  const { container } = render(createElement(UploadRow, viewProps as never))
   await expect(container.textContent + '\n').toMatchFileSnapshot('./expected/upload-row.zh.txt')
   expect(screen.getByRole('switch', { name: zh.title }).hasAttribute('disabled')).toBe(true)
   expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('true')

@@ -47,7 +47,7 @@ export async function smokeDesktopRuntime(
   const profile = join(harnessHome, 'profiles', 'desktop')
   const hostEnvironment = {
     ...Object.fromEntries(Object.entries(environment).filter(([name]) => !/^(?:npm|pnpm|corepack)_/iu.test(name))),
-    DSH_HOME: harnessHome, DSH_UNCENSORED_HOME: harnessHome, HOME: userDirectory, USERPROFILE: userDirectory,
+    DSH_HOME: harnessHome, DSH_UNCENSORED_HOME: harnessHome, DSH_DESKTOP_BOOT_TRACE: '1', HOME: userDirectory, USERPROFILE: userDirectory,
     XDG_CONFIG_HOME: home, XDG_CACHE_HOME: home, XDG_STATE_HOME: home,
     APPDATA: home, LOCALAPPDATA: home,
     npm_config_userconfig: join(home, 'npmrc'),
@@ -227,11 +227,10 @@ export function apply(ctx) {
     writeFileSync(join(profile, 'package.json'), JSON.stringify(manifest))
     writeFileSync(join(profile, 'cordis.patch.yml'), '- id: webserver\n  config:\n    host: 127.0.0.1\n    port: 0\n')
     const ready = await Promise.race([host.start(), new Promise<never>((_, reject) => {
-      timer = setTimeout(() => { reject(new Error('desktop runtime: Host readiness exceeded 120 seconds')) }, 120_000)
+      timer = setTimeout(() => { reject(new Error(`desktop runtime: Host readiness exceeded 120 seconds${host.stderrTail() === '' ? '' : `: ${host.stderrTail()}`}`)) }, 120_000)
     })])
     clearTimeout(timer)
-    const login = await fetch(ready.url, { redirect: 'manual' })
-    const cookie = login.headers.getSetCookie().map(value => value.split(';')[0]).join('; ')
+    const cookie = ready.authenticationCookie
     const response = await fetch(new URL('/', ready.url), { headers: { cookie } })
     if (response.status !== 200 || !(await response.text()).includes('<html')) {
       throw new Error('desktop runtime: packaged frontend smoke failed')

@@ -12,7 +12,7 @@
     "src/configuration.ts",
     "src/persistence.ts",
     "src/index.ts",
-    "src/config.ts"
+    "src/types.ts"
   ],
   "references": [
     {
@@ -28,10 +28,10 @@
       "path": "../../../vendor/cordis"
     },
     {
-      "path": "../../host/webserver"
+      "path": "../../util/values"
     },
     {
-      "path": "../../util/values"
+      "path": "../../host/webserver"
     }
   ]
 }

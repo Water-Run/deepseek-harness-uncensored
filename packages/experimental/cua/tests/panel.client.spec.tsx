@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 /** Permission UI distinguishes missing privileges, uncertainty, and application consent. */
+import type {} from '../src/client/index.ts'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'

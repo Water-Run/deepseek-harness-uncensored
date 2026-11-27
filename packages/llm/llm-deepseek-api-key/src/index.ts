@@ -57,8 +57,8 @@ export function apply(ctx: Context, config: Config): void {
   }
   const listings = createModelListingCache(ctx, name, PROVIDER, {
     settings: () => options().listing,
-    credential: async () => presentApiKey(options()),
-    load: (url, apiKey, signal) => requestModelListing(url, { 'x-api-key': apiKey }, signal),
+    credential: async () => { const key = await presentApiKey(options()); return key === undefined ? undefined : { 'x-api-key': key } },
+    load: (url, headers, signal) => requestModelListing(url, headers, signal),
   })
   let reportedListing: ModelListing | undefined
   /** Resolve the catalog, reporting each listing's hidden entries and dropped badges once. */

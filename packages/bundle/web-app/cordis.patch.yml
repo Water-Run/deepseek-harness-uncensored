@@ -259,6 +259,11 @@
         # The listener's bind IP is accepted separately from this list.
         trustedHosts: !!js ctx.webStartup.trustedHosts
 
+    # Launch-token browser authentication: the printed URL carries the process
+    # token, and admitted API sockets bind to one owner Peer.
+    - id: authentication-token
+      name: '@deepseek-ai/dsh-host-authentication-token'
+
     # Raw Blob and ReadableStream uploads run independently of Connection's
     # RPC and generation service.
     - id: file-upload

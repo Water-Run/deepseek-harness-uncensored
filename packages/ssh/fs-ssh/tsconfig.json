@@ -8,7 +8,6 @@
     "src"
   ],
   "references": [
-    { "path": "../../llm/llm" },
     {
       "path": "../../../vendor/cordis"
     },
@@ -26,6 +25,9 @@
     },
     {
       "path": "../../sandbox/sandbox-policy"
+    },
+    {
+      "path": "../../llm/llm"
     }
   ]
 }

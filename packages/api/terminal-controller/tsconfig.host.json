@@ -16,7 +16,6 @@
     "src/screen.ts"
   ],
   "references": [
-    { "path": "../../guard/security-proxy" },
     {
       "path": "../../../vendor/cordis"
     },
@@ -61,6 +60,9 @@
     },
     {
       "path": "../../util/values"
+    },
+    {
+      "path": "../../guard/security-proxy"
     }
   ]
 }

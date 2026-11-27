@@ -1,7 +1,7 @@
 - banner:
   - navigation "Session hierarchy": Use the bash tool to
-  - 'button "Conversation mode: Minimal mode" [disabled]': Minimal mode
-  - button "Side question"
+  - text: Minimal mode
+  - button "Session panel"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -28,8 +28,6 @@
 - 'button "Access mode, current: Workspace Write"': Workspace Write
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
-- 'button "Turns: 1 · Steps: 2 · {{throughput}} tok/s"': "Turns: 1 · Steps: {{throughput}} tok/s"
+- button "1 turns 2 steps · {{throughput}} tok/s": 1 turns 2 steps{{throughput}} tok/s
 - button "28 tok · Cache hit 0%": 28 tokCache hit 0%
-- 'button "Conversation cost: ￥0.000104"': ￥0.000104
-- 'button "Spending limits: Off"': "Off"
 - button "0% of context used": 0%

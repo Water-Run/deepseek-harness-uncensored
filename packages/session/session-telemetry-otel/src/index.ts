@@ -8,6 +8,7 @@
  * @module @deepseek-ai/dsh-session-telemetry-otel
  */
 
+import type {} from '@deepseek-ai/dsh-session/context'
 import { createRequire } from 'node:module'
 import z from '@deepseek-ai/schemastery'
 import type { Context } from '@deepseek-ai/cordis'

@@ -29,6 +29,8 @@ Mount `dsh-session` wherever a session must exist. It creates and holds event-so
 
 ### Create and inspect sessions
 
+`SessionId` is a type exported by the package root and `/types`. Apply it to an admitted string with `brandString<SessionId>(value)` from `dsh-brand`; branding does not validate or generate an id.
+
 `ctx.sessions.create()` builds a live session bound to the calling fiber; `get(id)` and `list()` find sessions, and `fork()` creates an independent session from a stable prefix of a live one. It copies history, `cwd`, `isSeeded`, and the inherited event count without recording a source relationship. `parentSession` records a subagent’s direct creator; historical ordinary forks may retain their source there, so classification uses `origin`.
 
 Independent `Session.create()` and `Session.fromRestore()` instances accept events and plugin records without sending `session/event`. A `SessionStore` takes ownership through `prepare()` or `enter()`; writes then require store membership and a completed synchronous `session/created` announcement. Creation listeners are read-only and see all existing history; entering an independent instance does not replay that history as `session/event`. Failed announcement or removal leaves writes disabled. Removal emits `session/disposed` only if `session/created` began, including a failed announcement; an entered but never announced instance emits neither notification.
@@ -63,7 +65,7 @@ Plugins declare content-changing events with `@messageProjection` and register a
 
 Append, seed/restore, and event adoption/snapshot reject any `header.system` and exactly empty optional request-header fields (`tools: []`, `adapterDefaults: {}`) instead of normalizing input. Tool-result `data.error` is allowed only when the first-class message has `isError === true`; failure identity remains optional. Rejected appends do not change the log, derived state, or event feed. Adoption validates event-local metadata but not referenced history or replacement membership.
 
-`system/message` holds the rendered system prompt: the first one is surface node 0, the prepared call capability governs admission, with a non-empty rendering consolidated at the first system node on an incapable route or appended after cached history inside a continuing `in-history` series; empty system nodes project to no message, so clearing the prompt requires logged empty replacements of all active system nodes, not just the latest; the surface fold rejects a replacement covering node 0 while it is a `system/message` unless the replacing event is itself a `system/message` over exactly that node, while later system nodes carry no protection and a compaction range may shadow them ([decision](../../../.agents/notes/implemented/architecture/2026-09-02-system-prompt-as-surface-node.md)).
+`system/message` stores model-visible system text, including source-attributed admissions and the instructions rebuilt on the next model attempt after compaction. Optional source metadata identifies canonical section text separately from source-associated notices; adapters format the recorded blocks for provider requests. The [system-prompt package](../system-prompt/README.md) owns per-Session comparison and prompt assembly. Empty-content system nodes project to no message. The surface fold protects a `system/message` at node 0 from replacements except a system event replacing exactly that node; later system nodes may be shadowed by compaction.
 
 ### Read the log
 
@@ -138,6 +140,8 @@ Every append uses the shared iterative `snapshotJsonValue()` pass, which reads, 
 ### Derived history
 
 `deriveMessages()` caches deep-frozen projections and returns a fresh array per call. The surface event types (`system/message`, `developer/message`, `user/message`, `assistant/message`, `tool/result`) supply their recorded message identities and content; empty-content system and developer nodes project to no message. Plugin-owned projections change derived content without mutating recorded messages. Replacements and projection decisions invalidate the cache. Embedded Assistant streams and `assistant/attempt` events remain replay and diagnostic data only. Ordinary prompts and injected context project without automatic type- or source-specific wrappers. Producers own any framing in their recorded content.
+
+`surface.systemNodes` exposes current system sequences and whether their logged content arrays are empty, in surface order. Each read scans the current surface nodes, so the list reflects actual replaced positions; citations outside a replaced range do not remove nodes.
 
 ### The request header
 

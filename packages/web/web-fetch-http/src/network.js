@@ -1,0 +1,307 @@
+/**
+ * Address resolution and address-pinned HTTP transport for `web-fetch-http`.
+ * One DNS answer set is validated before Undici receives it through a custom lookup,
+ * so the connection cannot resolve the hostname again after authorization.
+ *
+ * @module @deepseek-ai/dsh-web-fetch-http/network
+ */
+import { lookup as systemLookup } from 'node:dns/promises';
+import { isIP } from 'node:net';
+import ipaddr from 'ipaddr.js';
+import { WebError } from '@deepseek-ai/dsh-web';
+/** RFC 6052 prefix lengths that may carry an IPv4 destination through NAT64. */
+const RFC6052_PREFIX_LENGTHS = [32, 40, 48, 56, 64, 96];
+const IPV4ONLY_DISCOVERY_HOST = 'ipv4only.arpa';
+const IPV4ONLY_SENTINELS = new Set(['192.0.0.170', '192.0.0.171']);
+/**
+ * Return whether an address is globally reachable unicast. IPv4-mapped IPv6 is
+ * classified by its embedded IPv4 address; transition and translation prefixes
+ * remain blocked because their eventual IPv4 destination cannot be pinned here.
+ *
+ * @param input - textual IPv4 or IPv6 address.
+ * @returns true only for a public unicast destination.
+ */
+export function isPublicIpAddress(input) {
+    let parsed;
+    try {
+        parsed = ipaddr.parse(stripIpv6Brackets(input));
+    }
+    catch {
+        return false;
+    }
+    if (parsed instanceof ipaddr.IPv4)
+        return parsed.range() === 'unicast';
+    if (parsed.isIPv4MappedAddress())
+        return parsed.toIPv4Address().range() === 'unicast';
+    return parsed.range() === 'unicast';
+}
+/**
+ * Resolve a hostname once and reject the complete answer set if any destination
+ * is not public. The returned addresses are the only ones the transport may use.
+ *
+ * @param hostname - URL hostname, including brackets when it is an IPv6 literal.
+ * @param signal - aborts the wait for system resolution; an in-flight OS lookup may finish unused.
+ * @param resolver - lookup implementation, overridden only by focused tests.
+ * @returns the validated, non-empty address set.
+ */
+export async function resolvePublicAddresses(hostname, signal, resolver = systemLookup) {
+    return resolveAddressSet(hostname, signal, resolver, true);
+}
+/**
+ * Resolve an explicitly configured connection target, retaining DNS64 evidence without an anonymous-fetch policy.
+ * @param hostname - Owner-selected hostname or literal IP.
+ * @param signal - Cancels lookup and translation-prefix discovery.
+ * @param resolver - The connection owner's resolver; no ambient fallback is selected here.
+ * @returns Literal addresses, including private networks; callers must authorize and pin them before connecting.
+ */
+export async function resolveConnectionAddresses(hostname, signal, resolver) {
+    return resolveAddressSet(hostname, signal, resolver, false);
+}
+async function resolveAddressSet(hostname, signal, resolver, publicOnly) {
+    const unbracketed = stripIpv6Brackets(hostname);
+    const literalFamily = isIP(unbracketed);
+    const resolved = literalFamily === 0
+        ? await raceWithSignal(resolver(unbracketed, { all: true, order: 'verbatim' }), signal)
+        : [{ address: unbracketed, family: literalFamily }];
+    if (resolved.length === 0) {
+        throw new WebError(`hostname "${hostname}" resolved to no addresses`, 'WEB_PROVIDER_ERROR');
+    }
+    const hasIpv6 = resolved.some(entry => entry.family === 6 && isIP(entry.address) === 6
+        && ipaddr.parse(entry.address).range() !== 'loopback');
+    const nat64Prefixes = [
+        // RFC 6052's fixed prefix remains meaningful even when DNS64 discovery returns only A records.
+        { bytes: ipaddr.parse('64:ff9b::').toByteArray().slice(0, 12), length: 96 },
+        ...hasIpv6 ? await discoverNat64Prefixes(signal, resolver) : [],
+    ];
+    const addresses = [];
+    for (const entry of resolved) {
+        if ((entry.family !== 4 && entry.family !== 6) || isIP(entry.address) !== entry.family) {
+            throw new WebError(`hostname "${hostname}" resolved to an invalid IP address`, 'WEB_PROVIDER_ERROR');
+        }
+        if (publicOnly && !isPublicIpAddress(entry.address)) {
+            throw new WebError(`URL hostname "${hostname}" resolves to a non-public IP address`, 'WEB_BLOCKED_URL');
+        }
+        const translatedIpv4 = translatedIpv4Address(entry.address, nat64Prefixes);
+        if (!publicOnly && entry.family === 6 && translatedIpv4 === undefined
+            && ['rfc6052', 'rfc6145', '6to4', 'teredo'].includes(ipaddr.parse(entry.address).range())) {
+            throw new WebError('Connection address uses an unverified IPv4 translation.', 'WEB_BLOCKED_URL');
+        }
+        if (publicOnly && translatedIpv4 !== undefined && !isPublicIpAddress(translatedIpv4)) {
+            throw new WebError(`URL hostname "${hostname}" resolves through NAT64 to a non-public IPv4 address`, 'WEB_BLOCKED_URL');
+        }
+        addresses.push({ address: entry.address, family: entry.family,
+            ...translatedIpv4 === undefined ? {} : { translatedIpv4 },
+        });
+    }
+    return addresses;
+}
+/** Discover the active DNS64 prefix set using RFC 7050's reserved hostname. */
+async function discoverNat64Prefixes(signal, resolver) {
+    const discovered = await raceWithSignal(resolver(IPV4ONLY_DISCOVERY_HOST, { all: true, order: 'verbatim' }), signal);
+    const prefixes = [];
+    const seen = new Set();
+    for (const entry of discovered) {
+        if (entry.family !== 6 || isIP(entry.address) !== 6)
+            continue;
+        const bytes = ipaddr.parse(entry.address).toByteArray();
+        for (const length of RFC6052_PREFIX_LENGTHS) {
+            const embedded = embeddedIpv4Address(bytes, length);
+            if (embedded === undefined || !IPV4ONLY_SENTINELS.has(embedded))
+                continue;
+            const prefixBytes = bytes.slice(0, length / 8);
+            const key = `${String(length)}:${prefixBytes.join('.')}`;
+            if (seen.has(key))
+                continue;
+            seen.add(key);
+            prefixes.push({ bytes: prefixBytes, length });
+        }
+    }
+    return prefixes;
+}
+/** Return the RFC 6052-embedded IPv4 address when an IPv6 address matches a discovered prefix. */
+function translatedIpv4Address(input, prefixes) {
+    if (isIP(input) !== 6)
+        return undefined;
+    const bytes = ipaddr.parse(input).toByteArray();
+    for (const prefix of prefixes) {
+        if (!prefix.bytes.every((byte, index) => bytes[index] === byte))
+            continue;
+        const embedded = embeddedIpv4Address(bytes, prefix.length);
+        if (embedded !== undefined)
+            return embedded;
+    }
+    return undefined;
+}
+/** Extract one IPv4 address from an RFC 6052 IPv6 layout. */
+function embeddedIpv4Address(bytes, prefixLength) {
+    if (prefixLength === 96)
+        return bytes.slice(12, 16).join('.');
+    if (bytes[8] !== 0)
+        return undefined;
+    const prefixBytes = prefixLength / 8;
+    const beforeReservedOctet = 8 - prefixBytes;
+    const ipv4 = [
+        ...bytes.slice(prefixBytes, prefixBytes + beforeReservedOctet),
+        ...bytes.slice(9, 9 + 4 - beforeReservedOctet),
+    ];
+    return ipv4.join('.');
+}
+/**
+ * Fetch through an agent whose lookup callback returns only the already validated address set. The
+ * URL hostname remains intact for HTTP Host and TLS SNI.
+ *
+ * The agent is this request's own because the address set is: pinning is how this package refuses a
+ * DNS answer that changes between validation and connection, and it may not apply process-wide —
+ * an operator-configured MCP server or model endpoint on loopback is a supported destination, and
+ * only the URLs this tool fetches are the model's to choose.
+ *
+ * @param url - validated HTTP(S) URL the policy does not route through a proxy.
+ * @param addresses - Addresses validated by the caller's policy; anonymous fetch uses {@link resolvePublicAddresses}.
+ * @param headers - request headers.
+ * @param signal - request and body-read cancellation signal.
+ * @param request - Structured method and optional bytes; defaults to an anonymous GET.
+ * @returns a response plus the disposer its consumer must call.
+ */
+export async function requestPinned(url, addresses, headers, signal, request = { method: 'GET' }) {
+    // Keep the Node-only transport out of browser-worker startup. The preview can load the provider
+    // and fail loud at its DNS stub without evaluating Undici; a real request resolves it here.
+    const { Agent, fetch } = await import('undici');
+    // Reached only where `proxyRouteFor` reported no proxy for this URL, and the pinned lookup this
+    // agent carries is per-request state the process-wide dispatcher cannot hold.
+    // proxy-exempt: pinning one request's validated addresses, on a URL the policy routes directly.
+    const dispatcher = new Agent({ autoSelectFamily: true, connect: { lookup: createPinnedLookup(addresses) } });
+    try {
+        // proxy-exempt: the agent above, whose lifetime is this one request.
+        const response = await fetch(url, { ...request, redirect: 'manual', headers, signal, dispatcher });
+        return { response, close: async () => { await dispatcher.close(); } };
+    }
+    catch (error) {
+        await dispatcher.close();
+        throw error;
+    }
+}
+/**
+ * Fetch through the dispatcher the proxy policy already installed, letting the proxy resolve the
+ * origin.
+ *
+ * No address set is pinned because none exists to pin: the proxy performs the lookup, and a
+ * connection pinned to a locally resolved address would reach the origin directly and defeat the
+ * proxy. The dispatcher is the process-wide one, so hops share its connection pool and no caller
+ * closes it.
+ *
+ * @param dispatcher - the route's dispatcher, from `proxyRouteFor`.
+ * @param url - validated HTTP(S) URL the policy routes through a proxy.
+ * @param headers - request headers.
+ * @param signal - request and body-read cancellation signal.
+ * @returns a response plus a disposer that releases nothing, so both paths close alike.
+ */
+export async function requestVia(dispatcher, url, headers, signal) {
+    const { fetch } = await import('undici');
+    // proxy-exempt: the dispatcher is the installed policy's own, handed over by `proxyRouteFor`.
+    const response = await fetch(url, { method: 'GET', redirect: 'manual', headers, signal, dispatcher });
+    return { response, close: () => Promise.resolve() };
+}
+/**
+ * Request a validated origin through a proxy using a literal-IP CONNECT tunnel.
+ * The HTTP Host and origin TLS name remain the original authority; certificate verification stays enabled.
+ * @param proxy - Selected HTTP(S) proxy URL, possibly containing credentials; never log this value.
+ * @param url - Original validated origin URL.
+ * @param addresses - Non-empty validated candidates; the first is bound for this hop without application-level replay.
+ * @param headers - Origin headers; Host is fixed to the URL and proxy authorization is never forwarded.
+ * @param signal - Request and body-read cancellation.
+ * @param request - Method and optional bytes for a structured request; defaults to an anonymous GET.
+ * @returns A response with a private proxy dispatcher that the caller must close.
+ */
+export async function requestPinnedViaProxy(proxy, url, addresses, headers, signal, request = { method: 'GET' }) {
+    signal.throwIfAborted();
+    const selected = addresses.at(0);
+    if (selected === undefined || isIP(selected.address) !== selected.family) {
+        throw new WebError('A proxy tunnel requires an authorized literal destination.', 'WEB_BLOCKED_URL');
+    }
+    const { ProxyAgent, fetch, interceptors } = await import('undici');
+    const hostname = stripIpv6Brackets(url.hostname);
+    if (isIP(hostname) !== 0 && ipaddr.process(hostname).toString() !== ipaddr.process(selected.address).toString()) {
+        throw new WebError('The proxy destination does not match the authorized literal address.', 'WEB_BLOCKED_URL');
+    }
+    // proxy-exempt: connects through the selected proxy while pinning its authorized destination for this request.
+    const agent = new ProxyAgent({ uri: proxy, proxyTunnel: true,
+        ...isIP(hostname) === 0 ? { requestTls: { servername: hostname } } : {},
+    });
+    // Undici rewrites the transport origin below fetch, preserving Host, SNI and response URL semantics.
+    const dispatcher = isIP(hostname) !== 0 ? agent : agent.compose(interceptors.dns({
+        dualStack: false, affinity: selected.family,
+        lookup(origin, _options, callback) {
+            if (origin.origin !== url.origin) {
+                callback(new Error('Unexpected origin for a bound proxy tunnel.'), []);
+                return;
+            }
+            callback(null, [{ address: selected.address, family: selected.family, ttl: 0 }]);
+        },
+        pick: () => ({ address: selected.address, family: selected.family, ttl: 0 }),
+    }));
+    try {
+        signal.throwIfAborted();
+        const originHeaders = new Headers(headers);
+        originHeaders.set('host', url.host);
+        originHeaders.delete('proxy-authorization');
+        originHeaders.delete('proxy-connection');
+        // proxy-exempt: a private tunnel through the already selected route, never a direct origin connection.
+        const response = await fetch(url, { ...request, redirect: 'manual', signal, dispatcher, headers: Object.fromEntries(originHeaders) });
+        return { response, close: async () => { await agent.close(); } };
+    }
+    catch (error) {
+        await agent.destroy(error instanceof Error ? error : new Error('Proxy tunnel failed.', { cause: error }));
+        throw error;
+    }
+}
+/** Production network operations kept as an object so provider tests can replace resolution only. */
+export const httpNetwork = {
+    resolve: (hostname, signal) => resolveConnectionAddresses(hostname, signal, systemLookup),
+    request: requestPinned,
+    requestVia,
+    requestPinnedViaProxy,
+};
+/**
+ * Build the connector lookup that serves a fixed validated answer set.
+ *
+ * @param addresses - public addresses retained from the preceding resolution.
+ * @returns a Node-compatible lookup callback that performs no network resolution.
+ */
+export function createPinnedLookup(addresses) {
+    return (hostname, options, callback) => {
+        const family = typeof options.family === 'number'
+            ? options.family
+            : options.family === 'IPv4' ? 4 : options.family === 'IPv6' ? 6 : 0;
+        const eligible = family === 0 ? addresses : addresses.filter(address => address.family === family);
+        const selected = eligible[0];
+        if (selected === undefined) {
+            const error = Object.assign(new Error(`no validated address for ${hostname} in family ${family}`), {
+                code: 'ENOTFOUND',
+                hostname,
+            });
+            callback(error, options.all === true ? [] : '', family);
+            return;
+        }
+        if (options.all === true) {
+            callback(null, eligible.map(address => ({ ...address })));
+            return;
+        }
+        callback(null, selected.address, selected.family);
+    };
+}
+/** Race a non-cancellable OS lookup without letting it delay tool cancellation. */
+function raceWithSignal(promise, signal) {
+    const abortError = () => new Error('web fetch aborted during hostname resolution', { cause: signal.reason });
+    if (signal.aborted)
+        return Promise.reject(abortError());
+    return new Promise((resolve, reject) => {
+        const abort = () => { reject(abortError()); };
+        signal.addEventListener('abort', abort, { once: true });
+        promise.then(resolve, reject).finally(() => { signal.removeEventListener('abort', abort); });
+    });
+}
+/** WHATWG URL retains brackets around IPv6 hostnames; IP parsers do not. */
+function stripIpv6Brackets(hostname) {
+    return hostname.startsWith('[') && hostname.endsWith(']') ? hostname.slice(1, -1) : hostname;
+}
+//# sourceMappingURL=network.js.map

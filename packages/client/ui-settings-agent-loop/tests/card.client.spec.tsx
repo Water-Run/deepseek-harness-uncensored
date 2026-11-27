@@ -23,7 +23,7 @@ function field(text: string, rest: Partial<SettingsFieldState> = {}): SettingsFi
 function renderCard(state: Partial<AgentLoopCardState> = {}, view: 'summary' | 'page' = 'page') {
   const store = createSnapshotStore<AgentLoopCardState>({ ...settled, maxParallelToolCalls: field('10'), ...state })
   const actions = { edit: vi.fn(), resetField: vi.fn(), save: vi.fn(), discard: vi.fn() }
-  const props = { ...actions, view, t, useAgentLoopCard: bindSnapshotSelector(store) } as AgentLoopCardProps
+  const props = { ...actions, view, t, useAgentLoopCard: bindSnapshotSelector(store) } as unknown as AgentLoopCardProps
   render(<AgentLoopCard {...props} />)
   return actions
 }

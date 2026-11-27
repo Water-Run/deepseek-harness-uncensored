@@ -3,6 +3,7 @@
  * @module @deepseek-ai/dsh-goal-round-driver
  */
 
+import type {} from '@deepseek-ai/dsh-session/context'
 import { isDeepStrictEqual } from 'node:util'
 import { FiberState } from '@deepseek-ai/cordis'
 import type { Context } from '@deepseek-ai/cordis'

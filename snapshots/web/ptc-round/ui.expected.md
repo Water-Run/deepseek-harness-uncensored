@@ -1,14 +1,14 @@
 - banner:
   - navigation "Session hierarchy": "Using ONE run_code program: run"
-  - 'button "Conversation mode: PTC mode" [disabled]': PTC mode
-  - button "Side question"
+  - text: PTC mode
+  - button "Session panel"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]
     - tab "Trajectory"
   - button "More conversation views"
-- text: "Using ONE run_code program: run bash `echo CODE_ROUND_OK`, then read the file missing.txt catching its error in the program. Return an object with both outcomes. Then reply DONE and stop. {{clock}}"
+- text: "Using ONE run_code program: run bash `echo CODE_ROUND_OK`, then read the file missing.txt catching its error in the program. Use `inspect(...)` to display an object with both outcomes. Then reply DONE and stop. {{clock}}"
 - button "Copy"
 - status: Completed
 - button "Completed in {{duration}}" [expanded]
@@ -34,11 +34,9 @@
 - text: {{clock}}
 - textbox "Message or run a task, / commands, @ files or sessions"
 - button "Add files or run commands"
-- 'button "Access mode, current: Full access"': Full access
+- 'button "Access mode, current: Workspace Write"': Workspace Write
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
-- 'button "Turns: 1 · Steps: 2 · {{throughput}} tok/s"': "Turns: 1 · Steps: {{throughput}} tok/s"
+- button "1 turns 2 steps · {{throughput}} tok/s": 1 turns 2 steps{{throughput}} tok/s
 - button "17.5K tok · Cache hit 52%": 17.5K tokCache hit 52%
-- 'button "Conversation cost: ￥0.02"': ￥0.02
-- 'button "Spending limits: Off"': "Off"
 - button "7% of context used": 7%

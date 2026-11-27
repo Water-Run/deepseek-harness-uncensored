@@ -145,7 +145,7 @@ export function ready(overrides: Partial<ForgePanelState> = {}, checkoutOverride
     directory: '/work/repo',
     checkout: { state: 'ready', checkout: checkout(checkoutOverrides) },
     repository: { forge: 'github', host: 'github.com', owner: 'octo', name: 'demo' },
-    readiness: { state: 'ready', message: null },
+    readiness: { state: 'ready', message: null, signIn: null },
     changeRequests: [],
     worktree: worktree(),
     local: null,

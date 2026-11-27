@@ -5,6 +5,7 @@
  * @module @deepseek-ai/dsh-session-log-deepseek
  */
 
+import type {} from '@deepseek-ai/dsh-session/context'
 import { Buffer } from 'node:buffer'
 import { Service, type Context, type Volatile } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'

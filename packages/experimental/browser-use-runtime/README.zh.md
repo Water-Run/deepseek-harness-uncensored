@@ -25,27 +25,19 @@ kind: "package-library"
 <a id="use-this-package"></a>
 ## 使用本包
 
-可选独立代理覆盖当前 Agent 时，`mountSessionMcp` 在启动 MCP 进程前取得该会话的回环代理地址。启动型提供方通过 `proxyArguments` 配置 Chromium；不具备此能力的外部附加连接会拒绝启动，不会转为直连。参数只交给 Chromium，不修改 Host、MCP 控制通道或应用模型接口。浏览器启动时固定代理配置，修改后需重建浏览器会话。HTTP 网页流量可被记录，普通 HTTPS 隧道只保留元数据。
-
-检查型监听器会提供公开 CA。声明 `profileArguments` 的启动型提供方获得包含该 CA 的临时 Chromium 配置目录。Chromium 按常规验证流程使用目录内新增的颁发机构。MCP 停止后清理该目录。在[受控代理](../../guard/target-protection/README.zh.md)的 `httpsInspection.tools` 中列出提供方名称即可启用。
-
 此公共实验性库是浏览器提供方的依赖。它没有插件入口或挂载配置。[浏览器操作服务](../../browser-use/browser-use/README.zh.md)保持独立于此库。
 
 原生提供方从包根入口构造 `SessionResources`，提供资源获取与清理回调。调用向 `run()` 传递确切的实时 Agent；失效的所有者与独占附加的第二个所有者在获取资源前失败。取消资源获取等待不会终止初始化，同一 Session 的其他调用方仍可继续等待；释放 Session 会中止并等待该初始化结束。提供方将注册保留到 `dispose()` 完成。
 
-租约获取、初始化、排队操作及 `get()` 中的检查，都以该确切 Agent 作为进程内发起者，包括首次工具调用前的浏览器发现。操作之外恢复调用方原有的发起者，并发 Session 各自保留作用域。原有权限和生命周期检查仍然适用。
-
-内置提供方传入浏览器注册服务的 `acquireExecution` 回调，原生获取及排队操作前检查租约；撤销时中断初始化、关闭活动资源并禁止排队工作。租约保持到原生关闭及操作结束，确认获取回滚后才释放。`BrowserResourceCleanupError` 用 `BROWSER_SHUTDOWN_UNCONFIRMED` 报告回滚或关闭未知并保留所有权；可选的执行器 `closed` promise 在迟到回执到达后允许释放。回执失败持续记录日志，需检查进程或重启 Host。
+所有权失败抛出 `BrowserSessionError`，与封闭的 `BROWSER_SESSION_ERROR_CODES` 列表一同导出：`BROWSER_OWNER_NOT_LIVE` 表示所有者失效或提供方正在释放，`BROWSER_LOCKED` 表示独占附加出现第二个所有者，`BROWSER_CLOSED` 表示操作因其 Session 的浏览器关闭而中断，`BROWSER_CLEANUP_FAILED` 表示 `dispose()` 失败，其 `cause` 是汇总各项关闭失败的 `AggregateError`，`BROWSER_FOREIGN_SESSION` 表示没有自己连接的 Session 发起了 MCP 调用。取消等待且中止原因不是 `Error` 时，以带 `ABORTED` 代码的 `AbortError` 拒绝。
 
 MCP 提供方使用 `@deepseek-ai/dsh-experimental-browser-use-runtime/mcp` 中的 `mountSessionMcp`，提供固定服务器名称、可执行文件、参数与所有权策略。挂载上下文必须提供 `workingDirectory`。获取连接时通过[工作目录服务](../../session/working-directory/README.zh.md)验证或恢复当前目录，并将其设为 MCP 服务器进程的初始目录。Session 后续选择其他目录时，保留的服务器继续使用该目录。辅助库在每个后续 Agent 的 `agent/created` 事件中等待一次有作用域的客户端启动与发现尝试。Agent 创建或恢复在发现完成后结束，随后才运行排队输入；成功的客户端跨轮次归该 Session 所有。
 
 附加连接被占用时，本次激活永久跳过启动，但其他工作继续运行。连接释放不会触发被跳过激活的重试；新创建或恢复的 Agent 可以获取连接。启动失败或取消会拒绝 Agent 创建或恢复，并触发包含客户端清理的创建回滚。重连已禁用。加载或重新加载提供方只作用于后续的 Agent 激活。
 
-MCP 获取过程在等待启动前捕获 `createMcpClient` 的生命周期对象，清理独立校验传输关闭和请求结束，不以作用域释放代替关闭确认。工具目录及标准 Session 日志保持原方式；本库不隔离任意浏览器网络、文件或脱离进程的效果。
-
 调用方在等待 Agent 创建或恢复完成后，即可检查提示词组装和作用域工具定义。
 
-指向此服务器的浏览器工具调用与资源请求使用同一队列，且要求调用 Session 自己拥有连接。其他 MCP 服务器仍可使用。没有所有权时会省略继承的服务器指导；共享服务器名称目录保留常规作用域行为。
+指向此服务器的浏览器工具调用与资源请求使用同一队列，且要求调用 Session 自己拥有连接；没有调用方 Agent 的调用以 `ToolContextUnavailableError` 失败。其他 MCP 服务器仍可使用。没有所有权时会省略继承的服务器指导；共享服务器名称目录保留常规作用域行为。
 
 -----
 
@@ -68,6 +60,7 @@ MCP 获取过程在等待启动前捕获 `createMcpClient` 的生命周期对象
 <a id="further-exploration"></a>
 ## 延伸阅读
 
+- [浏览器操作](../../../docs/subsystems/browser-use.zh.md) — 提供方选择与 Session 所有权。
 - [MCP 客户端](../../mcp/mcp-client/README.zh.md) — 发现、取消与结果接纳。
 - [浏览器所有权决策](../../../.agents/notes/implemented/architecture/2026-09-12-browser-use-provider-registration.zh.md) — 仅注册名称的服务与资源生命周期。
 

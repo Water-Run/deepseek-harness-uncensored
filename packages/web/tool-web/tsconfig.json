@@ -4,7 +4,9 @@
     "rootDir": "src",
     "outDir": "lib/types"
   },
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
   "references": [
     {
       "path": "../../../vendor/cosmokit"
@@ -28,13 +30,13 @@
       "path": "../../guard/timeout-policy"
     },
     {
-      "path": "../../guard/security-proxy"
-    },
-    {
       "path": "../../util/output-retention"
     },
     {
       "path": "../web"
+    },
+    {
+      "path": "../../guard/security-proxy"
     }
   ]
 }

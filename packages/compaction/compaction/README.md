@@ -48,7 +48,7 @@ With these two rows the feature is on: the conversation condenses automatically 
 
 ### Implementing a backend
 
-Extend the provided base class and implement three operations: one that decides and performs condensation for an automatic trigger, one that condenses on demand, and one that condenses an explicit range of the conversation. Load your class as a plugin and it becomes the condensation service for the composition. The exact signatures, the failure rules, and the checkpoint marker every backend must produce are in the implementation section below and in the [compaction subsystem reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/compaction.md).
+Extend the provided base class and implement three operations: one that decides and performs condensation for an automatic trigger, one that condenses on demand, and one that condenses an explicit range of the conversation. Load your class as a plugin and it becomes the condensation service for the composition. The exact signatures, the failure rules, and the checkpoint marker every backend must produce are in the implementation section below and in the [compaction subsystem reference](../../../docs/subsystems/compaction.md).
 
 ### Recognizing condensed history
 
@@ -75,7 +75,7 @@ The seam is built on one split and three commitments:
 
 ### Service API
 
-The contract is three abstract operations a backend implements: `compactIfNeeded` for automatic `pressure` or `context-overflow` triggers, `compactNow` for one explicit on-demand reduction, and `compactRegion` for a caller-selected surface range. Reusable request measurement is a separate service, `ctx.tokenMeter`. The exhaustive per-operation semantics live in the [compaction subsystem reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/compaction.md); the exact signatures are in [`src/index.ts`](src/index.ts).
+The contract is three abstract operations a backend implements: `compactIfNeeded` for automatic `pressure` or `context-overflow` triggers, `compactNow` for one explicit on-demand reduction, and `compactRegion` for a caller-selected balanced range that excludes the initial system message. Reusable request measurement is a separate service, `ctx.tokenMeter`. The exhaustive per-operation semantics live in the [compaction subsystem reference](../../../docs/subsystems/compaction.md); the exact signatures are in [`src/index.ts`](src/index.ts).
 
 A backend that summarizes through `ctx.llm.stream()` must forward the abort signal into the call's `GenerateOptions.signal`, so an abort or fiber dispose tears down the in-flight summarization. Automatic and explicit-region brackets recover their numeric owner from the open turn; manual brackets require no open turn and stamp `turn: null`.
 
@@ -83,7 +83,7 @@ A backend that summarizes through `ctx.llm.stream()` must forward the abort sign
 
 The synchronous `compaction/summary-error` waterfall lets a backend request durable input recovery for a failed summary and an explicit selection. A listener returns true only after recording progress, or calls `next()` to delegate. The backend checks cancellation and selection stability before dispatch, then re-derives and re-prices input before retrying. The event declaration documents its payload; image policy belongs to `dsh-compaction-image-offload`.
 
-Expected manual failures throw `ManualCompactionError` with a stable `code` from a small closed set; only failures after the `compaction/start` marker are recorded — as a `compaction/end` carrying the error — while a `busy` rejection or pre-start cancellation leaves no record. The per-code semantics live in the [compaction subsystem reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/compaction.md).
+Expected manual failures throw `ManualCompactionError` with a stable `code` from a small closed set; only failures after the `compaction/start` marker are recorded — as a `compaction/end` carrying the error — while a `busy` rejection or pre-start cancellation leaves no record. The per-code semantics live in the [compaction subsystem reference](../../../docs/subsystems/compaction.md).
 
 <a id="tool-pairing-boundaries"></a>
 ### Tool-pairing boundaries
@@ -92,9 +92,9 @@ The Service Definition exports `toolPairingBalancedBefore(session, seq)` and `to
 
 ### The surface contract
 
-`SurfaceEventType` is a closed union — `user/message`, `assistant/message`, and `tool/result` require `surfaceOp`, and other events forbid it, so a `compaction/*` event cannot appear on the surface. A successful backend run instead brackets the operation in the log: it appends `compaction/start` (log-only) to acquire the lock, summarizes the range, appends the log-only `compaction/summary` record, replaces the selected span with one `user/message` carrying the summary — the only surface mutation — and appends `compaction/end` (log-only) to release the lock.
+A successful backend run records `compaction/start`, a log-only `compaction/summary`, the replacement `user/message` checkpoint, and `compaction/end`. The checkpoint replaces only the selected range. The [agent loop](../../core/agent-loop/README.md#understand-the-implementation) rebuilds current system instructions before the next model attempt.
 
-The replacement sits inside the lock bracket, so a crash between `compaction/start` and `compaction/end` leaves a detectable orphaned lock rather than a `compaction/end` that falsely claims success. `deriveMessages()` renders the summary as a user-role message followed by the retained nodes; the shadowed events stay in the raw log, so replay is deterministic. The per-event payloads are enumerated in the [compaction subsystem reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/compaction.md).
+The replacement sits inside the lock bracket, so a crash between `compaction/start` and `compaction/end` leaves a detectable orphaned lock rather than a `compaction/end` that falsely claims success. `deriveMessages()` renders the summary as a user-role message at the selected range’s position; the shadowed events stay in the raw log, so replay is deterministic. The per-event payloads are enumerated in the [compaction subsystem reference](../../../docs/subsystems/compaction.md).
 
 ### Source map
 
@@ -112,7 +112,7 @@ One log-recorded lock is shared by all entry points. Tail inspection finds the l
 
 ### Events
 
-The `compaction/*` events extend `SessionEventMap` (merge-extensible) via declaration merging — session events, not Cordis `Events`, and all log-only. The generated [persistence log event catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/persistence-catalog.md) owns the per-event payloads; `compaction/prune` documents the shadow-price protocol shared with the tool-result pruner.
+The `compaction/*` events extend `SessionEventMap` (merge-extensible) via declaration merging — session events, not Cordis `Events`, and all log-only. The generated [persistence log event catalog](../../../docs/persistence-catalog.md) owns the per-event payloads; `compaction/prune` documents the shadow-price protocol shared with the tool-result pruner.
 
 </details>
 
@@ -123,7 +123,7 @@ The `compaction/*` events extend `SessionEventMap` (merge-extensible) via declar
 
 Read these pages when the package-level contract is not enough; they move from the shared vocabulary to the shipped backend and the decision evidence.
 
-- [Compaction subsystem reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/compaction.md) — the condensation vocabulary, results, and generated service API.
+- [Compaction subsystem reference](../../../docs/subsystems/compaction.md) — the condensation vocabulary, results, and generated service API.
 - [Compaction basic backend](../compaction-basic/README.md) — the shipped backend that condenses automatically and on demand.
 - [Tool-result pruner](../compaction-tool-result-pruner/README.md) — the optional companion that trims oversized tool outputs first.
 - [Human /compact command](../command-compact/README.md) — the on-demand trigger for condensation.
@@ -139,7 +139,7 @@ Read these pages when the package-level contract is not enough; they move from t
 
 #### What the model sees
 
-A successful backend replaces an older surface range with one user-role summary checkpoint — a `user/message` carrying `surfaceOp: { op: 'replace', startSeq, endSeq }`. The raw events stay logged but stop appearing in derived model messages; the seam itself performs no rewrite.
+A successful backend replaces the selected conversation range with one user-role summary checkpoint — a `user/message` carrying `surfaceOp: { op: 'replace', startSeq, endSeq }`. The raw events stay logged but stop appearing in derived model messages; the seam itself performs no rewrite.
 
 #### Token effect
 
@@ -158,7 +158,7 @@ These limits describe what condensation cannot do, regardless of which backend i
 
 - **Human command, not a model tool** — condensation is triggered by the `/compact` command and by automatic pressure; no model-facing compaction tool is registered.
 - **Some single-unit overflow is out of contract** — balanced summary compaction cannot split one indivisible unit. The optional pruning companion can still repair a closed tool pair when text-bearing tool-result bulk is removable; a large non-tool node or a tool unit whose non-prunable remainder is oversized cannot be compacted.
-- **An envelope that alone approaches the window is not surface-compaction work** — compaction shrinks derived history, never the system prompt, tools, or session prefix.
+- **An envelope that alone approaches the window is not surface-compaction work** — condensing conversation history cannot make required system instructions or tool schemas fit a smaller window.
 
 <a id="dev-note"></a>
 ### Dev Note
@@ -170,6 +170,6 @@ This Dev Note is working context for maintainers and is explicitly non-authorita
 
 - **Model-facing tool, undecided** — compaction is human-command only. A model-facing compaction tool remains an open question; it would need its own schema and interaction with the existing command path.
 - **Template and remote backends, undecided** — the `SummaryResult` contract already carries an unmarked `rawOutput` variant for summarizers that do not identify a call through `ctx.llm.stream()`, but no such backend ships.
-- **Range arguments for `/compact`, undecided** — the argument-free form keeps behavior stable across command adapters; explicit ranges stay the programmatic `compactRegion()` path.
+- **Range arguments for `/compact`, undecided** — the argument-free form keeps behavior stable across command adapters; explicit range endpoints stay the programmatic `compactRegion()` path.
 
 </details>

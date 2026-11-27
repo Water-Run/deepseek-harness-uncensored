@@ -42,10 +42,6 @@ export { KNOWN_SESSION_EVENT_TYPES } from './known-event-types.ts'
 export { buildSessionHeader, needsInheritedSeedMarker, validateSessionLog } from './validation.ts'
 
 declare module '@deepseek-ai/cordis' {
-  interface Context {
-    sessions: SessionStore
-  }
-
   interface Events {
     /**
      * Read-only creation announcement after store entry.

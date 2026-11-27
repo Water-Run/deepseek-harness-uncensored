@@ -88,7 +88,7 @@
       "path": "../remote-mock"
     },
     {
-      "path": "../../client/hmr"
+      "path": "../../client/hmr/tsconfig.client.json"
     },
     {
       "path": "../../client/ui-context-menu"

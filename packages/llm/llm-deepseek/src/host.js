@@ -1,0 +1,88 @@
+import { resolveImageAttachmentAccess } from '@deepseek-ai/dsh-llm';
+import { getOrCreateAnonymousUserId } from '@deepseek-ai/dsh-anonymous-user-id';
+import { deepEqualJson } from '@deepseek-ai/dsh-util-values';
+import { DeepSeekAdapter } from "./adapter.js";
+import { requestModelListing } from "./listing.js";
+import { ModelListingCache } from "./listing-cache.js";
+/**
+ * Own a route's listing refreshes, stderr diagnostics, and catalog-change notifications.
+ * @param ctx - provider plugin lifetime.
+ * @param owner - plugin name used in diagnostics.
+ * @param provider - route whose catalog changes.
+ * @param dependencies - current configuration and credential headers; `load` defaults to the official `/models` request.
+ * @returns the cache, disposed with the provider after its active work settles.
+ */
+export function createModelListingCache(ctx, owner, provider, dependencies) {
+    const tag = `[${owner}]`;
+    const cache = new ModelListingCache({
+        ...dependencies,
+        load: dependencies.load ?? requestModelListing,
+        now: () => Date.now(),
+        // ACP reserves stdout for protocol messages, including during successful catalog loads.
+        info: (message) => { console.error(tag, message); },
+        warn: (message) => { console.warn(tag, message); },
+        changed: () => { ctx.emit('llm/models-updated', provider); },
+    });
+    ctx.effect(() => () => cache.dispose(), `${owner}: model listing`);
+    return cache;
+}
+/**
+ * Register one provider with request-local transport services and live retry policy.
+ * @param ctx - provider plugin lifetime with the LLM registry injected.
+ * @param provider - exact route owned by this plugin.
+ * @param dependencies - provider-owned discovery, credential, and configuration callbacks.
+ */
+export function registerDeepSeekProvider(ctx, provider, dependencies) {
+    ctx.inject(['settings'], (child) => { child.effect(() => child.settings.configure({ auto: false }, ctx.fiber)); });
+    let userId;
+    // These conditions repeat on every request of a route; log each first occurrence only.
+    const degradedReplays = new Set();
+    const omittedRoutes = new Set();
+    const unacceptedRoutes = new Set();
+    const adapter = new DeepSeekAdapter({
+        ...dependencies,
+        resolveUserId: () => userId ??= getOrCreateAnonymousUserId(),
+        onReplayDegrade: ({ provider, model, reason }) => {
+            const key = `${provider}/${model}\u0000${reason}`;
+            if (degradedReplays.has(key))
+                return;
+            degradedReplays.add(key);
+            ctx.logger.warn(`llm-deepseek: unusable Messages replay state on assistant history for route "${provider}/${model}"; sending provider-neutral content (${reason})`);
+        },
+        onExtensionsOmitted: ({ provider, model, fields, error }) => {
+            const route = `${provider}/${model}`;
+            if (omittedRoutes.has(route))
+                return;
+            omittedRoutes.add(route);
+            ctx.logger.warn(`llm-deepseek: sending route "${route}" without request extension fields ${fields.join(', ')} because they failed to serialize: %o`, error);
+        },
+        onExtensionsUnaccepted: ({ provider, model, error }) => {
+            const route = `${provider}/${model}`;
+            if (unacceptedRoutes.has(route))
+                return;
+            unacceptedRoutes.add(route);
+            ctx.logger.warn(`llm-deepseek: route "${route}" request extension acceptance failed; contributors resend on a later request: %o`, error);
+        },
+        resolveAttachments: () => ctx.get('attachments'),
+        resolveImageAccess: (attachments, ref) => resolveImageAttachmentAccess(attachments, hostPath => ctx.get('fs')?.processPathFromHostPath(hostPath), ref),
+        prepareExtensions: request => ctx.get('deepseekLlmApiExtensions')?.prepare(request)
+            ?? Promise.resolve({ fields: {}, accept: () => Promise.resolve() }),
+    });
+    const registration = ctx.llm.registerAdapter([provider], adapter);
+    let registeredPolicy = dependencies.options().retryPolicy;
+    ctx.on('loader/volatile-update', () => {
+        let policy;
+        try {
+            policy = dependencies.options().retryPolicy;
+        }
+        catch (error) {
+            ctx.logger.warn(error);
+            return;
+        }
+        if (deepEqualJson(policy, registeredPolicy))
+            return;
+        registration.replace([provider]);
+        registeredPolicy = policy;
+    });
+}
+//# sourceMappingURL=host.js.map

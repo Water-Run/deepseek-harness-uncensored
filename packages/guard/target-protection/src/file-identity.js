@@ -1,0 +1,112 @@
+/** Host-local path identities for target admission; remote and device namespaces are refused. @module */
+import { lstat, realpath, stat } from 'node:fs/promises';
+import { basename, dirname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path';
+import { TargetProtectionError } from "./errors.js";
+import { windowsFileLinks } from "./windows-file-links.js";
+/** @param identity - Resolved file or directory. @returns Logical, canonical and verified alias names. */
+export function localIdentityPaths(identity) {
+    return [identity.path, identity.canonical, ...identity.aliases ?? []];
+}
+/**
+ * Include SQLite companion names beside each verified identity of a database file.
+ * @param identity - The database file identity used to admit the main file.
+ * @returns Distinct companion paths. Directory rules already include their descendants.
+ */
+export function localDatabaseCompanionPaths(identity) {
+    if (identity.directory)
+        return [];
+    return [...new Set(localIdentityPaths(identity))].flatMap(path => ['-wal', '-shm', '-journal'].map(suffix => path + suffix));
+}
+/**
+ * Validate an absolute host path without resolving links. Windows device, UNC and alternate streams are refused.
+ * @param value - Owner or executor path in the host filesystem.
+ * @returns Normalized absolute path preserving the spelling used for filesystem I/O.
+ */
+export function canonicalLocalPath(value) {
+    if (!isAbsolute(value) || value.includes('\0'))
+        throw new TargetProtectionError('invalid', 'A file rule requires an absolute local path.');
+    if (process.platform === 'win32' && !/^[a-z]:[\\/]/iu.test(value)) {
+        throw new TargetProtectionError('invalid', 'A Windows file rule requires a drive-qualified local path; remote paths need their own adapter.');
+    }
+    if (process.platform === 'win32' && (/^[\\/]{2}/u.test(value)
+        || value.slice(2).includes(':') || value.split(/[\\/]/u).some(part => (part !== '.' && part !== '..' && /[. ]$/u.test(part)) || /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/iu.test(part)))) {
+        throw new TargetProtectionError('invalid', 'UNC, device, stream and ambiguous Windows paths require a separate adapter.');
+    }
+    return normalize(resolve(value));
+}
+/**
+ * Compare canonical local paths by complete components.
+ * @param parent - Canonical resource root.
+ * @param child - Canonical candidate.
+ * @returns Whether the candidate is the root or a descendant.
+ */
+export function localPathContains(parent, child) {
+    const suffix = relative(parent, child);
+    return suffix === '' || (suffix !== '..' && !suffix.startsWith(`..${sep}`) && !isAbsolute(suffix));
+}
+function absent(error) {
+    return typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT';
+}
+/**
+ * Resolve links and the deepest existing ancestor; broken links and failed metadata cannot become absent files.
+ * @param value - Absolute local path to inspect without reading content.
+ * @param signal - Cancellation checked around each filesystem query.
+ * @returns Canonical path and native file identity when the file exists.
+ */
+export async function resolveLocalPathIdentity(value, signal) {
+    const path = canonicalLocalPath(value);
+    let candidate = path;
+    const missing = [];
+    while (true) {
+        signal.throwIfAborted();
+        try {
+            const canonical = canonicalLocalPath(await realpath(candidate));
+            const info = await stat(canonical, { bigint: true });
+            signal.throwIfAborted();
+            if (missing.length > 0 && !info.isDirectory())
+                throw new TargetProtectionError('invalid', 'A file target traverses a non-directory parent.');
+            let aliases;
+            if (missing.length === 0 && info.isFile() && info.nlink > 1n && process.platform === 'win32') {
+                aliases = await windowsFileLinks(canonical, info.nlink, signal);
+                for (const alias of aliases) {
+                    signal.throwIfAborted();
+                    const identity = await stat(canonicalLocalPath(alias), { bigint: true });
+                    if (info.ino === 0n || identity.dev !== info.dev || identity.ino !== info.ino || identity.nlink !== info.nlink) {
+                        throw new TargetProtectionError('unavailable', 'File aliases changed during inspection.');
+                    }
+                }
+                const after = await stat(canonical, { bigint: true });
+                if (after.dev !== info.dev || after.ino !== info.ino || after.nlink !== info.nlink) {
+                    throw new TargetProtectionError('unavailable', 'File aliases changed during inspection.');
+                }
+            }
+            signal.throwIfAborted();
+            return { path, canonical: canonicalLocalPath(join(canonical, ...missing)), exists: missing.length === 0,
+                directory: missing.length === 0 && info.isDirectory(),
+                multipleLinks: missing.length === 0 && info.isFile() && info.nlink > 1n,
+                ...missing.length === 0 && info.ino !== 0n ? { fileId: `${String(info.dev)}:${String(info.ino)}` } : {},
+                ...aliases === undefined ? {} : { aliases },
+            };
+        }
+        catch (error) {
+            if (!absent(error))
+                throw error;
+            let link;
+            try {
+                link = await lstat(candidate);
+            }
+            catch (probeError) {
+                if (!absent(probeError))
+                    throw probeError;
+            }
+            if (link !== undefined)
+                throw new TargetProtectionError('unavailable', 'The file target has an unresolved link or changed during inspection.');
+            const parent = dirname(candidate);
+            if (parent === candidate)
+                throw new TargetProtectionError('unavailable', 'The filesystem root is unavailable.');
+            missing.unshift(basename(candidate));
+            candidate = parent;
+        }
+    }
+}
+//# sourceMappingURL=file-identity.js.map

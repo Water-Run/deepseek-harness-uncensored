@@ -1,5 +1,6 @@
 /** Independent Session snapshots and passive event subscriptions. */
 
+import type {} from '@deepseek-ai/dsh-session/context'
 import type { Context } from '@deepseek-ai/cordis'
 import { SessionLogOffset, SessionSeq, isAppendSurfaceEvent } from '@deepseek-ai/dsh-session'
 import type { SessionId, SessionEvent } from '@deepseek-ai/dsh-session'

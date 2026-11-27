@@ -1,0 +1,51 @@
+/**
+ * Pure request-projection geometry shared by model routes and provider-side
+ * request pricing. @module @deepseek-ai/dsh-attachment/request-projection
+ */
+/**
+ * Compute aspect-preserving integer dimensions within total-pixel, width, and height limits.
+ * @param width - positive source width.
+ * @param height - positive source height.
+ * @param maxPixels - positive width-times-height cap.
+ * @param maxWidth - optional maximum width in pixels.
+ * @param maxHeight - optional maximum height in pixels.
+ * @returns inward-rounded dimensions; small images are not enlarged.
+ */
+export function requestImageDimensions(width, height, maxPixels, maxWidth = Infinity, maxHeight = Infinity) {
+    const scale = Math.min(1, Math.sqrt(maxPixels / (width * height)), maxWidth / width, maxHeight / height);
+    if (scale === 1)
+        return { width, height };
+    if (width >= height) {
+        let projectedWidth = Math.max(1, Math.floor(width * scale));
+        let projectedHeight = Math.max(1, Math.round(projectedWidth * height / width));
+        while (projectedWidth * projectedHeight > maxPixels && projectedWidth > 1) {
+            projectedWidth -= 1;
+            projectedHeight = Math.max(1, Math.round(projectedWidth * height / width));
+        }
+        return { width: projectedWidth, height: projectedHeight };
+    }
+    let projectedHeight = Math.max(1, Math.floor(height * scale));
+    let projectedWidth = Math.max(1, Math.round(projectedHeight * width / height));
+    while (projectedWidth * projectedHeight > maxPixels && projectedHeight > 1) {
+        projectedHeight -= 1;
+        projectedWidth = Math.max(1, Math.round(projectedHeight * width / height));
+    }
+    return { width: projectedWidth, height: projectedHeight };
+}
+/**
+ * Compute aspect-preserving integer dimensions with an exact long edge; the
+ * short edge rounds to the nearest pixel, as an encoder resize by the
+ * long edge alone.
+ * @param width - positive source width.
+ * @param height - positive source height.
+ * @param longEdge - positive target for the longer source edge.
+ * @returns the target dimensions; a long edge at or above the source returns the source unchanged.
+ */
+export function longEdgeDimensions(width, height, longEdge) {
+    if (longEdge >= Math.max(width, height))
+        return { width, height };
+    return width >= height
+        ? { width: longEdge, height: Math.max(1, Math.round(longEdge * height / width)) }
+        : { width: Math.max(1, Math.round(longEdge * width / height)), height: longEdge };
+}
+//# sourceMappingURL=request-projection.js.map

@@ -189,7 +189,7 @@ export function ForgeTab({
   )
   if (state === null) return <div className={css.centered}>{disconnected || <StateDot state="ongoing" />}</div>
   const viewChanges = (source: ChangesSource, path?: string): void => {
-    tab.actions.openResource(changesAddress({ sessionId, source }), path === undefined ? undefined : { params: { path } })
+    tab.actions.openResource(changesAddress({ sessionId, source }), path === undefined ? undefined : ({ params: { path } } as never))
   }
   const startRefresh = (): void => {
     if (refreshing) return

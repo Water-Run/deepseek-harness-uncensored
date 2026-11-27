@@ -1,0 +1,228 @@
+/**
+ * Durable session-persistence Service Definition (`ctx.sessionPersistence`). Backends store
+ * {@link SessionEvent}s as the event-sourced log and carry non-replayable
+ * {@link SessionHeader} metadata separately; callers address one stored
+ * session through a {@link SessionHandle} obtained from `create`/`open`.
+ * @module @deepseek-ai/dsh-session-persistence
+ */
+import { Context, Service } from '@deepseek-ai/cordis';
+import type { SessionEvent, SessionHeader, SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session';
+import type { SessionHandle, SessionAccess } from './handle.ts';
+import type { SessionLocation } from './errors.ts';
+import type { SessionPersistenceRevision } from './revision.ts';
+export type { SessionHeader } from '@deepseek-ai/dsh-session';
+export { SessionPersistenceRevision } from './revision.ts';
+export type { SessionAccess, SessionHandle, SessionHandleAppendOptions, SessionHandleFlushOptions, SessionHandleReadOptions, SessionHandleReadResult, } from './handle.ts';
+export { SessionAlreadyExistsError, SessionAlreadyOwnedError, SessionFormatUnsupportedError, SessionHandleClosedError, SessionOwnershipLostError, SessionPersistenceCorruptionError, SessionDeletionUnsupportedError, SessionDeletionIncompleteError, SessionPersistenceNotFoundError, SessionReadOnlyError, sessionFormatVersionRefusal, } from './errors.ts';
+export type { SessionLocation } from './errors.ts';
+export { assertContiguous, assertStoredId, assertVersion, materializeAppendBatch, materializeCreateHeader, validateStoredEvents, } from './storage-contract.ts';
+/**
+ * Lightweight stored-session observation returned by {@link SessionPersistence.stat}
+ * and {@link SessionPersistence.list} without reading the full event log.
+ */
+export interface SessionPersistenceSnapshot {
+    /** Detached metadata for one stored session. */
+    readonly header: SessionHeader;
+    /** Header-only format classification; absent without versioned artifact metadata. */
+    readonly formatStatus?: 'current' | 'migration-required';
+    /** Opaque change token; see {@link SessionPersistence.stat}. */
+    readonly revision: SessionPersistenceRevision;
+    /** Logical event count, when the backend can provide it cheaply from metadata; otherwise absent. */
+    readonly eventCount?: number;
+    /** Physical artifact byte size, when the backend can provide it cheaply (JSONL); otherwise absent. */
+    readonly sizeBytes?: number;
+    /**
+     * Backend-resolved location of the selected materialized per-Session
+     * artifact, for diagnostics and export. Absent when the backend has no
+     * materialized per-Session file, including an unmaterialized pending Session.
+     */
+    readonly location?: SessionLocation;
+}
+/** Options for {@link SessionPersistence.create}. */
+export interface SessionPersistenceCreateOptions {
+    /** Optional cancellation observed before backend work starts. */
+    readonly signal?: AbortSignal;
+    /**
+     * Exact fork-inherited prefix length. Required when `header.isSeeded` is
+     * true and must be omitted (or `0`) otherwise; the backend refuses a
+     * mismatch at create.
+     */
+    readonly inheritedEventCount?: SessionLogOffset;
+    /**
+     * Fork history durably stored before creation resolves; omission creates an
+     * empty stored session. A backend that shares the parent's stored prefix
+     * requires the parent to exist with at least `endSeq` persisted events and
+     * writes only the events from `endSeq`; a copying backend writes all of
+     * them. When `header.isSeeded` is true, the events include an inherited
+     * `session/end-seed` marker at `inheritedEventCount`.
+     */
+    readonly parentSource?: {
+        /** Parent Session identity. */
+        readonly sessionId: SessionId;
+        /** Exclusive end of the parent prefix within `events`. */
+        readonly endSeq: SessionLogOffset;
+        /** Complete child history from seq 0: the parent's stored prefix through `endSeq`, then the child's events. */
+        readonly events: readonly SessionEvent[];
+    };
+}
+/**
+ * Logical Session header paired with its exact inherited cut for body-bearing
+ * storage operations. `isSeeded` marks fork lineage on the header; the
+ * numeric cut travels beside it, never inside the replayable event log.
+ */
+export interface SessionStorageMetadata {
+    /** Validated immutable Session header. */
+    readonly meta: SessionHeader;
+    /** Number of leading events inherited from the Session's fork parent. */
+    readonly inheritedEventCount: SessionLogOffset;
+}
+/** Immutable logical session read: storage metadata plus the complete validated event log. */
+export interface SessionInspection extends SessionStorageMetadata {
+    /** Contiguous validated events from seq 0. */
+    readonly events: readonly SessionEvent[];
+}
+/** Options for {@link SessionPersistence.open}. */
+export interface SessionPersistenceOpenOptions {
+    /** Optional cancellation observed before backend work starts. */
+    readonly signal?: AbortSignal;
+}
+/** Options for {@link SessionPersistence.stat}. */
+export interface SessionPersistenceStatOptions {
+    /** Optional cancellation for backend metadata reads. */
+    readonly signal?: AbortSignal;
+}
+/** Options for {@link SessionPersistence.list}. */
+export interface SessionPersistenceListOptions {
+    /** Optional cancellation for backend listing work. */
+    readonly signal?: AbortSignal;
+}
+declare module '@deepseek-ai/cordis' {
+    interface Context {
+        sessionPersistence: SessionPersistence;
+    }
+    interface Events {
+        /**
+         * A Session was durably removed from the persistence catalog; retired-file cleanup may still be pending.
+         * @mode emit
+         * @param sessionId - Removed Session identity.
+         */
+        'session-persistence/deleted'(sessionId: SessionId): void;
+    }
+}
+/**
+ * Durable append-only session storage addressed through per-session handles.
+ *
+ * Storage semantics shared by every backend: events are contiguous from seq 0
+ * and never rewritten; a torn physical tail is never returned to a reader and
+ * is truncated by the write path before its first append; reads validate
+ * current-format records only and refuse unknown vocabulary fail-closed.
+ * `append` persists best-effort; `flush` — per handle or service-wide — is
+ * the durability barrier.
+ *
+ * Visibility: a created session is observable through `stat`/`list`/`open`
+ * in this process from the moment `create` resolves, even while a backend
+ * defers physical materialization (a pure optimization); other processes see
+ * the session only once it materializes, and a session that never
+ * materialized before a crash never existed. `SessionHandle.flush` forces
+ * materialization.
+ *
+ * Freshness: once an `append` or `flush` resolves, reads started afterwards
+ * on this backend instance observe at least that prefix.
+ */
+export declare abstract class SessionPersistence extends Service {
+    /** Process-local instance identity, stable through Context proxies and distinct after service replacement. */
+    readonly identity: symbol;
+    constructor(ctx: Context);
+    /** Whether this provider can permanently delete a group after acquiring all of its writers. */
+    get supportsDeletion(): boolean;
+    /**
+     * Serialize native child publication and conversation-family deletion across processes sharing this storage.
+     * Callers must materialize new children before returning; nested calls are unsupported.
+     * Providers without deletion support need no exclusion and run the operation directly.
+     * @param _sessionId - Conversation identity used for contention errors.
+     * @param operation - Entire discovery/publication or deletion transaction.
+     * @returns The operation result after releasing exclusion.
+     */
+    withCatalogMutation<T>(_sessionId: SessionId, operation: () => Promise<T>): Promise<T>;
+    /**
+     * List permanently retired identities for idempotent derived-index cleanup after restart.
+     * These records contain only identities, never conversation content.
+     * @returns Durable deletion identities; empty for providers without deletion support.
+     */
+    deletedSessionIds(): Promise<readonly SessionId[]>;
+    /**
+     * Create a new stored session and take its write ownership.
+     * With `parentSource`, store the complete fork history before resolving; a
+     * backend may share the parent's stored prefix or copy it. A failed creation
+     * releases acquired write ownership; already committed history remains stored.
+     * @param header - the immutable header (id, version, cwd, lineage) to store.
+     * @param options - cancellation, inherited-prefix count, and optional fork source.
+     * @returns a `write` handle owned by the caller; close it to release ownership.
+     * @throws {SessionAlreadyExistsError} when the id already exists.
+     * @throws {SessionPersistenceNotFoundError} when a sharing backend cannot find the fork parent.
+     * @throws {HarnessError} with `SESSION_FORK_PREFIX_NOT_PERSISTED` when a sharing backend finds the parent prefix not durable.
+     */
+    abstract create(header: SessionHeader, options?: SessionPersistenceCreateOptions): Promise<SessionHandle>;
+    /**
+     * Open an existing stored session.
+     *
+     * Returned `read` handles retain no write ownership and work while another
+     * handle (or process) holds write ownership. A first legacy read open may
+     * acquire ownership temporarily to import history into the selected backend.
+     * `write` atomically claims single-writer ownership;
+     * an existing active owner rejects.
+     * @param id - the stored session to open.
+     * @param access - `read` or `write`.
+     * @param options - optional cancellation.
+     * @returns the open handle.
+     * @throws {SessionPersistenceNotFoundError} when the session does not exist.
+     * @throws {SessionAlreadyOwnedError} for `write` when ownership is taken.
+     */
+    abstract open(id: SessionId, access: SessionAccess, options?: SessionPersistenceOpenOptions): Promise<SessionHandle>;
+    /**
+     * Flush every active write handle owned by this service instance in one
+     * durability barrier: each handle's routed live events drain durably and
+     * its session materializes, exactly as that handle's own
+     * `SessionHandle.flush` would. Read handles buffer nothing and are
+     * untouched. A handle closed concurrently counts as flushed — close itself
+     * drains durably.
+     * @returns resolution once every write handle active at the call has flushed.
+     * @throws {AggregateError} naming each session whose flush failed; the
+     *   remaining handles still flush.
+     */
+    abstract flush(): Promise<void>;
+    /**
+     * Observe one stored session without reading its event log or taking
+     * ownership.
+     *
+     * The snapshot's `revision` is an opaque change token comparable only
+     * against revisions from the same service instance and session id: equal
+     * revisions may be treated as an unchanged log; unequal revisions promise
+     * nothing. Write-ownership churn does not change a revision. It exists for
+     * derived read-model caches keyed off `stat`/`list`; it plays no part in
+     * open, read, or resume.
+     * @param id - the stored session to observe.
+     * @param options - optional cancellation.
+     * @returns the snapshot, or `undefined` when the session does not exist.
+     */
+    abstract stat(id: SessionId, options?: SessionPersistenceStatOptions): Promise<SessionPersistenceSnapshot | undefined>;
+    /**
+     * List every stored session visible to this process, in no promised order.
+     * @param options - optional cancellation.
+     * @returns one snapshot per stored session.
+     */
+    abstract list(options?: SessionPersistenceListOptions): Promise<readonly SessionPersistenceSnapshot[]>;
+    /**
+     * Permanently delete Sessions after their live owners have released the writers.
+     * Providers without deletion reject explicitly. A successful delete leaves no readable Session
+     * or Session-owned files. Providers acquire every target's writer exclusion before removing any target.
+     * Already absent identities are omitted. Workspace files are never included.
+     * @param ids - Session identities, in the desired deletion order.
+     * @returns Identities whose stored or retired files were removed.
+     * @throws SessionAlreadyOwnedError while a writer still holds the Session.
+     * @throws SessionDeletionIncompleteError after catalog removal if retired-file cleanup fails; retry is safe.
+     */
+    deleteSessions(ids: readonly SessionId[]): Promise<readonly SessionId[]>;
+}
+export default SessionPersistence;
+//# sourceMappingURL=index.d.ts.map

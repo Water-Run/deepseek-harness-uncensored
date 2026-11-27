@@ -25,7 +25,7 @@ function renderCard(state: Partial<ShellCardState> = {}, view: 'summary' | 'page
     ...settled, timeoutMs: field('60000'), maxOutputBytes: field('64000'), ...state,
   })
   const actions = { edit: vi.fn(), resetField: vi.fn(), save: vi.fn(), discard: vi.fn() }
-  const props = { ...actions, view, t, useShellCard: bindSnapshotSelector(store) } as ShellCardProps
+  const props = { ...actions, view, t, useShellCard: bindSnapshotSelector(store) } as unknown as ShellCardProps
   render(<ShellCard {...props} />)
   return actions
 }

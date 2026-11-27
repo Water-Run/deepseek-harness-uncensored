@@ -14,7 +14,7 @@ export interface HttpMcpFixture {
 }
 
 /** Start a local stateless MCP endpoint exposing one `ping` tool, optionally echoing the request credential in an MCP tool error. */
-export async function startHttpMcpFixture(options: { rejectToolCalls?: boolean } = {}): Promise<HttpMcpFixture> {
+export async function startHttpMcpFixture(options: { rejectToolCalls?: boolean; authorizationFailure?: boolean } = {}): Promise<HttpMcpFixture> {
   const calls: string[] = []
   const authorization: Array<string | undefined> = []
   const handler = createMcpHandler(({ requestInfo }) => {
@@ -37,6 +37,11 @@ export async function startHttpMcpFixture(options: { rejectToolCalls?: boolean }
   const handle = toNodeHandler(handler)
   const handleRequest = async (request: IncomingMessage, response: ServerResponse): Promise<void> => {
     authorization.push(request.headers.authorization)
+    if (options.authorizationFailure) {
+      response.writeHead(401, { 'content-type': 'application/json', 'www-authenticate': 'Bearer error="invalid_token"' })
+      response.end(JSON.stringify({ error: 'invalid_token' }))
+      return
+    }
     // The adapter excludes explicit undefined on Node's optional HTTP fields.
     await handle(request as NodeIncomingMessageLike, response)
   }

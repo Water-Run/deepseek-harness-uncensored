@@ -8,8 +8,9 @@
     "src"
   ],
   "references": [
-    { "path": "../../llm/llm" },
-    { "path": "../../guard/security-proxy" },
+    {
+      "path": "../../util/brand"
+    },
     {
       "path": "../../../vendor/cordis"
     },
@@ -21,6 +22,9 @@
     },
     {
       "path": "../../core/tools"
+    },
+    {
+      "path": "../../util/error"
     },
     {
       "path": "../../core/scope"
@@ -36,6 +40,12 @@
     },
     {
       "path": "../../session/working-directory"
+    },
+    {
+      "path": "../../llm/llm"
+    },
+    {
+      "path": "../../guard/security-proxy"
     }
   ]
 }

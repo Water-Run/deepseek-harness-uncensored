@@ -1,4 +1,5 @@
 /** Optional bounded auxiliary-model extraction with durable request and outcome records. */
+import type {} from '@deepseek-ai/dsh-session/context'
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import type { Context } from '@deepseek-ai/cordis'

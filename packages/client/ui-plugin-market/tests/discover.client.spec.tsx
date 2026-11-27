@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type {} from '../src/client/index.ts'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { MarketListingEntry, MarketListingVersion, MarketSearchResult } from '@deepseek-ai/dsh-api-remotes/client'

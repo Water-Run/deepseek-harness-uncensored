@@ -4,6 +4,7 @@
  * @module @deepseek-ai/dsh-session-checkpoint-policy
  */
 
+import type {} from '@deepseek-ai/dsh-session/context'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Session } from '@deepseek-ai/dsh-session'
 import type { StreamChunk } from '@deepseek-ai/dsh-llm'

@@ -8,7 +8,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Use this reference to inspect a stored Session generation’s headers, event envelopes, and payload types. Every format below the checkout writer has a bilingual document and a complete schema snapshot. The current format uses the generated persistence catalog. The [version authority](../../../.agents/persistence/status.md) owns the writer constant and release status.
+Use this reference to inspect a stored Session generation’s headers, event envelopes, and payload types. Every format below the checkout writer has a bilingual document and a complete schema snapshot. The current format uses the generated persistence catalog. The [version authority](../../session-format-status.md) owns the writer constant and release status.
 
 ## Table of Contents
 
@@ -28,11 +28,11 @@ The index is generated from validated snapshots and the current writer constant.
 
 | Format | Source | Reference | Machine schema | Roots / types |
 |---|---|---|---|---|
-| 0 | `dsh-v0.1.2-rc.1` | [V0](https://github.com/deepseek-ai/deepseek-harness/blob/ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c/docs/persistence-changes/historical-formats/v0.md) | [JSON](v0.schema.json) | 54 / 415 |
-| 1 | PR #3349 | [V1](https://github.com/deepseek-ai/deepseek-harness/blob/ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c/docs/persistence-changes/historical-formats/v1.md) | [JSON](v1.schema.json) | 54 / 415 |
-| 2 | `dsh-v0.1.3-alpha.2` | [V2](https://github.com/deepseek-ai/deepseek-harness/blob/ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c/docs/persistence-changes/historical-formats/v2.md) | [JSON](v2.schema.json) | 56 / 435 |
-| 3 | PR #4320 | [V3](https://github.com/deepseek-ai/deepseek-harness/blob/ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c/docs/persistence-changes/historical-formats/v3.md) | [JSON](v3.schema.json) | 60 / 467 |
-| 4 | Current checkout | [Current catalog](../../persistence-schema.json) | [JSON](../../persistence-schema.json) | 66 / 636 |
+| 0 | `dsh-v0.1.2-rc.1` | [V0](v0.md) | [JSON](v0.schema.json) | 54 / 415 |
+| 1 | PR #3349 | [V1](v1.md) | [JSON](v1.schema.json) | 54 / 415 |
+| 2 | `dsh-v0.1.3-alpha.2` | [V2](v2.md) | [JSON](v2.schema.json) | 56 / 435 |
+| 3 | PR #4320 | [V3](v3.md) | [JSON](v3.schema.json) | 60 / 467 |
+| 4 | Current checkout | [Current catalog](../../persistence-catalog.md) | [JSON](../../persistence-schema.json) | 68 / 655 |
 
 <!-- persistence-format-index:end -->
 
@@ -57,7 +57,7 @@ pnpm run verify-persistence-catalog
 pnpm run verify-persistence-formats --archive 3
 ```
 
-Replace `3` with the outgoing writer version for other transitions. `--archive N` creates `vN.schema.json` from the current inventory, retains exactly the types reachable from its roots, and removes source line numbers. It refuses an existing destination, a version other than the current writer, invalid or incomplete schemas, and combination with `--write`. Add the snapshot’s bilingual record and source evidence using the [template](../../../.agents/skills/dsh-doc-writing/templates/persistence-format.md). Retain all earlier records. The successor uses the current catalog; copying a new current catalog cannot satisfy the archived predecessor requirement. Follow the [format-version cookbook](https://github.com/deepseek-ai/deepseek-harness/blob/ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c/docs/cookbook/adding-a-session-format-version.md) for runtime changes.
+Replace `3` with the outgoing writer version for other transitions. `--archive N` creates `vN.schema.json` from the current inventory, retains exactly the types reachable from its roots, and removes source line numbers. It refuses an existing destination, a version other than the current writer, invalid or incomplete schemas, and combination with `--write`. Add the snapshot’s bilingual record and source evidence using the [template](../../../.agents/skills/dsh-doc-writing/templates/persistence-format.md). Retain all earlier records. The successor uses the current catalog; copying a new current catalog cannot satisfy the archived predecessor requirement. Follow the [format-version cookbook](../../cookbook/adding-a-session-format-version.md) for runtime changes.
 
 The schema definitions and index inside comment markers are generated. After advancing the writer and completing the machine data and authored evidence, refresh their tables and pairing records, then verify:
 

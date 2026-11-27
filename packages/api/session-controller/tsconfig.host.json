@@ -27,13 +27,13 @@
     "src/archived-session-gate.ts",
     "src/skill-catalog.ts",
     "src/continuation.ts",
-    "src/asides.ts",
-    "src/deletion.ts",
     "src/aside-context.ts",
     "src/aside-identity.ts",
-    "src/aside-reader.ts",
     "src/aside-main-context.ts",
     "src/aside-question-context.ts",
+    "src/aside-reader.ts",
+    "src/asides.ts",
+    "src/deletion.ts",
     "src/prediction.ts"
   ],
   "references": [
@@ -110,9 +110,6 @@
       "path": "../../session-query/session-query"
     },
     {
-      "path": "../../todo/tool-todo"
-    },
-    {
       "path": "../../skill/skill"
     },
     {
@@ -143,19 +140,34 @@
       "path": "../../util/brand"
     },
     {
-      "path": "../../core/tools"
+      "path": "../../account/deepseek-account"
     },
     {
-      "path": "../../sandbox/sandbox-policy"
-    },
-    {
-      "path": "../../interaction/user-approval"
+      "path": "../../credentials/authorization"
     },
     {
       "path": "../../guard/spend-limit"
     },
     {
-      "path": "../../core/system-prompt"
+      "path": "../../web/web-search-deepseek"
+    },
+    {
+      "path": "../../llm/llm-retry"
+    },
+    {
+      "path": "../../memory/memory"
+    },
+    {
+      "path": "../../llm/deepseek-llm-api-extensions"
+    },
+    {
+      "path": "../../llm/llm-deepseek-api-key"
+    },
+    {
+      "path": "../../llm/llm-deepseek"
+    },
+    {
+      "path": "../../identity/anonymous-user-id"
     }
   ]
 }

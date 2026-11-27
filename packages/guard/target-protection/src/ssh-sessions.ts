@@ -1,4 +1,5 @@
 /** Deployment SSH metadata with separate, retained connections for exact live Agents. @module */
+import type {} from '@deepseek-ai/dsh-session/context'
 import { Context, Service, type Fiber } from '@deepseek-ai/cordis'
 import schema from '@deepseek-ai/schemastery'
 import type { Agent } from '@deepseek-ai/dsh-agent'

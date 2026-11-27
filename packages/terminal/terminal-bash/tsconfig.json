@@ -8,7 +8,6 @@
     "src"
   ],
   "references": [
-    { "path": "../../guard/security-proxy" },
     {
       "path": "../../../vendor/cosmokit"
     },
@@ -44,6 +43,9 @@
     },
     {
       "path": "../../session/working-directory"
+    },
+    {
+      "path": "../../guard/security-proxy"
     }
   ]
 }

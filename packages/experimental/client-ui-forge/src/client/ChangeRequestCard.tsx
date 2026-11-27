@@ -80,6 +80,7 @@ const FAILURE: Record<ForgeFailure['code'], ForgePanelKey> = {
   'too-large': 'change.failure.unavailable',
   'stale': 'change.failure.unavailable',
   'unsupported': 'change.failure.unavailable',
+  'rate-limited': 'change.failure.unavailable',
   'unavailable': 'change.failure.unavailable',
 }
 

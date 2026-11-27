@@ -295,7 +295,7 @@ function waitWithAbort<T>(operation: Promise<T>, signal?: AbortSignal): Promise<
  * visible to this process immediately, reaches disk on its first append or
  * flush, and never existed if the process crashes before that.
  */
-class JsonlSessionPersistence extends SessionPersistence {
+export class JsonlSessionPersistence extends SessionPersistence {
   /** Backend label for diagnostics and effects; shadows `Service.name` without changing the service key. */
   override readonly name = 'session-persistence-jsonl'
 

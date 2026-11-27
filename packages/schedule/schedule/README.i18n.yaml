@@ -21,11 +21,11 @@
   en: 2eff756820c6825c
   zh: df7fab103eeb9545
 /deepseek-ai-dsh-schedule/understand-the-implementation/configuration-and-management-api:
-  en: 205f94c013dd514d
-  zh: 1dd692f53d7e1e30
+  en: 27110a754a4e6b96
+  zh: f9680531aef71650
 /deepseek-ai-dsh-schedule/understand-the-implementation/storage-format-and-upgrades:
-  en: 7d1be3b1614a07bc
-  zh: 086ece19c23cb445
+  en: b82a5f8e27a0adaa
+  zh: 3b7f212b7852ccea
 /deepseek-ai-dsh-schedule/understand-the-implementation/storage-format-and-upgrades/timing-record-fields:
   en: 93d9eb94a142fc0c
   zh: c997efbe182ab062
@@ -33,14 +33,14 @@
   en: 11bb6b4934f12479
   zh: f84ba5dcd2eee489
 /deepseek-ai-dsh-schedule/understand-the-implementation/storage-format-and-upgrades/future-versions:
-  en: 2b77a464ce44391c
-  zh: 228edc7dac259e17
+  en: 3f70e357501fad06
+  zh: 430d24e125268650
 /deepseek-ai-dsh-schedule/understand-the-implementation/dispatch-and-lifecycle:
   en: fdf1d2e347420fab
   zh: fd7257b8e843fc83
 /deepseek-ai-dsh-schedule/further-exploration:
-  en: 6370dfd34479f2b5
-  zh: 8ee5acab61026adf
+  en: 5c98e7a8bd720560
+  zh: dc1d41e7762b067a
 /deepseek-ai-dsh-schedule/model-experience:
   en: 215e7ba838619b7b
   zh: a311da3843709f90
@@ -48,8 +48,8 @@
   en: 097a655a88e2a9f2
   zh: 6612c58808186b1e
 /deepseek-ai-dsh-schedule/model-experience/tool-schemas-in-mounted-presets/what-the-model-sees:
-  en: 8d562f2d07a6f8fb
-  zh: 2b604c1894c2b5b9
+  en: 1c3efc4aac14c8a6
+  zh: 93f34dbb10a6a7d5
 /deepseek-ai-dsh-schedule/model-experience/tool-schemas-in-mounted-presets/token-effect:
   en: ae0eb4d2609d4329
   zh: 4fe0a26e37c272dc

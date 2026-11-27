@@ -1,5 +1,6 @@
 /** Session Remote owner: cold reads, explicit Agent commands, and live control state. */
 
+import type {} from '@deepseek-ai/dsh-session/context'
 import { hostname } from 'node:os'
 import { resolve } from 'node:path'
 import type { Agent } from '@deepseek-ai/dsh-agent'

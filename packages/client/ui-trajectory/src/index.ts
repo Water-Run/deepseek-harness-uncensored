@@ -1,4 +1,5 @@
 /** Trajectory Host inspector retaining tool values only for live Session instances. */
+import type {} from '@deepseek-ai/dsh-session/context'
 import { addAbortListener } from 'node:events'
 import { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'

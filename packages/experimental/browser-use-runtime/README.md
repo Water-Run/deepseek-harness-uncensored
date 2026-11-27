@@ -25,27 +25,19 @@ Browser providers use this library to reuse a browser across one Session's turns
 <a id="use-this-package"></a>
 ## Use this package
 
-When the optional security proxy covers an Agent, `mountSessionMcp` resolves its loopback endpoint before starting the MCP process. Launch providers supply `proxyArguments` to configure Chromium; an attachment without that capability rejects startup instead of using a direct route. Only Chromium receives these arguments; Host, MCP-control and application model transports are unchanged. Proxy configuration is captured when the browser starts: recreate the browser activation after changing it. HTTP page traffic can be captured; ordinary HTTPS tunnels retain metadata only.
-
-An inspected listener supplies a public CA. Launch providers with `profileArguments` receive a new temporary Chromium profile containing that CA. Chromium applies its regular certificate verification with the profile's added authority. The profile is removed after MCP shutdown. Use `httpsInspection.tools` on the [guarded proxy](../../guard/target-protection/README.md) to opt in by provider name.
-
 This public experimental library is a dependency of the browser providers. It has no plugin entry or mount configuration. The [browser-use service](../../browser-use/browser-use/README.md) remains independent of the library.
 
 Native providers construct `SessionResources` from the package root, supplying resource acquisition and cleanup callbacks. Calls pass the exact live Agent to `run()`; stale owners and a second owner of an exclusive attachment fail before acquisition. Canceling an acquisition wait leaves initialization available to other callers in the same Session; Session disposal aborts and awaits that initialization. Providers keep their registration until `dispose()` finishes.
 
-Lease acquisition, initialization, queued operations and checks during `get()` inherit that exact Agent as their process-local initiator. This includes browser discovery before the first tool call. The caller's initiator is restored outside each operation, and concurrent Sessions retain separate scopes. Existing permission and lifetime checks still apply.
-
-Shipped providers pass the browser registry's `acquireExecution` callback. Its lease is checked before native acquisition and queued operations; revocation interrupts acquisition, closes active resources and prevents queued work. Permission remains retained until native close and operation settlement. Confirmed acquisition rollback releases it. `BrowserResourceCleanupError` reports `BROWSER_SHUTDOWN_UNCONFIRMED` and preserves ownership when rollback or close is unknown; an optional executor-owned `closed` promise allows release after a late acknowledgement. Failed acknowledgements remain visible in logs and require inspecting the process or restarting the Host.
+Ownership failures throw `BrowserSessionError`, exported with its closed `BROWSER_SESSION_ERROR_CODES` list: `BROWSER_OWNER_NOT_LIVE` for a stale owner or a disposing provider, `BROWSER_LOCKED` for a second owner of an exclusive attachment, `BROWSER_CLOSED` for an operation interrupted because its Session's browser closed, `BROWSER_CLEANUP_FAILED` for a failed `dispose()` whose `cause` is an `AggregateError` of each close failure, and `BROWSER_FOREIGN_SESSION` for an MCP call from a Session without its own connection. A canceled wait whose abort reason is not an `Error` rejects with an `AbortError` that carries the `ABORTED` code.
 
 MCP providers use `mountSessionMcp` from `@deepseek-ai/dsh-experimental-browser-use-runtime/mcp`, supplying their fixed server name, executable, arguments, and ownership policy. The mounting context must provide `workingDirectory`. Acquisition uses the [working-directory service](../../session/working-directory/README.md) to validate or recover the current directory and set the MCP server process's initial directory. Retained servers keep that directory when the Session later selects another. The helper awaits one scoped client startup and discovery attempt within each future Agent's `agent/created` event. Agent creation or resume completes after discovery, before queued input runs; a successful client remains owned by that Session across turns.
 
 A busy attachment skips startup permanently for that live activation while its other work continues. Releasing the attachment does not retry skipped activations; a newly created or resumed Agent can acquire it. Startup failure or cancellation rejects Agent creation or resume and triggers creation rollback, including client cleanup. Reconnection is disabled. Loading or reloading a provider applies only to future Agent activations.
 
-MCP acquisition captures `createMcpClient` before awaiting startup. Cleanup uses verified transport shutdown and actual request settlement, independently of scope disposal. The tool catalog and standard Session logging remain unchanged; this library does not isolate arbitrary browser network, file or detached-process effects.
-
 Callers can inspect prompt assembly and scoped tool definitions after awaited Agent creation or resume completes.
 
-Browser tools and resource requests targeting this server use the same queue and require the calling Session's own connection. Other MCP servers remain usable. Inherited server instructions are omitted without ownership; the shared server-name inventory keeps its normal scope behavior.
+Browser tools and resource requests targeting this server use the same queue and require the calling Session's own connection; a call without a calling Agent fails with `ToolContextUnavailableError`. Other MCP servers remain usable. Inherited server instructions are omitted without ownership; the shared server-name inventory keeps its normal scope behavior.
 
 -----
 
@@ -68,6 +60,7 @@ The [MCP helper](src/mcp.ts) connects within serial `agent/created`; [AgentLoop]
 <a id="further-exploration"></a>
 ## Further Exploration
 
+- [Browser use](../../../docs/subsystems/browser-use.md) — provider selection and Session ownership.
 - [MCP client](../../mcp/mcp-client/README.md) — discovery, cancellation, and result admission.
 - [Browser ownership decision](../../../.agents/notes/implemented/architecture/2026-09-12-browser-use-provider-registration.md) — registration-only service and resource lifetime.
 

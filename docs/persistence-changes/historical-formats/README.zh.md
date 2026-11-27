@@ -8,7 +8,7 @@ description: "查找从 V0 到工作区写入器版本的每个 Session 格式�
 
 ## 概述
 
-本参考用于查阅已存储 Session 代际的 header、事件信封与载荷类型。低于工作区写入器版本的每个格式都有双语文档与完整 schema 快照。当前格式使用生成的持久化目录。[版本真源](../../../.agents/persistence/status.zh.md)负责写入器常量与发布状态。
+本参考用于查阅已存储 Session 代际的 header、事件信封与载荷类型。低于工作区写入器版本的每个格式都有双语文档与完整 schema 快照。当前格式使用生成的持久化目录。[版本真源](../../session-format-status.zh.md)负责写入器常量与发布状态。
 
 ## 目录
 
@@ -28,11 +28,11 @@ description: "查找从 V0 到工作区写入器版本的每个 Session 格式�
 
 | 格式 | 来源 | 参考文档 | 机器 schema | 根类型 / 类型 |
 |---|---|---|---|---|
-| 0 | `dsh-v0.1.2-rc.1` | [V0](https://github.com/deepseek-ai/deepseek-harness/blob/ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c/docs/persistence-changes/historical-formats/v0.md) | [JSON](v0.schema.json) | 54 / 415 |
-| 1 | PR #3349 | [V1](https://github.com/deepseek-ai/deepseek-harness/blob/ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c/docs/persistence-changes/historical-formats/v1.md) | [JSON](v1.schema.json) | 54 / 415 |
-| 2 | `dsh-v0.1.3-alpha.2` | [V2](https://github.com/deepseek-ai/deepseek-harness/blob/ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c/docs/persistence-changes/historical-formats/v2.md) | [JSON](v2.schema.json) | 56 / 435 |
-| 3 | PR #4320 | [V3](https://github.com/deepseek-ai/deepseek-harness/blob/ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c/docs/persistence-changes/historical-formats/v3.md) | [JSON](v3.schema.json) | 60 / 467 |
-| 4 | 当前工作树 | [当前目录](../../persistence-schema.json) | [JSON](../../persistence-schema.json) | 66 / 636 |
+| 0 | `dsh-v0.1.2-rc.1` | [V0](v0.zh.md) | [JSON](v0.schema.json) | 54 / 415 |
+| 1 | PR #3349 | [V1](v1.zh.md) | [JSON](v1.schema.json) | 54 / 415 |
+| 2 | `dsh-v0.1.3-alpha.2` | [V2](v2.zh.md) | [JSON](v2.schema.json) | 56 / 435 |
+| 3 | PR #4320 | [V3](v3.zh.md) | [JSON](v3.schema.json) | 60 / 467 |
+| 4 | 当前工作树 | [当前目录](../../persistence-catalog.zh.md) | [JSON](../../persistence-schema.json) | 68 / 655 |
 
 <!-- persistence-format-index:end -->
 
@@ -57,7 +57,7 @@ pnpm run verify-persistence-catalog
 pnpm run verify-persistence-formats --archive 3
 ```
 
-对于其他转换，将 `3` 替换为原写入器版本。`--archive N` 从当前目录创建 `vN.schema.json`，只保留从根类型可达的类型，并移除源码行号。它拒绝已存在的目标、与当前写入器不同的版本、无效或不完整的 schema，以及与 `--write` 的组合。使用[模板](../../../.agents/skills/dsh-doc-writing/templates/persistence-format.md)添加该快照的双语记录与来源证据。保留所有更早的记录。后继格式使用当前目录；复制新的当前目录不能满足归档前驱的要求。运行时变更遵循[格式版本实操手册](https://github.com/deepseek-ai/deepseek-harness/blob/ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c/docs/cookbook/adding-a-session-format-version.md)。
+对于其他转换，将 `3` 替换为原写入器版本。`--archive N` 从当前目录创建 `vN.schema.json`，只保留从根类型可达的类型，并移除源码行号。它拒绝已存在的目标、与当前写入器不同的版本、无效或不完整的 schema，以及与 `--write` 的组合。使用[模板](../../../.agents/skills/dsh-doc-writing/templates/persistence-format.md)添加该快照的双语记录与来源证据。保留所有更早的记录。后继格式使用当前目录；复制新的当前目录不能满足归档前驱的要求。运行时变更遵循[格式版本实操手册](../../cookbook/adding-a-session-format-version.zh.md)。
 
 注释标记内的 schema 定义与索引由工具生成。推进写入器并完成机器数据与人工证据后，刷新其表格和配对记录，再执行验证：
 

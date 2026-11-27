@@ -9,6 +9,7 @@
  * intermediate Session cannot hide an archived ancestor.
  */
 
+import type {} from '@deepseek-ai/dsh-session/context'
 import type { Context, Plugin } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { SessionId } from '@deepseek-ai/dsh-session'

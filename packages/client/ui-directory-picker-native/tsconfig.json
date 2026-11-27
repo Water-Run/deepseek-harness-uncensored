@@ -18,6 +18,9 @@
       "path": "../ui-renderer"
     },
     {
+      "path": "../ui-workspace/tsconfig.client.json"
+    },
+    {
       "path": "../ui-workspace"
     }
   ]

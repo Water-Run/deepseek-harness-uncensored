@@ -5,7 +5,9 @@
  * @module @deepseek-ai/dsh-workspace
  */
 
+import type {} from '@deepseek-ai/dsh-session/context'
 import { randomUUID } from 'node:crypto'
+import { brandString } from '@deepseek-ai/dsh-brand'
 import { mkdir, stat } from 'node:fs/promises'
 import { Context, Service } from '@deepseek-ai/cordis'
 import type { SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
@@ -202,6 +204,14 @@ export class WorkspaceRegistry extends Service {
     candidateMatches: (id, path) => !this.deletedSessions.has(id)
       && (this.sessionPaths.get(id) === path || this.missingSessionPaths.has(id)),
     readSessionHeader: id => this.readSessionHeader(id),
+    sessionHeader: (id) => {
+      const header = this.headers.get(id)
+      /* v8 ignore next 3 -- every path that admits a candidate indexes its header first. */
+      if (header === undefined) {
+        throw new Error(`workspace member '${id}' has no indexed session header`)
+      }
+      return header
+    },
     rememberSessionPath: (id, path) => {
       if (this.deletedSessions.has(id)) return
       this.sessionPaths.set(id, path)
@@ -565,7 +575,7 @@ export class WorkspaceRegistry extends Service {
     const workspaceName = title ?? defaultWorkspaceTitle(canonical)
     const table = this.requireTable()
     const state = this.requireState()
-    const id = WorkspaceId(randomUUID())
+    const id = brandString<WorkspaceId>(randomUUID())
     const now = new Date().toISOString()
     const record: WorkspaceRecord = {
       path: canonical,
@@ -729,7 +739,7 @@ export class WorkspaceRegistry extends Service {
           .map(header => header.id)
           .filter(sessionId => !accounted.has(sessionId))
         if (sessionIds.length === 0) continue
-        id = WorkspaceId(randomUUID())
+        id = brandString<WorkspaceId>(randomUUID())
         const createdAt = new Date(group.newestAt).toISOString()
         const record: WorkspaceRecord = {
           path: group.path,

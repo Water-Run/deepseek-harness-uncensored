@@ -1,5 +1,6 @@
 /** Live Session projection state with reconnect baselines. */
 
+import type {} from '@deepseek-ai/dsh-session/context'
 import type { Context } from '@deepseek-ai/cordis'
 import { Deque } from '@deepseek-ai/dsh-deque'
 import type {

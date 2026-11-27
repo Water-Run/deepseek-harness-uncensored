@@ -1,5 +1,6 @@
 /** Cold-safe Session list and search projection. */
 
+import type {} from '@deepseek-ai/dsh-session/context'
 import { performance } from 'node:perf_hooks'
 import { scheduler } from 'node:timers/promises'
 import type { Context } from '@deepseek-ai/cordis'

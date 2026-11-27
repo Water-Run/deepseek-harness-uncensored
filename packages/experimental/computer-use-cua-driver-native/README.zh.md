@@ -38,15 +38,6 @@ kind: "package-reference"
 
 挂载附件存储并使用明确声明支持图像输入的模型路由，才能接收截图。[MCP 结果适配器](../../mcp/mcp-client/README.zh.md) 负责图像接纳和诊断行为；模型无法接收图像时，程序调用方仍保留规范原始结果。调用采用 Cua Driver 上游的工具参数和结果。
 
-<a id="target-protected-composition"></a>
-### 目标保护组合
-
-组合提供[目标保护](../../guard/target-protection/README.zh.md)时，使用 `@deepseek-ai/dsh-experimental-computer-use-cua-driver-native/protected` 替换普通提供方。该入口强制依赖目标保护服务；不允许无约束副作用时，在导入原生 SDK 前拒绝激活。生产规则、境内保护或受保护的所有者文件都会阻止激活；持久化规则或审计数据库本身也是受保护的所有者文件。测试主机例外无法把桌面输入限制到该主机。
-
-发现完成前及每次原生调用前会重新检查准入，包括已取得的工具定义。策略变化会取消调用并撤下工具目录；策略允许执行后需重新加载提供方。移除目标保护所有者也会撤下提供方。清理等待原生调用与 SDK 关闭后才释放提供方名额和目标资源；关闭失败会保留这些资源，需要重启宿主。取消不能撤回已经发送的输入。
-
-这个可选入口不提供桌面沙箱，也不改变普通提供方。受保护部署应使用结构化受控操作执行允许的目标任务。
-
 ### 主机要求
 
 原生依赖通过 npm 可选依赖提供各平台二进制文件，因此必须保留可选依赖安装。请向启动 DSH 的应用授予桌面权限；此提供者既不安装独立持有权限的应用，也不更改操作系统授权。原生运行时与主机共享进程，因此原生崩溃可能终止该进程。如果需要由独立的 Cua Driver 应用持有权限并执行操作，请使用[已安装的 MCP 提供者](../computer-use-cua-driver-mcp/README.zh.md)。
@@ -71,10 +62,12 @@ env -u NODE_USE_ENV_PROXY DSH_COMPUTER_USE_NATIVE_E2E=1 node node_modules/vitest
 
 | 文件 | 职责 |
 |---|---|
-| [src/native.ts](src/native.ts) | 原生运行时所有权、目录校验、工具注册和提供者指导文本 |
-| [src/protected.ts](src/protected.ts) | 目标准入与可撤销的原生执行所有权 |
+| [src/index.ts](src/index.ts) | 原生运行时所有权、目录校验、工具注册和提供者指导文本 |
+| [src/error.ts](src/error.ts) | `CuaDriverError` 及其封闭代码列表 |
 
 工具定义复用现有 MCP 结果适配器。Cua Driver 的 JSON 目录决定 schema，其原始结果提供规范文本、结构化输出和图像字节。电脑操作服务只保存提供者名称并保证独占注册。
+
+原生调用被拒绝时抛出带 `CUA_DRIVER_FAILED` 的 `CuaDriverError`，保留 SDK 的消息并以其错误作为 `cause`；调用或提供者已取消时改为传播取消。原始结果不是 JSON 时抛出 `CUA_DRIVER_INVALID_RESULT`。结果中报告的上游工具拒绝仍由 MCP 结果适配器处理。
 
 </details>
 

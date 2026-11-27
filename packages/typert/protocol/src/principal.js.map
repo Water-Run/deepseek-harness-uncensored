@@ -1,0 +1,1 @@
+{"version":3,"file":"principal.js","sourceRoot":"","sources":["principal.ts"],"names":[],"mappings":"AAAA;;;GAGG;AAIH;;;;;GAKG;AACH,MAAM,UAAU,WAAW,CAAC,UAAwC;IAClE,MAAM,SAAS,GAAG,UAAU,EAAE,IAAI,CAAC,SAAS,CAAA;IAC5C,OAAO,SAAS,EAAE,IAAI,KAAK,OAAO,CAAC,CAAC,CAAC,SAAS,CAAC,CAAC,CAAC,SAAS,CAAA;AAC5D,CAAC"}

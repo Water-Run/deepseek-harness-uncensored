@@ -6,6 +6,7 @@
  * tools, so the choice is only ever offered before one starts.
  */
 
+import type {} from '../src/client/index.ts'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'

@@ -48,7 +48,7 @@ function json(text: string): PtcJsonValue {
   return value as PtcJsonValue
 }
 function failure(kind: NonNullable<PtcRunResult['error']>['kind'], message: string, logs: string[] = []): PtcRunResult {
-  return { logs, error: { kind, message } }
+  return { output: logs.map(log => ({ type: 'text', text: log })), error: { kind, message } }
 }
 
 /**
@@ -114,7 +114,6 @@ export default class TargetPtcRuntime extends PtcRuntime {
   override resolve(request: PtcRunRequest): PtcRunSpec {
     if (this.shutdownFailure !== undefined) throw this.shutdownFailure
     if (this.disposed) throw new Error('Target PTC resolve after disposal')
-    validatePtcBindings(request, 'target-ptc')
     if (Buffer.byteLength(request.program) > this.config.maxProgramBytes) throw new Error('Target PTC program size exceeded')
     const sandboxPolicy = request.sandboxPolicy ?? this.ctx.sandboxPolicy.resolve()
     const cwd = request.cwd ?? sandboxPolicy.workspaceRoot
@@ -191,7 +190,7 @@ export default class TargetPtcRuntime extends PtcRuntime {
             } else {
               const envelope = json(message.value)
               if (envelope === null || typeof envelope !== 'object' || Array.isArray(envelope)) throw new Error('Invalid completion envelope')
-              settle({ logs, ...Object.hasOwn(envelope, 'value') ? { value: envelope.value } : {} })
+              settle({ output: logs.map(log => ({ type: 'text', text: log })), ...Object.hasOwn(envelope, 'value') ? { value: envelope.value } : {} })
             }
           } else {
             const argumentBytes = Buffer.byteLength(message.args)

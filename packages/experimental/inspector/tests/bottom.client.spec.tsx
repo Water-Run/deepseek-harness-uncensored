@@ -25,7 +25,7 @@ async function setup() {
   runtime.ctx.provide('locale', locale)
   runtime.slots.installLocale(locale)
   locale.setLocale('en')
-  await runtime.ctx.plugin(ShortcutsService).await()
+  await runtime.ctx.plugin(ShortcutsService, {} as never).await()
   await expect.poll(() => runtime.ctx.shortcuts.config.getSnapshot().status).toBe('ready')
   await runtime.declare({ 'shell.bottom': { kind: 'single', scope: 'root' } })
   const plugin = { inject: ['locale', 'shortcuts', 'slots'], apply: (ctx: typeof runtime.ctx) => { registerInspectorPage(ctx, sourceId) } }

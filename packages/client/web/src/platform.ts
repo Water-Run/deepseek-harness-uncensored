@@ -4,6 +4,9 @@
  * @module @deepseek-ai/dsh-client-web/src/platform
  */
 
+/** Export name the static client bundle reserves for its module manifest. */
+export const STATIC_MODULE_MANIFEST_EXPORT = '__$dsh_client_module_manifest'
+
 /** The module specifiers the shell shares into the frozen module table. */
 export const PLATFORM_MODULES = [
   'react', 'react/jsx-runtime', 'react-dom', 'react-dom/client', '@deepseek-ai/cordis',

@@ -1,11 +1,11 @@
 import { Context } from '@deepseek-ai/cordis'
-import { createMessage, createSystemMessage, createToolResultMessage, createUserMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
+import { createMessage, createSystemMessage, createToolResultMessage, createUserMessage, type ToolCallId } from '@deepseek-ai/dsh-llm'
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 import SessionStore, {
   adoptSessionEvent,
   SESSION_FORMAT_VERSION,
   Session,
-  SessionId,
+  type SessionId,
   SessionLogOffset,
   SessionSeq,
   snapshotSessionEvent,
@@ -15,8 +15,9 @@ import SessionStore, {
   type SurfaceIntent,
   type SurfaceOp,
 } from '@deepseek-ai/dsh-session'
+import { brandString } from '@deepseek-ai/dsh-brand'
 
-const id = SessionId('canonical-envelopes')
+const id = brandString<SessionId>('canonical-envelopes')
 const header = { version: SESSION_FORMAT_VERSION, id, createdAt: 1, isSeeded: false } as const
 const config = { provider: 'mock', model: 'mock', maxTokens: 1 }
 const failure = { name: 'ToolError', code: 'FAILED' }
@@ -32,7 +33,7 @@ function toolEvent(data: unknown): SessionEvent {
 function toolData(isError: boolean) {
   return {
     turn: 1, step: 1,
-    message: createToolResultMessage({ callId: ToolCallId('tool'), content: [], isError }),
+    message: createToolResultMessage({ callId: brandString<ToolCallId>('tool'), content: [], isError }),
   }
 }
 
@@ -101,12 +102,11 @@ describe('canonical event payload acceptance', () => {
 
   it('validates canonical section text references through every persisted event entry path', () => {
     const section = { name: 'policy', order: 0, state: 'active', contentIndex: 1, noticeIndex: [0] } as const
-    const source = { kind: 'system-prompt', sections: [section] } as const
     const message = createMessage({ role: 'system', content: [
       { type: 'text', text: 'Replacement notice.\n\n' },
       { type: 'text', text: 'instructions' },
       { type: 'text', text: 'legacy instructions' },
-    ], source })
+    ], source: { kind: 'system-prompt', sections: [section] } })
     const event: SessionEvent<'system/message'> = {
       type: 'system/message', seq: SessionSeq(0), time: 1, surfaceOp: 'append',
       data: { turn: 1, step: 1, message },
@@ -275,8 +275,8 @@ describe('canonical event payload acceptance', () => {
       const messages = session.deriveMessages()
       for (const { event } of invalidData) {
         expect(() => appendEvent(session, event)).toThrow()
-        expect(() => ctx.sessions.create(SessionId('invalid-seed'), { seed: [event] })).toThrow()
-        expect(ctx.sessions.get(SessionId('invalid-seed'))).toBeUndefined()
+        expect(() => ctx.sessions.create(brandString<SessionId>('invalid-seed'), { seed: [event] })).toThrow()
+        expect(ctx.sessions.get(brandString<SessionId>('invalid-seed'))).toBeUndefined()
         expect(session.seq).toBe(0)
         expect(session.snapshotEvents()).toBe(events)
         expect(session.surface.nodes).toEqual([])

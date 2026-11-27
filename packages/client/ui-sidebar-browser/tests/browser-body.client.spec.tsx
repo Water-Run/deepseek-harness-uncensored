@@ -54,7 +54,7 @@ function mountBrowser(navigation?: { readonly url?: string },
         sidebar: { expanded: true, fullscreen: false }, panel: { id: 'pane' as PaneId, isFloating: false },
         tab: {
           id: TAB, kind: 'browser', title: 'Browser', contentId: 'sidebar://browser/1', visible: true,
-          navigation: { address: 'sidebar://browser/1', params: navigation, revision: 0 },
+          navigation: { address: 'sidebar://browser/1', params: navigation as unknown as Record<string, never>, revision: 0 },
           signal: lifetime.signal,
           actions: tabActions, refreshShortcut: options.refreshShortcut,
         },

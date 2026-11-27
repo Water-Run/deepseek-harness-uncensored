@@ -114,7 +114,7 @@ function setup() {
   const slots: TextPreviewProps['renderSlot'] = (key: string, input: unknown, options?: { hookContext?: unknown }) => {
     if (key === 'sidebar.right.tab.document.action') {
       return <OfficeFontAction {...{ ...input as OwnerOf<'sidebar.right.tab.document.action'>, useTabInfo: options?.hookContext, useStore: useOffice,
-        actions: office.actions, t: makeTranslate(en) } as OfficeFontActionProps} />
+        actions: office.actions, t: makeTranslate(en) } as unknown as OfficeFontActionProps} />
     }
     if (key !== 'sidebar.right.tab.document') return null
     const owner = input as OwnerOf<'sidebar.right.tab.document'>

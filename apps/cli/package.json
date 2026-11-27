@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh",
   "description": "dsh CLI: profile launch, plugin management, and configuration inspection",
-  "version": "0.2.2-rc.5",
+  "version": "0.2.3-alpha.2",
   "publishConfig": {
     "access": "public"
   },
@@ -76,7 +76,6 @@
     "@deepseek-ai/dsh-mcp-resources": "workspace:*",
     "@deepseek-ai/dsh-official-bundles": "workspace:*",
     "@deepseek-ai/dsh-persona": "workspace:*",
-    "@deepseek-ai/dsh-personalized-recommendations": "workspace:*",
     "@deepseek-ai/dsh-plan-mode": "workspace:*",
     "@deepseek-ai/dsh-plugin-manager": "workspace:*",
     "@deepseek-ai/dsh-product-version": "workspace:*",
@@ -121,9 +120,12 @@
     "@deepseek-ai/schemastery": "workspace:~",
     "commander": "^15.0.0",
     "js-yaml": "^4.3.2",
-    "node-addon-require-builtin": "^0.1.9"
+    "node-addon-require-builtin": "^0.1.10",
+    "@deepseek-ai/dsh-cua-mcp": "workspace:*",
+    "@deepseek-ai/dsh-timeline": "workspace:*"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-brand": "workspace:*",
     "@deepseek-ai/dsh-skill-badge": "workspace:*",
     "@deepseek-ai/dsh-webhook-github": "workspace:*",
     "@deepseek-ai/dsh-webhook": "workspace:*",
@@ -140,7 +142,6 @@
     "@deepseek-ai/dsh-credentials-local": "workspace:*",
     "@deepseek-ai/dsh-deepseek-llm-api-extensions": "workspace:*",
     "@deepseek-ai/dsh-agent-team": "workspace:*",
-    "@deepseek-ai/dsh-experimental-ptc-runtime-python": "workspace:*",
     "@deepseek-ai/dsh-tool-agent-team": "workspace:*",
     "@deepseek-ai/dsh-fs-observation-policy": "workspace:*",
     "@deepseek-ai/dsh-fs-sandbox": "workspace:*",
@@ -177,7 +178,8 @@
     "@types/ws": "8.18.1",
     "ajv": "^8.20.0",
     "execa": "^10.0.1",
-    "ws": "8.21.3"
+    "ws": "8.21.3",
+    "@deepseek-ai/dsh-deepseek-auth": "workspace:*"
   },
   "exports": {
     "./profile-boot": {
@@ -188,7 +190,7 @@
     "./package.json": "./package.json"
   },
   "engines": {
-    "node": ">=24.9.0"
+    "node": "^24.22.3 || >=26.13.1"
   },
-  "dshProductVersion": "2026.1123.0"
+  "dshProductVersion": "2026.1127.0"
 }

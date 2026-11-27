@@ -9,6 +9,9 @@
   ],
   "references": [
     {
+      "path": "../../util/brand"
+    },
+    {
       "path": "../../../vendor/cosmokit"
     },
     {
@@ -27,9 +30,6 @@
       "path": "../../core/session"
     },
     {
-      "path": "../../session/session-projection"
-    },
-    {
       "path": "../../llm/llm"
     },
     {
@@ -40,6 +40,9 @@
     },
     {
       "path": "../subagent"
+    },
+    {
+      "path": "../../session/session-projection"
     }
   ]
 }

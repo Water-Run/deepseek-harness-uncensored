@@ -18,7 +18,7 @@ export interface ClipboardCopyState {
 export function useClipboardCopy(text: string): ClipboardCopyState {
   const [copied, setCopied] = useState(false)
   const copyPending = useRef(false)
-  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const copyTimer = useRef<number | null>(null)
   const copyEpoch = useRef(0)
   useEffect(() => () => {
     copyEpoch.current += 1

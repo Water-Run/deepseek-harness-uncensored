@@ -3,8 +3,8 @@
     - button "Ask a research subagent to"
     - text: /
     - 'button "Switch subagent: event-sourcing researcher"': event-sourcing researcher
-  - 'button "Conversation mode: Default" [disabled]': Default
-  - button "Side question"
+  - text: Standard mode
+  - button "Session panel"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -14,13 +14,12 @@
 - navigation "Turn navigation":
   - button "Jump to turn 1"
   - button "Jump to turn 2"
-- text: Explain event sourcing in one sentence.Your final answer is delivered automatically if your parent is still online. Include the result and relevant evidence in that answer; the parent does not receive your full transcript, tool output, or reasoning. If your last action is a message to your parent, the completion notice omits your final answer; include the result and relevant evidence in that message. {{clock}}
-- button "Copy"
+- button "Task message received {{clock}}":
+  - text: Task message received
+  - time: {{clock}}
 - status: Stopped
 - button "Stopped" [disabled] [expanded]
-- button "Context injection runtime-context"
-- button "Context injection skill-catalog"
-- button "Context injection time-context"
+- button "Injected context"
 - paragraph: partial
 - text: Stopped
 - button "Copy"
@@ -51,9 +50,7 @@
     - button "Steer queued message"
 - textbox "Cmd/Ctrl+Enter steers all queued messages"
 - button "Add files or run commands"
-- 'button "Access mode, current: Full access"': Full access
+- 'button "Access mode, current: Custom"': Custom
 - button "Stop generating"
 - button "Send message" [disabled]
-- 'button "Turns: 1 · Steps: 1"'
-- 'button "Conversation cost: ￥0.00"': ￥0.00
-- 'button "Spending limits: Off"': "Off"
+- button "1 turns 1 steps"

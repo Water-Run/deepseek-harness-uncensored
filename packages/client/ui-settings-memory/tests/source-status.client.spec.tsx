@@ -22,7 +22,7 @@ it('retains the saved fact while distinguishing a missing source from an unverif
     useMemories: bindSnapshotSelector(store), t: makeTranslate(en), open: vi.fn(async () => {}), reload: vi.fn(async () => {}),
     showManager: async () => { store.update((state) => { state.managerOpen = true }) },
     closeManager: () => { store.update((state) => { state.managerOpen = false }) },
-  } as Parameters<typeof MemoryRow>[0]
+  } as unknown as Parameters<typeof MemoryRow>[0]
   render(<><MemoryRow {...props} /><MemoryManager {...props} /></>)
   fireEvent.click(screen.getByRole('button', { name: 'Manage memory' }))
   expect(screen.getByText(en.sourceMissing)).toBeTruthy()

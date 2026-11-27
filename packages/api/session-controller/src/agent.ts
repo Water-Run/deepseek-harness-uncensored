@@ -1,5 +1,6 @@
 /** Agent activation, composition, and initial model route owned by API Session. */
 
+import type {} from '@deepseek-ai/dsh-session/context'
 import { randomUUID } from 'node:crypto'
 import { mkdir } from 'node:fs/promises'
 import type { Context } from '@deepseek-ai/cordis'

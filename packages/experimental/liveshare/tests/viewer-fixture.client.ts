@@ -883,7 +883,8 @@ const FIXTURE_SYSTEM_PROMPT = '你是 DeepSeek Harness 的 fixture 助手。用�
 function buildAlphaLog(presented = false): SessionEvent[] {
   const events: FixtureAuthoredEvent[] = []
   let time = Date.now() - 3_600_000
-  const push = (e: FixtureEventInput): SessionSeq => {
+  const push = (input: FixtureEventInput | Record<string, unknown>): SessionSeq => {
+    const e = input as FixtureEventInput
     const seq = SessionSeq(events.length)
     const nextTime = time + 800
     time = nextTime
@@ -1061,7 +1062,7 @@ function buildAlphaLog(presented = false): SessionEvent[] {
         type: 'tool/ptc-dispatch',
         data: {
           rootCallId: callId, parentCallId: callId, subCallId: brandString<ToolCallId>(`${callId}:ptc:${n}`), name,
-          arguments: dispatchArgs, isError, content: [{ type: 'text', text: resultText }],
+          arguments: JSON.stringify(dispatchArgs), isError, content: [{ type: 'text', text: resultText }],
         },
       })
     }

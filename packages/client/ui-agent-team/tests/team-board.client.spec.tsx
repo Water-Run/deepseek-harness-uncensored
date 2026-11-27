@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import type {} from '../src/client/index.ts'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'

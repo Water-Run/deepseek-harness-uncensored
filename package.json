@@ -1,12 +1,12 @@
 {
   "name": "@deepseek-ai/dsh-root",
-  "version": "0.2.2-rc.5",
+  "version": "0.2.3-alpha.2",
   "license": "GPL-3.0-or-later",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.28.5",
   "engines": {
-    "node": ">=24.9.0"
+    "node": "^24.22.3 || >=26.13.1"
   },
   "workspaces": [
     "vendor/*",
@@ -210,7 +210,17 @@
     "package:desktop:linux:arm64": "pnpm --dir apps/desktop run package:linux:arm64",
     "package:desktop:linux:arm64:unsigned": "pnpm --dir apps/desktop run package:linux:arm64:unsigned",
     "package:desktop:deliver": "pnpm --dir apps/desktop run deliver",
-    "render:artwork": "tsx apps/desktop/scripts/render-uncensored-artwork.ts"
+    "render:artwork": "tsx apps/desktop/scripts/render-uncensored-artwork.ts",
+    "test:coverage:merge-shards": "tsx scripts/merge-coverage-shards.ts",
+    "test:stale-pull-requests": "node --test .github/stale-pull-requests/remind.test.mjs",
+    "check:ci:coverage-shard": "tsx scripts/run-gates.ts ci-coverage-shard",
+    "check:ci:bench-prebuilt": "tsx scripts/run-gates.ts ci-bench-prebuilt",
+    "check:ci:build": "tsx scripts/run-gates.ts ci-build",
+    "check:ci:consumers-prebuilt": "tsx scripts/run-gates.ts ci-consumers-prebuilt",
+    "check:ci:web-snapshot-prebuilt": "tsx scripts/run-gates.ts ci-web-snapshot-prebuilt",
+    "verify-empty-catch": "tsx scripts/verify-empty-catch.ts",
+    "verify-css-selectors": "tsx scripts/verify-css-selectors.ts",
+    "verify-cordis-root": "tsx scripts/verify-cordis-root.ts"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-action-cards": "workspace:*",
@@ -226,7 +236,6 @@
     "@deepseek-ai/dsh-experimental-claude-code-mods": "workspace:*",
     "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "workspace:*",
     "@deepseek-ai/dsh-experimental-computer-use-cua-driver-native": "workspace:*",
-    "@deepseek-ai/dsh-experimental-cua-macos": "workspace:*",
     "@deepseek-ai/dsh-experimental-forge": "workspace:*",
     "@deepseek-ai/dsh-experimental-forge-github": "workspace:*",
     "@deepseek-ai/dsh-experimental-forge-session": "workspace:*",
@@ -248,7 +257,6 @@
     "@deepseek-ai/dsh-tool-ralph": "workspace:*",
     "@deepseek-ai/dsh-tool-session-query": "workspace:*",
     "@deepseek-ai/dsh-tool-terminal": "workspace:*",
-    "@deepseek-ai/dsh-tool-working-directory": "workspace:*",
     "@deepseek-ai/dsh-tool-workspace-dependencies": "workspace:*",
     "@deepseek-ai/dsh-web-fetch-http": "workspace:*",
     "@deepseek-ai/dsh-working-directory": "workspace:*",
@@ -278,7 +286,7 @@
     "jsdom": "29.1.1",
     "lefthook": "^2.1.12",
     "lightningcss": "^1.33.0",
-    "mdast-util-from-markdown": "^2.0.3",
+    "mdast-util-from-markdown": "^2.1.0",
     "mdast-util-gfm": "^3.1.0",
     "mermaid": "11.17.2",
     "micromark-extension-gfm": "^3.0.0",
@@ -297,6 +305,12 @@
     "vite": "8.2.2",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.11",
-    "zod": "4.6.6"
+    "zod": "4.6.6",
+    "@deepseek-ai/dsh-mcp-manager": "workspace:*",
+    "diff": "^9.0.0",
+    "@deepseek-ai/dsh-cua-windows": "workspace:*",
+    "@deepseek-ai/dsh-timeline": "workspace:*",
+    "@deepseek-ai/dsh-forge-gitlab": "workspace:*",
+    "@deepseek-ai/dsh-tool-session-list": "workspace:*"
   }
 }

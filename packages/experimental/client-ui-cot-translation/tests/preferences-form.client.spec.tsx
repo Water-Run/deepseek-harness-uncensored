@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 /** Preferences remain staged until one explicit Settings save. */
+import type {} from '../src/client/index.ts'
 import type { TranslationProvider } from '@deepseek-ai/dsh-experimental-translator/types'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { afterEach, expect, it, vi } from 'vitest'

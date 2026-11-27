@@ -13,13 +13,29 @@
     "src/types.ts"
   ],
   "references": [
-    { "path": "../../../vendor/cordis" },
-    { "path": "../gateway/tsconfig.client.json" },
-    { "path": "../../client/connection/tsconfig.client.json" },
-    { "path": "../../client/store" },
-    { "path": "../../core/session" },
-    { "path": "../../host/directory-picker" },
-    { "path": "../../typert/protocol" },
-    { "path": "../../workspace/workspace" }
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../gateway/tsconfig.client.json"
+    },
+    {
+      "path": "../../client/connection/tsconfig.client.json"
+    },
+    {
+      "path": "../../client/store"
+    },
+    {
+      "path": "../../core/session/tsconfig.client.json"
+    },
+    {
+      "path": "../../host/directory-picker"
+    },
+    {
+      "path": "../../typert/protocol"
+    },
+    {
+      "path": "../../workspace/workspace"
+    }
   ]
 }

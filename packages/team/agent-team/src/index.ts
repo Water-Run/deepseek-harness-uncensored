@@ -1,5 +1,6 @@
 /** Shared task boards owned by subagent tree roots. */
 
+import type {} from '@deepseek-ai/dsh-session/context'
 import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
@@ -11,7 +12,7 @@ import { TeamError } from './error.ts'
 import { TeamJournal } from './journal.ts'
 import { teamProjectionDefinition, type TeamProjectionState } from './projection.ts'
 import { TeamTaskBoard } from './task-board.ts'
-import { TeamTaskId } from './types.ts'
+import type { TeamTaskId } from './types.ts'
 import type {
   Config,
   CreateTeamTaskRequest,

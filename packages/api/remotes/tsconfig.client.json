@@ -39,7 +39,7 @@
       "path": "../../context/session-reference"
     },
     {
-      "path": "../../core/session"
+      "path": "../../core/session/tsconfig.client.json"
     },
     {
       "path": "../../extensions/cordis-host-runner"
@@ -114,10 +114,16 @@
       "path": "../../boot/plugin-market"
     },
     {
+      "path": "../../interaction/action-cards"
+    },
+    {
+      "path": "../../extensions/plugin-recommendations"
+    },
+    {
       "path": "../../document/office-kit"
     },
     {
-      "path": "../../credentials/deepseek-account"
+      "path": "../../account/deepseek-account"
     },
     {
       "path": "../../web/web"

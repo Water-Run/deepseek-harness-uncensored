@@ -19,6 +19,11 @@ overrides:
   # X.509 extension classes and serializer must share the same ASN.1 schema registry.
   '@peculiar/x509@1.14.3>@peculiar/asn1-schema': '2.11.1'
   'extract-zip>yauzl': '3.4.0'
+  # Keep every installed undici major on its newest security release: 8.12.4 and 7.30.2 match
+  # the undici bundled in Node 26.13.1 and 24.22.3; 6.29.1 is the newest 6.x release.
+  'undici@^6': '6.29.1'
+  'undici@^7': '7.30.2'
+  'undici@^8': '8.12.4'
   '@deepseek-ai/cosmokit': 'link:vendor/cosmokit'
   '@deepseek-ai/schemastery': 'link:vendor/schemastery'
 
@@ -33,11 +38,14 @@ peerDependencyRules:
 # (git hooks) genuinely need theirs.
 allowBuilds:
   esbuild: true
+  # REA uses Frida's N-API 8 binding; the reviewed installer fetches its release prebuild.
+  'frida@17.23.2': true
+  # SSH uses its portable JavaScript implementation; optional native acceleration is not shipped.
+  ssh2: false
+  cpu-features: false
   lefthook: true
   # Cross-platform boundary for the persistent PTY backend, including ConPTY on Windows.
   node-pty: true
-  # REA uses Frida's N-API 8 binding; the reviewed installer fetches its release prebuild.
-  'frida@17.23.2': true
   # Pulled in by @earendil-works/pi-ai (optional LLM API backend). pnpm lists
   # them only because they ship lifecycle scripts, but those are no-ops we don't
   # need, so we deny them — install still succeeds.
@@ -58,9 +66,13 @@ allowBuilds:
   electron-winstaller: false
   # Store-index rewriting only needs msgpackr's portable JavaScript codec.
   msgpackr-extract: false
-  # SSH uses its portable JavaScript implementation; optional native acceleration is not shipped.
-  ssh2: false
-  cpu-features: false
+  # The Feishu plugin's CLI downloads its native binary from GitHub Releases or npmmirror.
+  # Repository installs skip it; profiles that install the plugin approve it separately.
+  # Update the version here together with packages/connector/feishu/package.json.
+  '@larksuite/cli@1.0.97': false
+  # The Tencent Meeting plugin's CLI ships executable binaries; its install script only
+  # restores their mode and runs `tmeet auth logout`, so repository installs skip it.
+  '@tencentcloud/tmeet@1.0.18': false
 
 minimumReleaseAgeExclude:
   # Native Codex and Claude tests qualify this exact release with its local patches.
@@ -76,18 +88,18 @@ minimumReleaseAgeExclude:
   # point of bumping it; waiting out the release age would defeat that.
   - '@earendil-works/pi-ai@1.3.0'
   - '@earendil-works/pi-telemetry@1.3.0'
-  # This addon release recognizes the Electron 44.7.0 Node/V8 fingerprint used by Desktop.
-  - node-addon-native-custom-loader@0.1.9
-  - node-addon-require-builtin-darwin-arm64@0.1.9
-  - node-addon-require-builtin-darwin-x64@0.1.9
-  - node-addon-require-builtin-linux-arm64-gnu@0.1.9
-  - node-addon-require-builtin-linux-x64-gnu@0.1.9
-  - node-addon-require-builtin-linux-arm64-musl@0.1.9
-  - node-addon-require-builtin-linux-x64-musl@0.1.9
-  - node-addon-require-builtin-win32-arm64-msvc@0.1.9
-  - node-addon-require-builtin-win32-ia32-msvc@0.1.9
-  - node-addon-require-builtin-win32-x64-msvc@0.1.9
-  - node-addon-require-builtin@0.1.9
+  # This addon release recognizes the Electron 44.11.5 Node/V8 fingerprint used by Desktop.
+  - node-addon-native-custom-loader@0.1.10
+  - node-addon-require-builtin-darwin-arm64@0.1.10
+  - node-addon-require-builtin-darwin-x64@0.1.10
+  - node-addon-require-builtin-linux-arm64-gnu@0.1.10
+  - node-addon-require-builtin-linux-x64-gnu@0.1.10
+  - node-addon-require-builtin-linux-arm64-musl@0.1.10
+  - node-addon-require-builtin-linux-x64-musl@0.1.10
+  - node-addon-require-builtin-win32-arm64-msvc@0.1.10
+  - node-addon-require-builtin-win32-ia32-msvc@0.1.10
+  - node-addon-require-builtin-win32-x64-msvc@0.1.10
+  - node-addon-require-builtin@0.1.10
   # The active pnpm supply-chain policy blocks this reviewed runtime closure
   # until its release-age window expires unless every exact package is exempt.
   - '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.263'
@@ -113,13 +125,13 @@ minimumReleaseAgeExclude:
   # The package manager is a workspace devDependency, so its own exact pin
   # must be exempt from the release-age window that guards other packages.
   - pnpm@11.28.5
-  # Desktop packaging requires this Electron fingerprint with node-addon-require-builtin 0.1.9.
-  - electron@44.7.0
+  # Desktop packaging requires this Electron fingerprint with node-addon-require-builtin 0.1.10.
+  - electron@44.11.5
   # Stagehand 4.4.0 carries the reviewed zod 4.6.6 pin; install it without the release-age wait.
   - '@browserbasehq/stagehand@4.4.0'
-  # Reviewed upstream REA release; the bundled MCP runtime stays pinned.
-  - rea-agents@6.9.0
 patchedDependencies:
+  rea-agents@6.9.0: patches/rea-agents@6.9.0.patch
+  ws@8.21.3: patches/ws@8.21.3.patch
   '@botiverse/oar@0.67.0': patches/@botiverse__oar@0.67.0.patch
   '@earendil-works/pi-ai@1.3.0': patches/@earendil-works__pi-ai@1.3.0.patch
   '@electron/osx-sign@1.3.3': patches/@electron__osx-sign@1.3.3.patch
@@ -132,5 +144,3 @@ patchedDependencies:
   mdast-util-gfm-autolink-literal@2.0.1: patches/mdast-util-gfm-autolink-literal@2.0.1.patch
   micromark-extension-gfm-autolink-literal@2.1.0: patches/micromark-extension-gfm-autolink-literal@2.1.0.patch
   node-pty@1.2.0-beta.15: patches/node-pty@1.2.0-beta.15.patch
-  rea-agents@6.9.0: patches/rea-agents@6.9.0.patch
-  ws@8.21.3: patches/ws@8.21.3.patch

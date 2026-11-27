@@ -1,0 +1,1 @@
+{"version":3,"file":"host-environment.d.ts","sourceRoot":"","sources":["host-environment.ts"],"names":[],"mappings":"AAGA,8FAA8F;AAC9F,MAAM,WAAW,oBAAoB;IACnC,QAAQ,CAAC,EAAE,MAAM,CAAA;IACjB,GAAG,CAAC,EAAE,MAAM,CAAC,UAAU,CAAA;IACvB,SAAS,CAAC,EAAE,MAAM,CAAA;CACnB;AAED;;;;GAIG;AACH,wBAAgB,KAAK,CAAC,KAAK,GAAE,oBAAyB,GAAG,OAAO,CAK/D"}

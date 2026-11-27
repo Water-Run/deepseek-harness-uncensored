@@ -1,5 +1,5 @@
 /** Application-owned MCP namespace reservations shared by server plugins. @module */
-import type { Context } from '@deepseek-ai/cordis'
+import { Context } from '@deepseek-ai/cordis'
 import { scopeOf } from '@deepseek-ai/dsh-scope'
 
 declare module '@deepseek-ai/cordis' {
@@ -19,7 +19,7 @@ export interface McpNamespaceReservations {
  * @returns Idempotent release registered by the server's effect owner.
  */
 export function reserveServerName(ctx: Context, name: string): () => void {
-  const root = ctx.root
+  const root = ctx[Context.root]
   let registry = root.get('mcpNamespaces')
   if (registry === undefined) {
     const scopes = new WeakMap<object, Set<string>>()

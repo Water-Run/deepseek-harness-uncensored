@@ -1,5 +1,6 @@
 /** Live/persisted logical-corpus resolution for session-query. */
 
+import type {} from '@deepseek-ai/dsh-session/context'
 import type { Context, Fiber } from '@deepseek-ai/cordis'
 import type { Session, SessionEvent, SessionHeader, SessionId , SessionLogOffset } from '@deepseek-ai/dsh-session'
 import type SessionPersistence from '@deepseek-ai/dsh-session-persistence'

@@ -2,7 +2,7 @@
 
 - banner:
   - navigation "Session hierarchy": {{workspace}}
-  - button "Side question"
+  - button "Session panel"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -12,7 +12,8 @@
 - text: Inspect the protected operation, but do not run it unless authorized. {{clock}}
 - button "Copy"
 - status: Completed
-- button "Completed in {{duration}}" [disabled] [expanded]
+- button "Completed in {{duration}}" [expanded]
+- button "Called tools, ran code, ran commands" [expanded]
 - text: Failed
 - button "Tool call Rejected by Auto review"
 - button "Code Catch an Auto-denied inner call"
@@ -23,15 +24,13 @@
 - 'button "Access mode, current: Auto review"': Auto review
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
-- 'button "Turns: 1 · Steps: 2"'
-- 'button "Conversation cost: ￥0.00"': ￥0.00
-- 'button "Spending limits: Off"': "Off"
+- button "1 turns 2 steps"
 
 ## Expanded
 
 - banner:
   - navigation "Session hierarchy": {{workspace}}
-  - button "Side question"
+  - button "Session panel"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -41,7 +40,8 @@
 - text: Inspect the protected operation, but do not run it unless authorized. {{clock}}
 - button "Copy"
 - status: Completed
-- button "Completed in {{duration}}" [disabled] [expanded]
+- button "Completed in {{duration}}" [expanded]
+- button "Called tools, ran code, ran commands" [expanded]
 - text: Failed
 - button "Tool call Rejected by Auto review" [expanded]
 - text: "OUT Tool was not executed. Reason: raw reason"
@@ -56,15 +56,13 @@
 - 'button "Access mode, current: Auto review"': Auto review
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
-- 'button "Turns: 1 · Steps: 2"'
-- 'button "Conversation cost: ￥0.00"': ￥0.00
-- 'button "Spending limits: Off"': "Off"
+- button "1 turns 2 steps"
 
 ## Trajectory
 
 - banner:
   - navigation "Session hierarchy": {{workspace}}
-  - button "Side question"
+  - button "Session panel" [disabled]
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -124,6 +122,4 @@
 - 'button "Access mode, current: Auto review"': Auto review
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
-- 'button "Turns: 1 · Steps: 2"'
-- 'button "Conversation cost: ￥0.00"': ￥0.00
-- 'button "Spending limits: Off"': "Off"
+- button "1 turns 2 steps"

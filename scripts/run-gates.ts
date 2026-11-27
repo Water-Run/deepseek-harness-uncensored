@@ -9,9 +9,10 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { availableParallelism } from 'node:os'
 import { resolve } from 'node:path'
 import { performance } from 'node:perf_hooks'
+import { parseBenchPhase } from './bench-phase.ts'
 import { CLIENT_BUILD_PROFILE_SELECTOR } from './client-build-environment.ts'
 import { COVERAGE_EXEMPT_ENV, coverageExemptHeavySuites } from './coverage-exempt.ts'
-import { COVERAGE_PARTITIONS_ENV, parseCoveragePartitionCount } from './coverage-partitions.ts'
+import { COVERAGE_PARTITIONS_ENV, COVERAGE_SHARD_ENV, parseCoveragePartitionCount, parseCoverageShard } from './coverage-partitions.ts'
 import { LOCAL_TEST_PARALLELISM_CAP, defaultParallelism, describeDefaultParallelism } from './parallelism.ts'
 import { pnpmInvocation } from './pnpm-invocation.ts'
 
@@ -22,11 +23,16 @@ export type Mode =
   | 'ci-static'
   | 'ci-lint-contracts-ready'
   | 'ci-coverage'
+  | 'ci-coverage-shard'
   | 'ci-unit'
   | 'ci-bench'
+  | 'ci-bench-prebuilt'
   | 'ci-snapshot'
   | 'ci-artifacts'
   | 'ci-consumers'
+  | 'ci-build'
+  | 'ci-consumers-prebuilt'
+  | 'ci-web-snapshot-prebuilt'
   | 'ci-windows-blocking'
   | 'ci-windows-complete'
   | 'ci-windows-observational-ready'
@@ -100,8 +106,11 @@ type ResultObserver = (result: GateResult) => void
 /** Worker cap of the documentation and hygiene aggregates, locally and in CI, whose leaves each build a full ts.Program. */
 const PROGRAM_MODE_CAP = 8
 
-/** CI pins this minor in .github/workflows/ci.yml; its compatibility leg owns the built CLI smoke. */
-export const BUILD_BACKED_NODE_COMPAT_VERSION = '24.9'
+/**
+ * CI pins this supported-floor release in .github/workflows/ci.yml. Its compatibility leg owns the built CLI smoke and
+ * requests it with `DSH_NODE_COMPAT_BUILD=1`; the primary lanes can run this same release and stay source-only.
+ */
+export const BUILD_BACKED_NODE_COMPAT_VERSION = '24.22.3'
 
 const root = resolve(import.meta.dirname, '..')
 if (import.meta.main) {
@@ -162,11 +171,16 @@ function parseMode(raw: string | undefined): Mode {
     case 'ci-static':
     case 'ci-lint-contracts-ready':
     case 'ci-coverage':
+    case 'ci-coverage-shard':
     case 'ci-unit':
     case 'ci-bench':
+    case 'ci-bench-prebuilt':
     case 'ci-snapshot':
     case 'ci-artifacts':
     case 'ci-consumers':
+    case 'ci-build':
+    case 'ci-consumers-prebuilt':
+    case 'ci-web-snapshot-prebuilt':
     case 'ci-windows-blocking':
     case 'ci-windows-complete':
     case 'ci-windows-observational-ready':
@@ -179,7 +193,7 @@ function parseMode(raw: string | undefined): Mode {
       return raw
     default:
       throw new Error(
-        `run-gates: expected mode ci-primary | ci-linux-primary | ci-static | ci-lint-contracts-ready | ci-coverage | ci-unit | ci-bench | ci-snapshot | ci-artifacts | ci-consumers | ci-windows-blocking | ci-windows-complete | ci-windows-observational-ready | node-compat | check-all | hygiene | doc-sync | doc-quick | i18n, got ${JSON.stringify(raw)}.`,
+        `run-gates: expected mode ci-primary | ci-linux-primary | ci-static | ci-lint-contracts-ready | ci-coverage | ci-coverage-shard | ci-unit | ci-bench | ci-bench-prebuilt | ci-snapshot | ci-artifacts | ci-consumers | ci-build | ci-consumers-prebuilt | ci-web-snapshot-prebuilt | ci-windows-blocking | ci-windows-complete | ci-windows-observational-ready | node-compat | check-all | hygiene | doc-sync | doc-quick | i18n, got ${JSON.stringify(raw)}.`,
       )
   }
 }
@@ -250,7 +264,10 @@ export function ciWorkerEnvironment(
   if (!Number.isSafeInteger(total) || total < 1) {
     throw new Error(`run-gates: DSH_COVERAGE_MAX_WORKERS must be a positive integer, got ${JSON.stringify(coverageBudget)}.`)
   }
-  const instrumented = Math.max(1, total - Math.max(1, Math.floor(total / 3)))
+  // Only the first coverage shard runs the exempt sibling; the others give
+  // their partitions the whole budget.
+  const ownsExempt = mode !== 'ci-coverage-shard' || parseCoverageShard(env[COVERAGE_SHARD_ENV])?.index === 1
+  const instrumented = ownsExempt ? Math.max(1, total - Math.max(1, Math.floor(total / 3))) : total
   if (instrumented > 1) setDefault(COVERAGE_PARTITIONS_ENV, instrumented)
   return additions
 }
@@ -324,16 +341,26 @@ export function gatesForMode(selected: Mode): Gate[] {
       ]
     case 'ci-coverage':
       return coverageGates()
+    case 'ci-coverage-shard':
+      return coverageShardGates()
     case 'ci-unit':
       return ciUnitGates()
     case 'ci-bench':
       return [pnpmExec('bench', ['tsx', 'scripts/run-ci-bench.ts'], { label: 'performance benchmarks' })]
+    case 'ci-bench-prebuilt':
+      return ciBenchPrebuiltGates()
     case 'ci-snapshot':
       return [ciBuildGate(), snapshotGate()]
     case 'ci-artifacts':
       return ciArtifactGates()
     case 'ci-consumers':
       return ciConsumerGates()
+    case 'ci-build':
+      return ciBuildOnceGates()
+    case 'ci-consumers-prebuilt':
+      return ciPrebuiltConsumerGates()
+    case 'ci-web-snapshot-prebuilt':
+      return ciPrebuiltWebSnapshotGates()
     case 'ci-windows-blocking':
       return ciWindowsBlockingGates()
     case 'ci-windows-complete':
@@ -357,6 +384,7 @@ export function gatesForMode(selected: Mode): Gate[] {
         pnpmScript('test', 'test'),
         pnpmScript('approval-policy', 'test:approval-policy', { label: 'Weighted approval policy' }),
         pnpmScript('issue-management', 'test:issue-management', { label: 'Issue management policy' }),
+        pnpmScript('stale-pull-requests', 'test:stale-pull-requests', { label: 'Stale pull-request reminders' }),
         pnpmScript('duplication', 'duplication'),
         snapshotGate(),
         expectedOutputGate(),
@@ -401,6 +429,7 @@ function ciSharedStaticGates(): Gate[] {
     ...sharedHygieneGates(),
     pnpmScript('approval-policy', 'test:approval-policy', { label: 'Weighted approval policy' }),
     pnpmScript('issue-management', 'test:issue-management', { label: 'Issue management policy' }),
+    pnpmScript('stale-pull-requests', 'test:stale-pull-requests', { label: 'Stale pull-request reminders' }),
   ]
 }
 
@@ -418,13 +447,15 @@ function sharedHygieneGates(): Gate[] {
       label: 'optional dependency imports',
     }),
     pnpmScript('client-packages', 'verify-client-packages', { label: 'client packages' }),
-    pnpmScript('client-slot-catalog', 'verify-client-catalog', { label: 'client slot catalog' }),
     ...i18nGates(false),
     pnpmScript('client-ui-i18n', 'verify-client-ui-i18n', { label: 'client UI i18n' }),
     pnpmScript('client-route-resolution', 'verify-client-route-resolution', { label: 'client route resolution' }),
     pnpmScript('no-bare-dispatcher', 'verify-no-bare-dispatcher', { label: 'proxy-aware dispatchers' }),
     pnpmScript('plugin-record-callers', 'verify-plugin-record-callers', { label: 'plugin record callers' }),
     pnpmScript('no-unknown-casts', 'verify-no-unknown-casts', { label: 'no new unknown casts' }),
+    pnpmScript('empty-catch', 'verify-empty-catch', { label: 'no new silent catches' }),
+    pnpmScript('css-selectors', 'verify-css-selectors', { label: 'bucketed CSS selectors' }),
+    pnpmScript('cordis-root', 'verify-cordis-root', { label: 'no new Cordis root reads' }),
     pnpmScript('no-top-level-await', 'verify-no-top-level-await', { label: 'no module-scope await' }),
     pnpmScript('plugin-entry-exports', 'verify-plugin-entry-exports', { label: 'plugin entry exports' }),
   ]
@@ -448,7 +479,7 @@ function ciPrimaryGates(): Gate[] {
     // The prepared typecheck and build both drive Client tsc, while build also
     // repeats the Host contract pass. Wait for all three consumers so build
     // neither races tsbuildinfo nor replaces declarations while they are read.
-    ciBuildGate('build', { needs: ['typecheck', 'lint'] }),
+    ciBuildGate('build', { needs: ['typecheck', 'lint', 'doc-typecheck'] }),
     pnpmScript('publint', 'publint', { needs: ['build'] }),
     pnpmScript('node-next-types', 'verify-node-next-types', {
       label: 'node-next types',
@@ -462,8 +493,11 @@ function nodeCompatGates(): Gate[] {
   const typecheck = flagEnabled('DSH_NODE_COMPAT_SKIP_TYPECHECK')
     ? []
     : [pnpmScript('typecheck', 'typecheck')]
-  if (!process.versions.node.startsWith(`${BUILD_BACKED_NODE_COMPAT_VERSION}.`)) {
+  if (!flagEnabled('DSH_NODE_COMPAT_BUILD')) {
     return [...typecheck, ...nodeCompatSmokeGates()]
+  }
+  if (process.versions.node !== BUILD_BACKED_NODE_COMPAT_VERSION) {
+    throw new Error(`run-gates: DSH_NODE_COMPAT_BUILD requires Node ${BUILD_BACKED_NODE_COMPAT_VERSION}, got ${process.versions.node}.`)
   }
   return [
     ...typecheck,
@@ -542,13 +576,17 @@ function ciArtifactGates(): Gate[] {
 
 function ciConsumerGates(): Gate[] {
   const builtTree = ['build']
+  const playwrightInstall = ciPlaywrightInstallGate()
+  const browserTree = playwrightInstall === undefined ? builtTree : [...builtTree, playwrightInstall.id]
   // The HMR web test starts `dev:web`, which rewrites the shared `lib/` and
-  // `apps/web/dist/` trees. Let every build-artifact reader settle before that
-  // writer starts; `after` preserves the web diagnostic even if a reader fails.
+  // `apps/web/dist/` trees, and a browser pool beside the readers starves their
+  // timing-sensitive child processes of CPU. Let every build-artifact reader
+  // settle first; `after` preserves the web diagnostic even if a reader fails.
   const buildArtifactReaders = [
     'publint',
     'snapshot',
     'expected-output',
+    'doc-typecheck',
     'node-next-types',
     'built-bin-smoke',
   ]
@@ -559,15 +597,98 @@ function ciConsumerGates(): Gate[] {
       env: { [CLIENT_BUILD_PROFILE_SELECTOR]: 'official' },
     }),
     pnpmScript('publint', 'publint', { needs: builtTree }),
-    snapshotGate(builtTree),
+    // test:snapshot includes the built-client apps/web/tests/*.snapshot.ts files, which launch Chromium.
+    snapshotGate(browserTree),
     expectedOutputGate(builtTree),
-    webSnapshotGate(builtTree, buildArtifactReaders),
+    ...playwrightInstall === undefined ? [] : [playwrightInstall],
+    webSnapshotGate(browserTree, buildArtifactReaders),
+    pnpmScript('doc-typecheck', 'doc-typecheck:contracts-ready', {
+      needs: builtTree,
+      env: { DSH_DOC_TYPECHECK_USE_BUILD_OUTPUT: '1' },
+    }),
     pnpmScript('node-next-types', 'verify-node-next-types', {
       label: 'node-next types',
       needs: builtTree,
     }),
     builtBinSmokeGate(builtTree),
   ]
+}
+
+/**
+ * Install the web snapshot browsers beside the build instead of before the aggregate.
+ * `DSH_CI_PLAYWRIGHT_INSTALL` selects `with-deps` (ephemeral runners, which also install
+ * system packages through apt) or `browsers` (persistent hosts whose image owns those packages);
+ * unset leaves browser installation to the caller.
+ */
+function ciPlaywrightInstallGate(): Gate | undefined {
+  const raw = process.env.DSH_CI_PLAYWRIGHT_INSTALL
+  if (raw === undefined || raw === '') return undefined
+  if (raw !== 'with-deps' && raw !== 'browsers') {
+    throw new Error(`run-gates: DSH_CI_PLAYWRIGHT_INSTALL must be with-deps or browsers, got ${JSON.stringify(raw)}.`)
+  }
+  const args = ['--filter', '@deepseek-ai/dsh-web-frontend', 'exec', 'playwright', 'install',
+    ...raw === 'with-deps' ? ['--with-deps'] : [], 'chromium', 'webkit']
+  return {
+    id: 'playwright-install',
+    label: 'Playwright browsers',
+    displayCommand: `pnpm ${args.join(' ')}`,
+    ...pnpmInvocation(args),
+  }
+}
+
+/**
+ * Build-once CI lane: emit official client artifacts once and run the cheap
+ * readers beside the packing job; downstream jobs restore this output.
+ */
+function ciBuildOnceGates(): Gate[] {
+  return [
+    ciArtifactBuildGate(),
+    pnpmScript('publint', 'publint', { needs: ['build'] }),
+    pnpmScript('node-next-types', 'verify-node-next-types', {
+      label: 'node-next types',
+      needs: ['build'],
+    }),
+  ]
+}
+
+/**
+ * Artifact consumers on a checkout whose build output was restored from the
+ * `ci-build` lane, so no gate builds or waits for a build. Node compatibility
+ * reads only source and runs here, off the build job's critical path.
+ */
+function ciPrebuiltConsumerGates(): Gate[] {
+  return [
+    pnpmScript('node-compat', 'check:node-compat', {
+      label: 'Node compatibility',
+      env: { [CLIENT_BUILD_PROFILE_SELECTOR]: 'official' },
+    }),
+    // The web snapshot shards run the apps/web/tests/*.snapshot.ts adapters.
+    snapshotGate([], { skipWebAdapters: true }),
+    expectedOutputGate([]),
+    pnpmScript('doc-typecheck', 'doc-typecheck:contracts-ready', {
+      env: { DSH_DOC_TYPECHECK_USE_BUILD_OUTPUT: '1' },
+    }),
+    builtBinSmokeGate([]),
+  ]
+}
+
+/**
+ * One web snapshot shard on a checkout with restored build output. The CI job
+ * installs the browsers itself, overlapped with the artifact download.
+ */
+function ciPrebuiltWebSnapshotGates(): Gate[] {
+  return [webSnapshotGate([])]
+}
+
+/**
+ * One benchmark phase (`DSH_BENCH_PHASE`) on a checkout whose build output was
+ * restored from the `ci-build` lane; only the benchmark workers are built here.
+ */
+function ciBenchPrebuiltGates(): Gate[] {
+  const phase = parseBenchPhase(process.env.DSH_BENCH_PHASE)
+  return [pnpmExec('bench', ['tsx', 'scripts/run-ci-bench.ts', `--phase=${phase}`], {
+    label: `performance benchmarks (${phase} phase)`,
+  })]
 }
 
 function webSnapshotGate(needs: string[], after?: string[]): Gate {
@@ -597,6 +718,7 @@ function webSnapshotGate(needs: string[], after?: string[]): Gate {
 function ciWindowsBlockingGates(): Gate[] {
   return [
     ciBuildGate('windows-build', { label: 'build' }),
+    pnpmScript('windows-site', 'docs:build', { label: 'production site' }),
   ]
 }
 
@@ -620,6 +742,7 @@ function ciWindowsCompleteGates(): Gate[] {
     }))
   return [
     ciBuildGate(),
+    pnpmScript('windows-site', 'docs:build', { label: 'production site' }),
     ...coverage,
     ...observational,
   ]
@@ -669,12 +792,12 @@ function ciWindowsObservationalGates(): Gate[] {
   ]
 }
 
-// Host and Client package compilation and the bundle-free Typert pass produce the
+// Host package compilation and the bundle-free Typert pass produce the
 // declarations that prepared typecheck, lint, and doc-typecheck read; none of
 // them reads a bundle or the Host aggregate program's noEmit check, which
 // `build` owns.
 function typertContractsGate(): Gate {
-  return pnpmExec('typert-contracts', ['tsx', 'scripts/compile-referenced-projects.ts', 'all-contracts'], {
+  return pnpmExec('typert-contracts', ['tsx', 'scripts/compile-referenced-projects.ts', 'host-contracts'], {
     label: 'Typert contracts',
   })
 }
@@ -730,25 +853,55 @@ function coverageGates(platform: NodeJS.Platform = process.platform): Gate[] {
       label: 'test:coverage',
       env: { [COVERAGE_EXEMPT_ENV]: '1' },
     })
-    : pnpmScript('coverage', 'test:coverage:partitioned', {
-      label: 'test:coverage',
-      displayCommand: `${COVERAGE_PARTITIONS_ENV}=${partitions} pnpm run test:coverage:partitioned`,
-      env: { [COVERAGE_EXEMPT_ENV]: '1' },
-      streamOutput: true,
-    })
+    : partitionedCoverageGate(partitions)
   return [
     pnpmScript('native-system', 'build:native-system'),
     ...electron,
     { ...instrumented, needs: ['native-system', ...electron.map(gate => gate.id)] },
-    pnpmExec('coverage-exempt-heavy', [
-      'vitest',
-      'run',
-      ...coverageExemptHeavySuites.map(suite => suite.filter),
-      ...workers.exempt,
-    ], {
-      label: 'test:coverage-exempt-heavy',
-      needs: ['native-system'],
-    }),
+    coverageExemptHeavyGate(workers.exempt),
+  ]
+}
+
+function partitionedCoverageGate(partitions: number): Gate {
+  return pnpmScript('coverage', 'test:coverage:partitioned', {
+    label: 'test:coverage',
+    displayCommand: `${COVERAGE_PARTITIONS_ENV}=${partitions} pnpm run test:coverage:partitioned`,
+    env: { [COVERAGE_EXEMPT_ENV]: '1' },
+    streamOutput: true,
+  })
+}
+
+function coverageExemptHeavyGate(workerArgs: readonly string[]): Gate {
+  return pnpmExec('coverage-exempt-heavy', [
+    'vitest',
+    'run',
+    ...coverageExemptHeavySuites.map(suite => suite.filter),
+    ...workerArgs,
+  ], {
+    label: 'test:coverage-exempt-heavy',
+    needs: ['native-system'],
+  })
+}
+
+// One CI file shard of the instrumented inventory (DSH_COVERAGE_SHARD); the
+// coordinator writes coverage/shard/ and the report job merges and applies
+// thresholds. The first shard also runs the uninstrumented heavy suites with
+// the coverage lane's usual worker split. Sharding needs the partition
+// coordinator, so a missing count is a misconfiguration rather than a
+// whole-inventory fallback.
+function coverageShardGates(): Gate[] {
+  const shard = parseCoverageShard(process.env[COVERAGE_SHARD_ENV])
+  if (shard === undefined) {
+    throw new Error(`run-gates: ci-coverage-shard requires ${COVERAGE_SHARD_ENV}.`)
+  }
+  const partitions = parseCoveragePartitionCount(process.env[COVERAGE_PARTITIONS_ENV])
+  if (partitions === undefined) {
+    throw new Error(`run-gates: ci-coverage-shard requires ${COVERAGE_PARTITIONS_ENV} or a coverage worker budget of at least 2.`)
+  }
+  return [
+    pnpmScript('native-system', 'build:native-system'),
+    { ...partitionedCoverageGate(partitions), needs: ['native-system'] },
+    ...shard.index === 1 ? [coverageExemptHeavyGate(coverageWorkerArgs().exempt)] : [],
   ]
 }
 
@@ -771,9 +924,11 @@ function ciUnitGates(): Gate[] {
 
 // Recorded-session adapters boot process scenarios in `lib` mode. Callers wait
 // either on `build` or on a validation gate that transitively owns that build.
-function snapshotGate(needs: string[] = ['build']): Gate {
+// `skipWebAdapters` leaves the browser-backed apps/web/tests adapters to a lane
+// that already runs them (vitest.snapshot.config.ts).
+function snapshotGate(needs: string[] = ['build'], options: { skipWebAdapters?: boolean } = {}): Gate {
   return pnpmScript('snapshot', 'test:snapshot', {
-    env: { DSH_EXAMPLE_MODE: 'lib' },
+    env: { DSH_EXAMPLE_MODE: 'lib', ...options.skipWebAdapters === true ? { DSH_SNAPSHOT_SKIP_WEB_ADAPTERS: '1' } : {} },
     needs,
   })
 }
@@ -832,8 +987,73 @@ function docSyncLeafGates(options: {
   docTypecheckScript?: 'doc-typecheck' | 'doc-typecheck:contracts-ready'
   docsBuildScript?: 'docs:build' | 'docs:build:mpa'
 } = {}): Gate[] {
-  void options
-  return [pnpmScript('readme', 'doc-sync', { label: 'Chinese README', quick: true })]
+  const docTypecheckOptions: Partial<Gate> = {}
+  if (options.docTypecheckNeeds !== undefined) docTypecheckOptions.needs = options.docTypecheckNeeds
+  if (options.docTypecheckEnv !== undefined) docTypecheckOptions.env = options.docTypecheckEnv
+  return [
+    // Stable FIFO starts the longest leaves first; only docs-site-build writes website/.generated.
+    ...options.includeDocTypecheck === false
+      ? []
+      : [pnpmScript('doc-typecheck', options.docTypecheckScript ?? 'doc-typecheck', docTypecheckOptions)],
+    pnpmScript('docs-site-build', options.docsBuildScript ?? 'docs:build', { label: 'documentation build' }),
+    pnpmScript('doc-graphs', 'verify-doc-graphs', { label: 'doc graphs' }),
+    pnpmScript('cli-help', 'verify-cli-help', {
+      label: 'CLI help reference',
+      // Other gate workers already run beside this leaf; direct help generation keeps its own worker budget.
+      env: { DSH_CLI_HELP_CONCURRENCY: process.env.DSH_CLI_HELP_CONCURRENCY || '1' },
+    }),
+    pnpmScript('markdown-links', 'verify-md-links', { label: 'markdown links', quick: true }),
+    pnpmScript('type-equivalence', 'verify-type-equiv', { label: 'type equivalence', quick: true }),
+    pnpmScript('cordis-catalog', 'verify-cordis-catalog', { label: 'cordis catalog' }),
+    pnpmScript('cordis-inspect-catalog', 'verify-cordis-inspect-catalog', { label: 'Cordis inspect catalog' }),
+    pnpmScript('workflow-guest', 'verify-workflow-guest', { label: 'workflow guest source' }),
+    pnpmScript('mermaid', 'verify-mermaid'),
+    pnpmScript('translation-pairing', 'verify-translation-pairing', { label: 'translation pairing', quick: true }),
+    pnpmScript('markdown-wrap', 'verify-md-wrap', { label: 'markdown wrap', quick: true }),
+    pnpmScript('client-catalog', 'verify-client-catalog', { label: 'client catalog' }),
+    pnpmScript('export-jsdoc', 'verify-export-jsdoc', { label: 'export jsdoc' }),
+    pnpmScript('tool-catalog', 'verify-tool-catalog', { label: 'tool catalog' }),
+    pnpmScript('config-catalog', 'verify-config-catalog', { label: 'config catalog' }),
+    pnpmScript('plugin-packages', 'verify-plugin-packages', { label: 'skill plugin package list' }),
+    pnpmScript('dependency-catalog', 'verify-dependency-catalog', { label: 'npm dependency catalog', quick: true }),
+    pnpmScript('persistence-catalog', 'verify-persistence-catalog', { label: 'persistence catalog' }),
+    pnpmScript('persistence-changes', 'verify-persistence-changes', { label: 'persistence type history' }),
+    pnpmScript('persistence-releases', 'verify-persistence-releases', { label: 'released persistence history' }),
+    pnpmScript('persistence-formats', 'verify-persistence-formats', { label: 'Session format references', quick: true }),
+    pnpmScript('session-format-catalog', 'verify-session-format-catalog', { label: 'Session format catalog' }),
+    pnpmScript('public-repository-links', 'verify-public-repository-links', { label: 'public repository links', quick: true }),
+    pnpmScript('repository-references', 'verify-repository-references', { label: 'repository references', quick: true }),
+    pnpmScript('concrete-terms', 'verify-concrete-terms', { label: 'concrete terms', quick: true }),
+    pnpmScript('doc-refs', 'verify-doc-refs', { label: 'doc refs', quick: true }),
+    pnpmScript('subsystem-pages', 'verify-subsystem-pages', { label: 'subsystem pages' }),
+    pnpmScript('package-paths', 'verify-package-paths', { label: 'package paths' }),
+    pnpmScript('tsconfig-paths', 'verify-tsconfig-paths', { label: 'tsconfig paths' }),
+    pnpmScript('config-source-ownership', 'verify-config-source-ownership', { label: 'config source ownership' }),
+    pnpmScript('package-readme-summaries', 'verify-package-readme-summaries', { label: 'package README Summaries', quick: true }),
+    pnpmScript('package-readme-model-experience', 'verify-package-readme-model-experience', { label: 'package README model experience', quick: true }),
+    pnpmScript('agent-note-classification', 'verify-agent-note-classification', { label: 'agent note classification', quick: true }),
+    pnpmScript('agent-note-format', 'verify-agent-note-format', { label: 'agent note format', quick: true }),
+    pnpmScript('archived-agent-notes', 'verify-archived-agent-notes', { label: 'archived agent notes', quick: true }),
+    pnpmScript('skill-invocation-metadata', 'verify-skill-invocation-metadata', { label: 'skill invocation metadata', quick: true }),
+    pnpmScript('translation-prompt', 'verify-translation-prompt', { label: 'translation prompt', quick: true }),
+    pnpmScript('doc-budgets', 'verify-doc-budgets', { label: 'doc budgets', quick: true }),
+    pnpmScript('upgrade-guides', 'verify-upgrade-guides', { label: 'upgrade guides', quick: true }),
+    pnpmExec('doc-standard-tests', ['vitest', 'run', 'scripts/doc-standard.spec.ts'], {
+      label: 'documentation standard tests',
+      quick: true,
+    }),
+    pnpmExec('docs-site-projection', [
+      'vitest', 'run', 'scripts/project-doc-site.spec.ts', 'scripts/verify-doc-site-fragments.spec.ts',
+      'website/tests/mermaid-viewer.spec.ts',
+      'website/tests/image-viewer.spec.ts',
+      'website/tests/code-groups.spec.ts',
+      'website/tests/table-filter.spec.ts',
+      'website/tests/page-markdown-actions.spec.ts', 'website/tests/raw-markdown.spec.ts',
+    ], {
+      label: 'documentation site checks',
+    }),
+    pnpmScript('package-readme-limitations', 'verify-package-readme-limitations', { label: 'package README limitations', quick: true }),
+  ]
 }
 
 /**
@@ -859,7 +1079,6 @@ function builtBinSmokeGate(needs: string[] = ['build']): Gate {
     'packages/host/directory-picker-native/tests/built-worker.e2e.ts',
     'packages/sdk/server/tests/built-scope-carrier.e2e.ts',
     'packages/deliverables/tool-present/tests/built-errors.e2e.ts',
-    'packages/client/ui-sidebar-documentpreview/tests/document-preview-license-bundle.built.e2e.ts',
     'packages/subprocess/subprocess-local/tests/spawn-runner-built.e2e.ts',
     'packages/subagent/subagent-codex/tests/loader-composition.e2e.ts',
     'packages/subagent/subagent-claude-code/tests/loader-composition.e2e.ts',
@@ -872,6 +1091,7 @@ function builtBinSmokeGate(needs: string[] = ['build']): Gate {
     'packages/ptc-runtime/ptc-runtime-node/tests/built-lib.e2e.ts',
     'packages/session/session-persistence-jsonl/tests/built-migration-worker.e2e.ts',
     'packages/lsp/lsp-stdio/tests/built-lib.e2e.ts',
+    'packages/experimental/browser-use-stagehand-native/tests/built-attachment.e2e.ts',
   ], {
     label: 'built-bin smoke',
     needs,
@@ -1183,7 +1403,7 @@ export async function runGate(gate: Gate, signal?: AbortSignal): Promise<GateRes
       for (const descendantPid of descendants) {
         try {
           process.kill(descendantPid, signalToSend)
-        } catch {
+        } catch (_descendantExited) {
           // The descendant exited between the enumeration and the signal.
         }
       }
@@ -1424,6 +1644,28 @@ function processAlive(pid: number): boolean {
 }
 
 /**
+ * Read the parsed `/proc/<pid>/stat` fields of every process listed in `/proc`.
+ * @returns one row per process still present when its stat file is read.
+ * @throws when `/proc` cannot be listed.
+ */
+function procStatRows(): { pid: number; fields: { state: string; ppid: number; pgrp: number } }[] {
+  const rows: { pid: number; fields: { state: string; ppid: number; pgrp: number } }[] = []
+  for (const entry of readdirSync('/proc')) {
+    if (!/^\d+$/.test(entry)) continue
+    let stat: string
+    try {
+      stat = readFileSync(`/proc/${entry}/stat`, 'utf8')
+    } catch (_exitedMidScan) {
+      // The process exited mid-scan; it is neither a live member nor a descendant.
+      continue
+    }
+    const fields = procStatFields(stat)
+    if (fields !== undefined) rows.push({ pid: Number(entry), fields })
+  }
+  return rows
+}
+
+/**
  * Whether any member of the child's POSIX process group is still executing.
  * Zombie entries (state `Z`) do not count: they are dead records awaiting
  * reaping, and the kill(-pid, 0) group probe would report them as alive.
@@ -1442,16 +1684,7 @@ function groupAlive(pid: number | undefined): boolean {
       return false
     }
     try {
-      for (const entry of readdirSync('/proc')) {
-        if (!/^\d+$/.test(entry)) continue
-        try {
-          const parsed = procStatFields(readFileSync(`/proc/${entry}/stat`, 'utf8'))
-          if (parsed !== undefined && parsed.pgrp === pid && parsed.state !== 'Z') return true
-        } catch {
-          // The process exited mid-scan; it is not a live member.
-        }
-      }
-      return false
+      return procStatRows().some(({ fields }) => fields.pgrp === pid && fields.state !== 'Z')
     } catch {
       return false
     }
@@ -1479,17 +1712,9 @@ function groupAlive(pid: number | undefined): boolean {
 function descendantPids(root: number): number[] {
   if (root <= 0) return []
   if (process.platform === 'linux') {
-    const rows: Array<[number, number]> = []
+    let rows: Array<[number, number]>
     try {
-      for (const entry of readdirSync('/proc')) {
-        if (!/^\d+$/.test(entry)) continue
-        try {
-          const parsed = procStatFields(readFileSync(`/proc/${entry}/stat`, 'utf8'))
-          if (parsed !== undefined) rows.push([Number(entry), parsed.ppid])
-        } catch {
-          // The process exited mid-scan; skip it.
-        }
-      }
+      rows = procStatRows().map(({ pid, fields }) => [pid, fields.ppid])
     } catch {
       return []
     }

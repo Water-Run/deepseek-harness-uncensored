@@ -4,7 +4,6 @@ import { startHttpMcpFixture } from '../../packages/mcp/mcp-client/tests/http-fi
 import { chmod, cp, copyFile, mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, utimes, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
-import { DatabaseSync } from 'node:sqlite'
 import { tmpdir } from 'node:os'
 import { basename, delimiter, dirname, isAbsolute, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -12,6 +11,10 @@ import { describe, expect, it } from 'vitest'
 import ts from 'typescript'
 import { deriveEventMessage, foldSurface, SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session'
 import { releasedV0SessionFormatCodec } from '@deepseek-ai/dsh-session-format-v0-to-v1'
+import type {} from '@deepseek-ai/dsh-jobs'
+import type {} from '@deepseek-ai/dsh-llm-retry'
+import type {} from '@deepseek-ai/dsh-agent-team'
+import type {} from '@deepseek-ai/dsh-tool-executor-ptc'
 import type { SessionFormatEvent, SessionFormatMigrationContext } from '@deepseek-ai/dsh-session-format'
 import { assertWorkspaceOutsideTemp, outsideTempWorkspaceParent } from '../../scripts/snapshot-workspace-parent.ts'
 import {
@@ -62,7 +65,7 @@ const snapshotsRoot = fileURLToPath(new URL('./', import.meta.url))
 const dshBin = join(repoRoot, 'apps/cli/src/bin.ts')
 const tsconfigPath = join(repoRoot, 'tsconfig.json')
 
-type SnapshotMode = 'replay' | 'record' | 'refresh' | 'headers'
+type SnapshotMode = 'replay' | 'record' | 'refresh'
 
 function snapshotMode(value: string | undefined): SnapshotMode {
   switch (value) {
@@ -71,13 +74,11 @@ function snapshotMode(value: string | undefined): SnapshotMode {
     case 'replay': return 'replay'
     case 'record': return 'record'
     case 'refresh': return 'refresh'
-    case 'headers': return 'headers'
     default: throw new Error(`unknown DSH_SNAPSHOT mode: ${value}`)
   }
 }
 
 const mode = snapshotMode(process.env.DSH_SNAPSHOT)
-const replayOnly = mode === 'replay' || mode === 'headers'
 const RUNTIME_WORKSPACE_ENTRIES = ['.agents', '.dsh', '.snapshot-patches'] as const
 
 interface JsonObject {
@@ -195,8 +196,7 @@ function contextOf(logs: readonly string[]): NormalizeContext {
   return {
     sessionIds: headers.flatMap(header => typeof header.id === 'string' ? [header.id] : []),
     cwd,
-    // Runtime context quotes the fixture-owned directory as JSON on Windows.
-    cwdAliases: [cwd.split(sep).join('/'), JSON.stringify(cwd).slice(1, -1)],
+    cwdAliases: [cwd.split(sep).join('/')],
   }
 }
 
@@ -759,15 +759,15 @@ function verifyAdvancedToolchain(logs: readonly SessionLog[]): void {
   expect(logs).toHaveLength(3)
   const events = parseSessionLog(logs[0]!.content)
   const calls = events.flatMap(event => event.type === 'tool/call' ? [event.data.name] : [])
-  expect(calls).toEqual(['cordis_inspect_list', 'run_code', 'subagent', 'workflow', 'cordis_inspect_list'])
+  expect(calls).toEqual(['cordis_inspect', 'run_code', 'subagent', 'workflow', 'cordis_inspect'])
   const results = events.flatMap(event => event.type === 'tool/result' ? [event.data.message] : [])
   expect(results).toHaveLength(5)
   expect(results.every(result => result.isError === false)).toBe(true)
   const dispatches = events.flatMap(event => event.type === 'tool/ptc-dispatch' ? [event.data] : [])
-  expect(dispatches).toEqual([expect.objectContaining({ name: 'cordis_inspect_list', isError: false })])
+  expect(dispatches).toEqual([expect.objectContaining({ name: 'cordis_inspect', isError: false })])
   const textOf = (index: number) => results[index]!.content
     .flatMap(block => block.type === 'text' ? [block.text] : []).join('')
-  expect(JSON.parse(textOf(1))).toEqual(['Service', 'Event', 'Config', 'Tool'])
+  expect(JSON.parse(textOf(1))).toEqual(['Service', 'Event', 'Config', 'Runtime', 'Tool'])
   expect(textOf(2)).toBe('started subagent agent-1')
   expect(events.filter(event => event.type === 'subagent/catalog').map(event => event.data))
     .toContainEqual(expect.objectContaining({ childId: logs[1]!.header.id, name: 'agent-1' }))
@@ -787,7 +787,7 @@ function verifyAdvancedToolchain(logs: readonly SessionLog[]): void {
   expect(headers[1]!.tools?.map(tool => tool.name)).toEqual(['run_code'])
   for (const header of [headers[0]!, headers[2]!]) {
     const names = header.tools?.map(tool => tool.name) ?? []
-    expect(names).toEqual(expect.arrayContaining(['cordis_inspect_list', 'subagent', 'workflow']))
+    expect(names).toEqual(expect.arrayContaining(['cordis_inspect', 'subagent', 'workflow']))
     expect(names).not.toContain('run_code')
   }
 }
@@ -816,14 +816,13 @@ function verifyMcpResources(log: string, ptc: boolean): void {
     expect(output).toMatch(/"binaryAvailable"\s*:\s*true/)
   }
   expect(log).not.toContain('bWNwLXJlc291cmNlLWJpbmFyeQ==')
-  const prompts = normalizedSystemPrompts(log, contextOf([log]))
-  const instructions = 'MCP_RESOURCE_INSTRUCTION: keep {{braces}} literal.'
-  expect(prompts.filter(prompt => prompt.includes(instructions)).length).toBeGreaterThan(0)
-  for (const prompt of prompts) expect(prompt.split(instructions).length).toBeLessThanOrEqual(2)
-  expect(prompts.join('\n')).toContain('server argument: ["catalog"]')
+  expect(normalizedSystemPrompts(log, contextOf([log])).join('\n'))
+    .toContain('MCP_RESOURCE_INSTRUCTION: keep {{braces}} literal.')
+  expect(normalizedSystemPrompts(log, contextOf([log])).join('\n'))
+    .toContain('server argument: ["catalog"]')
 }
 
-function verifyMcpTemplateError(log: string, secret: string): void {
+function verifyMcpError(log: string, secret: string, oauth: boolean): void {
   const events = parseSessionLog(log)
   const calls = events.flatMap(event => event.type === 'tool/call' ? [event.data.name] : [])
   expect(calls).toEqual(['mcp__protected__ping'])
@@ -831,7 +830,9 @@ function verifyMcpTemplateError(log: string, secret: string): void {
   expect(results).toHaveLength(1)
   expect(results[0]).toMatchObject({ isError: true })
   const diagnostic = results[0]!.content.flatMap(block => block.type === 'text' ? [block.text] : []).join('\n')
-  expect(diagnostic).toBe('Error: MCP fixture rejected Bearer [redacted]')
+  expect(diagnostic).toBe(oauth
+    ? 'Error: MCP OAuth requires authorization: scope'
+    : 'Error: MCP fixture rejected Bearer [redacted]')
   expect(log).not.toContain(secret)
   const resultIndex = events.findIndex(event => event.type === 'tool/result')
   const nextRequest = events.findIndex((event, index) => index > resultIndex && event.type === 'assistant/message')
@@ -841,13 +842,27 @@ function verifyMcpTemplateError(log: string, secret: string): void {
   const messages = surface.nodes.map(seq => deriveEventMessage(prefix[seq]!, surface.projectedMessages))
   expect(messages).toContainEqual(results[0])
   expect(JSON.stringify(messages)).not.toContain(secret)
+  if (oauth) {
+    const headers = prefix.flatMap(event => event.type === 'request/header' ? [event.data.header] : [])
+    expect(headers[0]?.tools?.some(tool => tool.name === 'mcp__protected__ping')).toBe(true)
+    expect(headers.at(-1)?.tools?.some(tool => tool.name === 'mcp__protected__ping')).toBe(false)
+    const system = messages.filter(message => message?.role === 'system')
+    expect(system).toHaveLength(2)
+    expect(JSON.stringify(system[0])).toContain('MCP_AUTHORIZED_INSTRUCTION')
+    // Losing authorization keeps the server's section registered with empty text, admitted under its notice.
+    const update = system[1]!
+    const section = update.source.sections?.find(candidate => candidate.name === 'mcp:protected')
+    expect(section).toMatchObject({ state: 'active', noticeIndex: [expect.any(Number)] })
+    expect(update.content.map(block => block.type === 'text' ? block.text : undefined))
+      .toEqual(['The earlier instructions supplied by MCP server "protected" no longer apply.', ''])
+  }
 }
 
 function verifyNoMcpServers(log: string, ptc: boolean): void {
   const events = parseSessionLog(log)
   const headers = events.flatMap(event => event.type === 'request/header' ? [event.data.header] : [])
   const prompts = events.flatMap(event => event.type === 'system/message'
-    ? event.data.message.content.filter(block => block.type === 'text').map(block => block.text) : [])
+    ? [event.data.message.content.filter(block => block.type === 'text').map(block => block.text).join('')] : [])
   expect(headers.length).toBeGreaterThan(0)
   expect(prompts.length).toBeGreaterThan(0)
   for (const header of headers) {
@@ -882,31 +897,6 @@ async function verifyBackgroundConfinementFailure(log: string, cwd: string): Pro
   expect(JSON.parse(await readFile(join(cwd, 'confinement-audit.json'), 'utf8'))).toEqual({ confineCalls: 1, spawnCalls: 0 })
 }
 
-/** Directory changes remain user context while relative tools follow the committed directory. */
-function verifyWorkingDirectory(log: string, cwd: string): void {
-  const events = records(log)
-  const directories = events.filter(event => event.type === 'working-directory/change')
-    .map(event => (event.data as JsonObject).cwd)
-  expect(directories).toEqual([join(cwd, 'selected'), join(cwd, 'second'), cwd])
-  expect(events.filter(event => event.type === 'system/message')).toHaveLength(1)
-  const users = events.filter(event => event.type === 'user/message').map(event => event.data as JsonObject)
-  const contexts = users.flatMap(message => {
-    const source = message.source as JsonObject
-    if (source.kind !== 'runtime-context') return []
-    return (source.sections as JsonObject[]).filter(section => section.name === 'working-directory:current')
-      .map(section => section.text)
-  })
-  expect(contexts).toEqual([cwd, join(cwd, 'selected'), join(cwd, 'second'), cwd]
-    .map(directory => `Current working directory: ${JSON.stringify(directory)}.`))
-  const notices = users.filter(message => (message.source as JsonObject).kind === 'working-directory')
-    .map(message => (message.content as JsonObject[]).map(block => block.text).join(''))
-  expect(notices).toEqual([
-    `The working directory changed from ${JSON.stringify(cwd)} to ${JSON.stringify(join(cwd, 'selected'))}.`,
-    `The working directory changed from ${JSON.stringify(join(cwd, 'selected'))} to ${JSON.stringify(join(cwd, 'second'))}.`,
-    `The working directory ${JSON.stringify(join(cwd, 'second'))} is unavailable. The working directory is now ${JSON.stringify(cwd)}.`,
-  ])
-}
-
 /** Run fixture Git with deterministic commit identity and no user hooks or configuration. */
 function snapshotGit(cwd: string, args: string[]): string {
   const result = spawnSync('git', ['-c', 'core.hooksPath=/dev/null', '-c', 'core.autocrlf=false', '-c', 'commit.gpgSign=false', ...args], {
@@ -924,7 +914,7 @@ function snapshotGit(cwd: string, args: string[]): string {
   return result.stdout.trim()
 }
 
-/** Verify Git-owned state independently of the Session and exclude only its volatile administration files from the file oracle. */
+/** Verify Git-owned state independently of the Session, and the directory changes and notices of entering, leaving, and losing a worktree. */
 async function verifyWorktree(log: string, cwd: string): Promise<void> {
   const checkout = join(cwd, '.agents', 'worktrees', 'isolated')
   expect(await readFile(join(cwd, '.git', 'config'))).toEqual(await readFile(join(cwd, '.git', 'config.before-worktree')))
@@ -939,10 +929,27 @@ async function verifyWorktree(log: string, cwd: string): Promise<void> {
   expect(snapshotGit(checkout, ['rev-parse', 'HEAD'])).toBe(snapshotGit(cwd, ['rev-parse', 'HEAD']))
   expect(snapshotGit(cwd, ['worktree', 'list', '--porcelain'])).toContain(`worktree ${checkout}`)
   expect(snapshotGit(cwd, ['check-ignore', '.agents/worktrees/isolated/result.txt'])).toBe('.agents/worktrees/isolated/result.txt')
+  // The second worktree is removed while the Session works in it; its branch stays and the Session recovers to the source checkout.
+  const removed = join(cwd, '.agents', 'worktrees', 'doomed')
+  expect(existsSync(removed)).toBe(false)
+  expect(snapshotGit(cwd, ['worktree', 'list', '--porcelain'])).not.toContain(`worktree ${removed}`)
+  expect(snapshotGit(cwd, ['rev-parse', '--verify', 'refs/heads/doomed'])).toBe(snapshotGit(cwd, ['rev-parse', 'HEAD']))
   const events = records(log)
-  expect(events.filter(event => event.type === 'working-directory/change').map(event => (event.data as JsonObject).cwd))
-    .toEqual([checkout, cwd])
+  expect(events.filter(event => event.type === 'workspace-root/change').map(event => event.data))
+    .toEqual([checkout, cwd, checkout, cwd, removed, cwd].map(directory => ({ cwd: directory })))
   expect(events.filter(event => event.type === 'system/message')).toHaveLength(1)
+  const notices = events.filter(event => event.type === 'user/message').map(event => event.data as JsonObject)
+    .filter(message => (message.source as JsonObject).kind === 'working-directory')
+    .map(message => (message.content as JsonObject[]).map(block => block.text).join(''))
+  expect(notices).toEqual([
+    `The working directory changed from ${JSON.stringify(cwd)} to ${JSON.stringify(checkout)}.`,
+    `The working directory changed from ${JSON.stringify(checkout)} to ${JSON.stringify(cwd)}.`,
+    // enter_worktree returns the Session to the first worktree, and exit_worktree leaves it again.
+    `The working directory changed from ${JSON.stringify(cwd)} to ${JSON.stringify(checkout)}.`,
+    `The working directory changed from ${JSON.stringify(checkout)} to ${JSON.stringify(cwd)}.`,
+    `The working directory changed from ${JSON.stringify(cwd)} to ${JSON.stringify(removed)}.`,
+    `The working directory ${JSON.stringify(removed)} is unavailable. The working directory is now ${JSON.stringify(cwd)}.`,
+  ])
 }
 
 /** Exercise provider-cwd adoption through the shipped launcher without normalizing away the observation. */
@@ -1014,8 +1021,7 @@ async function verifyProviderCwdResume(
 
 async function verifyHeaders(scenario: HeadlessScenario, actualLogs: readonly SessionLog[], ctx: NormalizeContext): Promise<void> {
   const pin = pinOf(scenario)
-  const fixture = await readFile(join(pin.dir, pin.manifest.sessionFormat !== undefined
-    ? writerSnapshotName(0) : await primaryFixtureFile(pin.dir)), 'utf8')
+  const fixture = await readFile(join(pin.dir, await primaryFixtureFile(pin.dir)), 'utf8')
   const pinned = normalizedHeaders(fixture, fixtureContext(fixture))
   const changes = pin.manifest.header.changes ?? 0
   expect(pinned, `${scenario.name}: pin header count`).toHaveLength(1 + changes)
@@ -1047,10 +1053,11 @@ async function verifyHeaders(scenario: HeadlessScenario, actualLogs: readonly Se
   for (const [logIndex, log] of actualLogs.entries()) {
     const headers = normalizedHeaders(log.content, ctx)
     const prompts = normalizedSystemPrompts(log.content, ctx)
+    const promptChanges = scenario.manifest.header.promptChanges ?? pin.manifest.header.promptChanges ?? 0
     if (headers.length > 0) {
       expect(systemPromptPrecedesRequests(log.content), `${scenario.name}: a system/message precedes the first request/header`).toBe(true)
       expect(prompts.length, `${scenario.name}: system/message count`)
-        .toBe(1 + (logIndex === 0 ? pin.manifest.header.promptChanges ?? 0 : 0))
+        .toBe(1 + (logIndex === 0 ? promptChanges : 0))
     }
     for (const [index, header] of headers.entries()) {
       const selectedSchemas = childSchemas.get(logIndex)?.[index]
@@ -1062,9 +1069,21 @@ async function verifyHeaders(scenario: HeadlessScenario, actualLogs: readonly Se
       expect(
         formatSystemPromptSnapshot(prompts[0] as string, prompts.slice(1)),
         `${scenario.name}: system prompts`,
-      ).toBe(childPrompts.get(logIndex) ?? prompt)
+      ).toBe(childPrompts.get(logIndex) ?? leadingPromptSections(prompt, logIndex === 0 ? promptChanges : 0))
     }
   }
+}
+
+/**
+ * Keep the pinned prompt sidecar through change `changes`; a scenario that declares fewer prompt changes than its pin
+ * compares against that leading part.
+ * @param prompt - complete pinned prompt sidecar.
+ * @param changes - prompt changes the scenario declares.
+ * @returns the sidecar text before change `changes + 1`.
+ */
+function leadingPromptSections(prompt: string, changes: number): string {
+  const end = prompt.indexOf(`\n<!-- system/message change ${changes + 1} -->`)
+  return end < 0 ? prompt : prompt.slice(0, end)
 }
 
 describe('headless recorded-session snapshots', () => {
@@ -1081,12 +1100,7 @@ describe('headless recorded-session snapshots', () => {
   it('gives every composition and header class exactly one current-writer pin', () => {
     for (const scenario of scenarios) {
       expect(ownerOf(scenario), `${scenario.name}: composition owner`).toBeDefined()
-      const pin = pinOf(scenario)
-      if (pin.manifest.sessionFormat === undefined) continue
-      expect(pin.manifest.sessionFormat, `${scenario.name}: current-writer header pin`).toEqual({
-        version: SESSION_FORMAT_VERSION, coverage: ['behavior-update'],
-      })
-      expect(existsSync(join(pin.dir, writerSnapshotName(0))), `${scenario.name}: current-writer oracle`).toBe(true)
+      expect(pinOf(scenario).manifest.sessionFormat, `${scenario.name}: current-writer header pin`).toBeUndefined()
     }
   })
 
@@ -1362,7 +1376,6 @@ describe('headless recorded-session snapshots', () => {
   ])
   for (const { scenario, retainedToolInput } of runs) {
     const skipped = scenario.manifest.platform === 'posix' && process.platform === 'win32'
-      || scenario.manifest.runtime === 'sqlite-authorizer' && !('setAuthorizer' in DatabaseSync.prototype)
       || scenario.manifest.platform === 'pwsh' && !hasPwsh
       // A read-only directory does not deny root, so the recorded refusal cannot replay.
       || scenario.manifest.workspace?.setup === 'readonly-patch-directory' && process.getuid?.() === 0
@@ -1370,8 +1383,7 @@ describe('headless recorded-session snapshots', () => {
       || mode === 'record' && scenario.manifest.sessionFormat !== undefined
     const scenarioTest = skipped ? it.skip : mode === 'replay' ? it.concurrent : it
     const inputLabel = retainedToolInput === undefined ? '' : ' from retained V3 input'
-    const action = mode === 'headers' ? 'updates headers for' : `${mode}s`
-    scenarioTest(`${action} ${scenario.name}${inputLabel} through dsh --profile headless`, async () => {
+    scenarioTest(`${mode}s ${scenario.name}${inputLabel} through dsh --profile headless`, async () => {
       let fixtureFiles = retainedToolInput === undefined
         ? recordingFixtureNames(await readdir(scenario.dir), mode) : [retainedToolInput]
       let fixtures = await fixtureSessions(scenario, fixtureFiles)
@@ -1410,8 +1422,8 @@ describe('headless recorded-session snapshots', () => {
       const spillRoot = await mkdtemp(join(tmpdir(), 'acp-snap-spill-'))
       const fixturePath = join(scenario.dir, fixtureFiles[0] ?? sessionFixtureName(0, SESSION_FORMAT_VERSION))
       const locatorRoot = snapshotSpillRoot(fixturePath)
-      const mcpDemo = scenario.name === 'plugin-manager-mcp' || scenario.name === 'mcp-template-error'
-        ? await startHttpMcpFixture({ rejectToolCalls: scenario.name === 'mcp-template-error' }) : undefined
+      const mcpDemo = ['plugin-manager-mcp', 'mcp-template-error', 'mcp-oauth-error', 'mcp-tool-loading', 'linear-plugin', 'notion-plugin', 'tencent-docs-plugin'].includes(scenario.name)
+        ? await startHttpMcpFixture({ rejectToolCalls: scenario.name === 'mcp-template-error', authorizationFailure: scenario.name === 'mcp-oauth-error' }) : undefined
       let result: Awaited<ReturnType<typeof runLoaderSmoke>>
       try {
         result = await runLoaderSmoke({
@@ -1453,7 +1465,7 @@ describe('headless recorded-session snapshots', () => {
               ? {}
               : { DSH_PERMISSION_MODE: scenario.manifest.permission }),
             ...scenario.manifest.environment,
-            ...(scenario.name === 'mcp-resources' || scenario.name === 'mcp-resources-ptc' ? {
+            ...(scenario.manifest.composition === 'mcp-resources' || scenario.manifest.composition === 'mcp-resources-ptc' ? {
               DSH_MCP_RESOURCES_FIXTURE: join(repoRoot, 'packages/mcp/mcp-client/tests/fixtures/resources-server.ts'),
             } : {}),
             NODE_OPTIONS: [process.env.NODE_OPTIONS, '--disable-warning=ExperimentalWarning'].filter(Boolean).join(' '),
@@ -1471,6 +1483,17 @@ describe('headless recorded-session snapshots', () => {
               await mkdir(profileDir, { recursive: true })
               await copyFile(join(scenario.dir, 'profile.patch.yml'), join(profileDir, 'cordis.patch.yml'))
             }
+            if (scenario.name === 'mcp-oauth-error' && mcpDemo !== undefined) {
+              await mkdir(join(cwd, '.dsh'), { recursive: true })
+              await writeFile(join(cwd, '.dsh/.credentials.yaml'), JSON.stringify({ version: 1, records: {
+                'mcp-client/snapshot': { kind: 'grant', payload: {
+                  version: 1, type: 'mcp-oauth-grant', id: '00000000-0000-4000-8000-000000000001',
+                  serverUrl: mcpDemo.url, issuer: new URL(mcpDemo.url).origin,
+                  clientKey: 'mcp-client/snapshot-client', clientId: 'snapshot-client',
+                  tokens: { access_token: scenario.manifest.environment?.DSH_MCP_OAUTH_TOKEN, token_type: 'Bearer' },
+                } },
+              } }) + '\n', { mode: 0o600 })
+            }
             await seedWorkspace(scenario, cwd)
             initialWorkspace = await captureWorkspaceSnapshot(cwd, {
               ignoredRootEntries: ignoredWorkspaceEntries,
@@ -1478,33 +1501,6 @@ describe('headless recorded-session snapshots', () => {
           },
           inspect: async (cwd) => {
             actualLogs = await persistedSessions(cwd)
-            if (scenario.name === 'team-targets-named' || scenario.name === 'team-direct-inbox-named') {
-              const events = parseSessionLog(actualLogs[0]!.content)
-              const results = events.filter(event => event.type === 'tool/result')
-              if (scenario.name === 'team-targets-named') {
-                expect(results.map(event => event.data.message.isError)).toEqual([false, true])
-                expect(results[1]!.data.error).toEqual({ name: 'SubagentError', code: 'NOT_RESUMABLE' })
-              } else {
-                expect(results.map(event => event.data.message.isError)).toEqual([false, false, false, false])
-                const child = parseSessionLog(actualLogs[1]!.content)
-                expect(child.some(event => event.type === 'agent/inbox/spliced' && event.data.inserted.some(message =>
-                  message.content.some(block => block.type === 'text' && block.text === 'Review the direct inbox delivery.'),
-                )), 'named recipient accepted the message in its own inbox').toBe(true)
-              }
-            }
-            if (['compaction-output-reserve', 'compaction-summary-headroom', 'model-switch-compaction'].includes(scenario.name)) {
-              const events = parseSessionLog(actualLogs[0]!.content)
-              const summaries = events.filter(event => event.type === 'compaction/summary')
-              expect(summaries, `${scenario.name}: one useful pressure compaction`).toHaveLength(1)
-              expect(summaries[0]!.data.shadowedTokenCount).toBeGreaterThan(0)
-              expect(summaries[0]!.data.maxTokens).toBe(scenario.name === 'compaction-summary-headroom' ? 1800 : 32)
-              if (scenario.name === 'model-switch-compaction') {
-                const headers = events.filter(event => event.type === 'request/header')
-                expect(headers.map(event => event.data.header.config.model)).toEqual(['deepseek-v4-flash', 'deepseek-v4-pro'])
-                expect(events.findLastIndex(event => event.type === 'request/header'))
-                  .toBeGreaterThan(events.findIndex(event => event.type === 'compaction/summary'))
-              }
-            }
             if (scenario.name === 'empty-response-retry-current') {
               const events = parseSessionLog(actualLogs[0]!.content)
               expect(events.filter(event => event.type === 'assistant/attempt' || event.type === 'llm/retry'
@@ -1525,13 +1521,40 @@ describe('headless recorded-session snapshots', () => {
               expect(saved).toContain('id: demo')
               expect(saved).toContain('disabled: false')
             }
-            if (scenario.name === 'mcp-template-error' && mcpDemo !== undefined) {
-              const secret = scenario.manifest.environment?.DSH_MCP_TEMPLATE_TOKEN
+            if ((scenario.name === 'mcp-template-error' || scenario.name === 'mcp-oauth-error') && mcpDemo !== undefined) {
+              const oauth = scenario.name === 'mcp-oauth-error'
+              const secret = scenario.manifest.environment?.[oauth ? 'DSH_MCP_OAUTH_TOKEN' : 'DSH_MCP_TEMPLATE_TOKEN']
               expect(secret).toBeDefined()
-              verifyMcpTemplateError(actualLogs[0]!.content, secret!)
+              verifyMcpError(actualLogs[0]!.content, secret!, oauth)
               expect(mcpDemo.calls).toEqual(['ping'])
               expect(mcpDemo.authorization.length).toBeGreaterThan(1)
               expect(mcpDemo.authorization.every(value => value === `Bearer ${secret!}`)).toBe(true)
+            }
+            if (scenario.name === 'mcp-tool-loading' && mcpDemo !== undefined) {
+              // The on-demand tool joins the request only after the agent loads it.
+              const headers = parseSessionLog(actualLogs[0]!.content).flatMap(event => event.type === 'request/header' ? [event.data.header] : [])
+              expect(headers[0]?.tools?.some(tool => tool.name === 'mcp__demo__ping')).toBe(false)
+              expect(headers.at(-1)?.tools?.some(tool => tool.name === 'mcp__demo__ping')).toBe(true)
+              expect(mcpDemo.calls).toEqual(['ping'])
+            }
+            if (scenario.name === 'linear-plugin' && mcpDemo !== undefined) {
+              // Without a saved grant the Linear server is never contacted: the fixture records the authorization
+              // header of every request it receives, so an empty list means no request. The committed tool-schemas
+              // sidecar pins the absent tools; the transcript check below only guards the recorded text.
+              expect(mcpDemo.authorization).toEqual([])
+              expect(actualLogs[0]!.content).not.toContain('mcp__linear__ping')
+            }
+            if (scenario.name === 'notion-plugin' && mcpDemo !== undefined) {
+              // Without a saved grant the Notion server is never contacted. The committed tool-schemas sidecar pins
+              // the absent tools; the transcript check below only guards the recorded text.
+              expect(mcpDemo.authorization).toEqual([])
+              expect(actualLogs[0]!.content).not.toContain('mcp__notion__ping')
+            }
+            if (scenario.name === 'tencent-docs-plugin' && mcpDemo !== undefined) {
+              // Without a saved grant the Tencent Docs server is never contacted. The committed tool-schemas sidecar pins
+              // the absent tools; the transcript check below only guards the recorded text.
+              expect(mcpDemo.authorization).toEqual([])
+              expect(actualLogs[0]!.content).not.toContain('mcp__tencent-docs__ping')
             }
             if (scenario.name === 'toolcall-unused-args') {
               const events = parseSessionLog(actualLogs[0]!.content)
@@ -1552,10 +1575,10 @@ describe('headless recorded-session snapshots', () => {
               expect(original).toMatchObject({ objective: 'Find marker in both seed files.', maxGoalRounds: 4 })
               expect(changes[1]!.goal).toEqual({ ...original, revision: 2, phase: 'complete' })
             }
-            if (scenario.name.startsWith('office-progressive-') || scenario.name === 'office-render-rejection-current') {
+            if (scenario.name.startsWith('office-progressive-')) {
               const log = actualLogs[0]!.content
               const results = parseSessionLog(log).flatMap(event => event.type === 'tool/result' ? [event.data.message] : [])
-              if (scenario.name === 'office-render-rejection-current') {
+              if (scenario.name === 'office-progressive-native') {
                 // office_render refuses a render for a model route without image input.
                 const render = results.pop()
                 expect(render?.isError).toBe(true)
@@ -1563,38 +1586,28 @@ describe('headless recorded-session snapshots', () => {
                   type: 'text', text: expect.stringMatching(/^Error: cannot render ".+[\\/]report\.docx": model "deepseek-v4-flash" does not accept images$/u),
                 }])
               }
-              expect(results).toHaveLength(2)
+              expect(results).toHaveLength(1)
               expect(results.every(result => result.isError === false)).toBe(true)
-              const instructions = results.flatMap(result => result.content.flatMap(block => block.type === 'text' ? [block.text] : [])).join('\n')
-              for (const operation of ['office_render', 'office_convert', 'office_recalculate']) expect(instructions).toContain(operation)
-              expect(log).toContain('# Office task routing')
+              expect(log).toContain('# Office tasks')
             }
-            if (scenario.name === 'office-authoring-checker') {
-              const results = parseSessionLog(actualLogs[0]!.content).filter(event => event.type === 'tool/result')
-              expect(results).toHaveLength(3)
-              expect(results.every(event => event.data.message.isError === false)).toBe(true)
-              const instructions = results.flatMap(event => event.data.message.content.flatMap(block => block.type === 'text' ? [block.text] : [])).join('\n')
-              for (const library of ['python-docx', 'python-pptx', 'openpyxl']) expect(instructions).toContain(library)
+            if (scenario.name === 'complete-prompt-in-history') {
+              const events = parseSessionLog(actualLogs[0]!.content)
+              const systems = events.filter(event => event.type === 'system/message')
+              expect(systems.map(event => event.surfaceOp)).toEqual(['append', 'append', 'append', 'append'])
+              expect(systems.map(event => event.data.message.source.complete === true)).toEqual([false, true, true, false])
+              expect(events.filter(event => event.type === 'system/message' || event.type === 'tool/result')
+                .map(event => event.type)).toEqual([
+                'system/message', 'tool/result', 'system/message', 'tool/result',
+                'system/message', 'tool/result', 'system/message',
+              ])
+              const sections = systems.map(event => event.data.message.source.sections?.map(section => section.name))
+              expect(sections[1]).toEqual(['snapshot:complete'])
+              expect(sections[2]).toEqual(['snapshot:complete'])
+              expect(sections[3]?.filter(name => name !== 'snapshot:complete')).toEqual(sections[0])
+              expect(systems[3]!.data.message.source.sections?.find(section => section.name === 'snapshot:complete'))
+                .toMatchObject({ name: 'snapshot:complete', state: 'retired' })
             }
-            if (scenario.name === 'office-render-tools' || scenario.name === 'office-render-tools-ptc') {
-              const results = parseSessionLog(actualLogs[0]!.content).filter(event => event.type === 'tool/result')
-              expect(results.map(event => event.data.message.isError)).toEqual([false, true, true, true])
-              const removed = ['office_tools', 'render_document', 'office_tools']
-              for (const [index, event] of results.slice(1).entries()) {
-                expect(event.data.error?.code).toBe(scenario.name === 'office-render-tools' ? 'UNKNOWN_TOOL' : 'CODE_RUN_FAILED')
-                expect(JSON.stringify(event.data.message.content)).toContain(removed[index])
-              }
-            }
-            if (scenario.name === 'office-sidecar-instructions') {
-              const results = parseSessionLog(actualLogs[0]!.content).filter(event => event.type === 'tool/result')
-              expect(results.map(event => event.data.message.isError)).toEqual([true, true, true, true])
-              for (const [index, name] of ['office-render', 'office-export-pdf', 'office-recalculate'].entries()) {
-                const text = results[index]?.data.message.content.flatMap(block => block.type === 'text' ? [block.text] : []).join('\n')
-                expect(text).toBe(`Error: skill "${name}" is unknown or no longer available`)
-              }
-              expect(results[3]?.data.error?.code).toBe('FS_NOT_FOUND')
-            }
-            if (scenario.name === 'advanced-toolchain') verifyAdvancedToolchain(actualLogs)
+            if (scenario.manifest.composition === 'advanced-toolchain') verifyAdvancedToolchain(actualLogs)
             if (scenario.name === 'subagent-depth-two-rejection') {
               expect(actualLogs).toHaveLength(3)
               const leaf = actualLogs[2]!
@@ -1610,11 +1623,11 @@ describe('headless recorded-session snapshots', () => {
             if (scenario.name === 'session-query-spill') {
               await verifySessionQuerySpill(actualLogs[0]!.content, spillRoot, locatorRoot)
             }
-            if (scenario.name === 'mcp-resources' || scenario.name === 'mcp-resources-ptc') {
-              verifyMcpResources(actualLogs[0]!.content, scenario.name === 'mcp-resources-ptc')
+            if (scenario.manifest.composition === 'mcp-resources' || scenario.manifest.composition === 'mcp-resources-ptc') {
+              verifyMcpResources(actualLogs[0]!.content, scenario.manifest.composition === 'mcp-resources-ptc')
             }
-            if (scenario.name === 'mcp-empty' || scenario.name === 'mcp-empty-ptc') {
-              verifyNoMcpServers(actualLogs[0]!.content, scenario.name === 'mcp-empty-ptc')
+            if (scenario.manifest.composition === 'mcp-empty' || scenario.manifest.composition === 'mcp-empty-ptc') {
+              verifyNoMcpServers(actualLogs[0]!.content, scenario.manifest.composition === 'mcp-empty-ptc')
             }
             if (scenario.name === 'provider-cwd') {
               if (model === undefined) throw new Error('provider-cwd resume requires a recorded model')
@@ -1624,9 +1637,6 @@ describe('headless recorded-session snapshots', () => {
             }
             if (scenario.name === 'background-confinement-failure') {
               await verifyBackgroundConfinementFailure(actualLogs[0]!.content, cwd)
-            }
-            if (scenario.name === 'working-directory') {
-              verifyWorkingDirectory(actualLogs[0]!.content, await realpath(cwd))
             }
             if (scenario.name === 'worktree') {
               await verifyWorktree(actualLogs[0]!.content, await realpath(cwd))
@@ -1645,6 +1655,9 @@ describe('headless recorded-session snapshots', () => {
         await rm(spillRoot, { recursive: true, force: true })
       }
 
+      const stderrLog = mode === 'replay' ? primaryFixture : actualLogs[0]?.content
+      if (stderrLog === undefined) throw new Error(`${scenario.name}: stderr projection has no primary session`)
+      const expectedStderr = stderrFromSession(stderrLog)
       const actualContext = contextOf(actualLogs.map(log => log.content))
 
       if (writesCurrentSessionFixtures(scenario.manifest, mode)) {
@@ -1659,23 +1672,13 @@ describe('headless recorded-session snapshots', () => {
           sessionHeaderVersion(log.content, `harvested Session ${index}`),
         ))
       }
-      if (!replayOnly) await writeHeaderSidecars(scenario, actualLogs, actualContext)
+      if (mode !== 'replay') await writeHeaderSidecars(scenario, actualLogs, actualContext)
 
-      if (scenario.manifest.sessionFormat !== undefined && mode === 'refresh') {
-        await writeSessionFixtures(scenario, actualLogs, fixtures, actualContext)
-      }
-      const outputFixture = scenario.manifest.sessionFormat === undefined
-        ? fixtures[0] : await readFile(join(scenario.dir, writerSnapshotName(0)), 'utf8')
-      if (outputFixture === undefined) throw new Error(`${scenario.name}: output projection has no primary session`)
-      const stderrLog = replayOnly ? outputFixture : actualLogs[0]?.content
-      if (stderrLog === undefined) throw new Error(`${scenario.name}: stderr projection has no primary session`)
-      const expectedStderr = stderrFromSession(stderrLog)
-
-      expect(result.stdout).toBe(`${finalTextFromSession(outputFixture)}\n`)
+      expect(result.stdout).toBe(`${finalTextFromSession(fixtures[0] as string)}\n`)
       expect(result.stderr).toBe(expectedStderr)
       expect(actualLogs, `${scenario.name}: persisted session count`).toHaveLength(fixtures.length)
       const writerFiles = (await readdir(scenario.dir)).filter(name => /^writer(?:\.[1-9]\d*)?\.expected\.jsonl$/u.test(name)).sort()
-      if (replayOnly) {
+      if (mode === 'replay') {
         expect(writerFiles, 'native writer oracle inventory').toEqual(scenario.manifest.sessionFormat === undefined
           ? [] : fixtures.map((_, index) => writerSnapshotName(index)).sort())
       }
@@ -1684,11 +1687,12 @@ describe('headless recorded-session snapshots', () => {
         expect(await readFile(join(scenario.dir, retainedToolInput), 'utf8'), 'retained replay input bytes').toBe(primaryFixture)
       }
       if (scenario.manifest.sessionFormat !== undefined) {
+        if (mode === 'refresh') await writeSessionFixtures(scenario, actualLogs, fixtures, actualContext)
         expected = await Promise.all(fixtures.map((_, index) => readFile(join(scenario.dir, writerSnapshotName(index)), 'utf8')))
         for (const [index, content] of expected.entries()) {
           expect(sessionHeaderVersion(content, writerSnapshotName(index))).toBeLessThanOrEqual(SESSION_FORMAT_VERSION)
         }
-        expect(await fixtureSessions(scenario, fixtureFiles), 'historical replay input remains unchanged').toEqual(fixtures)
+        expect(await fixtureSessions(scenario), 'historical replay input remains unchanged').toEqual(fixtures)
       }
       const actualSnapshots = normalizeSessionSnapshots(actualLogs.map(log => log.content), actualContext, { nativeWriterOutput: true })
       const expectedSnapshots = normalizeSessionSnapshots(expected, contextOf(expected), { nativeWriterOutput: true })
@@ -1703,7 +1707,7 @@ describe('headless recorded-session snapshots', () => {
           : records(expectedSnapshots[index] as string)
         expect(actualRecords, `${scenario.name}: session ${index}`).toEqual(expectedRecords)
       }
-      if (mode !== 'headers') await verifyHeaders(scenario, actualLogs, actualContext)
+      await verifyHeaders(scenario, actualLogs, actualContext)
 
       if (initialWorkspace === undefined || finalWorkspace === undefined) {
         throw new Error(`${scenario.name}: workspace was not captured around the profile run`)
@@ -1713,10 +1717,6 @@ describe('headless recorded-session snapshots', () => {
         expect(finalWorkspace, `${scenario.name}: complete final workspace`).toEqual(expectedWorkspace)
       } else {
         expect(finalWorkspace, `${scenario.name}: a changed workspace requires workspace.final`).toEqual(initialWorkspace)
-      }
-      if (mode === 'headers') {
-        await writeHeaderSidecars(scenario, actualLogs, actualContext)
-        await verifyHeaders(scenario, actualLogs, actualContext)
       }
     }, scenario.name === 'provider-cwd' ? 3 * LOADER_SMOKE_TEST_TIMEOUT_MS : LOADER_SMOKE_TEST_TIMEOUT_MS)
   }

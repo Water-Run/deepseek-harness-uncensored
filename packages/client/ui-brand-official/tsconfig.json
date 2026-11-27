@@ -9,12 +9,6 @@
   ],
   "references": [
     {
-      "path": "../ui-session"
-    },
-    {
-      "path": "../../preset/agent-preset-registry"
-    },
-    {
       "path": "../../../vendor/cordis"
     },
     {
@@ -31,6 +25,12 @@
     },
     {
       "path": "../ui-conversation/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-session"
+    },
+    {
+      "path": "../../preset/agent-preset-registry"
     }
   ]
 }

@@ -49,7 +49,7 @@ const HOLD: SurfaceSnapshot = {
 function fixture(initial: SurfaceSnapshot | undefined) {
   const state = createSnapshotStore<SurfaceSnapshot | undefined>(initial)
   const press = vi.fn<(generation: number, actionId: string) => Promise<void>>(() => Promise.resolve())
-  const props = { t: makeTranslate(zh), press, useBand: bindSnapshotSelector(state) } as BandProps
+  const props = { t: makeTranslate(zh), press, useBand: bindSnapshotSelector(state) } as unknown as BandProps
   render(<Band {...props} />)
   return { press, publish(next: SurfaceSnapshot | undefined) { act(() => { state.set(next) }) } }
 }

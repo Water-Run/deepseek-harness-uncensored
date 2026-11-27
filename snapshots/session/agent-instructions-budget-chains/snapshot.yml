@@ -4,7 +4,7 @@ profile: headless
 composition: agent-instructions-budget
 recording: authored
 header:
-  class: agent-instructions
-sessionFormat:
-  version: 4
-  coverage: [behavior-update]
+  class: agent-instructions-budget
+  pin: true
+  systemPromptSource: cordis-inspect-jsdoc
+  toolSchemasSource: text-turn

@@ -3,9 +3,8 @@
     - button "Ask a research subagent to"
     - text: /
     - 'button "Switch subagent: event-sourcing researcher"': event-sourcing researcher
-    - button "1 subagent"
-  - 'button "Conversation mode: Default" [disabled]': Default
-  - button "Side question"
+  - text: Standard mode
+  - button "Session panel"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -15,8 +14,9 @@
 - navigation "Turn navigation":
   - button "Jump to turn 1"
   - button "Jump to turn 2"
-- text: Explain event sourcing in one sentence.Your final answer is delivered automatically if your parent is still online. Include the result and relevant evidence in that answer; the parent does not receive your full transcript, tool output, or reasoning. If your last action is a message to your parent, the completion notice omits your final answer; include the result and relevant evidence in that message. {{clock}}
-- button "Copy"
+- button "Task message received {{clock}}":
+  - text: Task message received
+  - time: {{clock}}
 - status: Completed
 - button "Completed in {{duration}}"
 - paragraph: Event sourcing is a pattern where all changes to an application's state are stored as an immutable, append-only sequence of events, rather than persisting only the current state, enabling full auditability, temporal queries, and event-driven architectures.
@@ -36,10 +36,8 @@
 - text: {{clock}}
 - textbox "Message or run a task, / commands, @ files or sessions"
 - button "Add files or run commands"
-- 'button "Access mode, current: Full access"': Full access
+- 'button "Access mode, current: Custom"': Custom
 - button "Send message" [disabled]
-- 'button "Turns: 2 · Steps: 2 · {{throughput}} tok/s"': "Turns: 2 · Steps: {{throughput}} tok/s"
+- button "2 turns 2 steps · {{throughput}} tok/s": 2 turns 2 steps{{throughput}} tok/s
 - button "15.7K tok · Cache hit 99%": 15.7K tokCache hit 99%
-- 'button "Conversation cost: ￥0.002320"': ￥0.002320
-- 'button "Spending limits: Off"': "Off"
 - button "6% of context used": 6%

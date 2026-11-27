@@ -3,6 +3,7 @@
  * @module @deepseek-ai/dsh-message-feedback
  */
 
+import type {} from '@deepseek-ai/dsh-session/context'
 import { Buffer } from 'node:buffer'
 import { randomUUID } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
