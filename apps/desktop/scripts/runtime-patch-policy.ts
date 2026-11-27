@@ -21,6 +21,7 @@ export const DESKTOP_RUNTIME_PATCHES: Readonly<Record<string, DesktopRuntimePatc
   'micromark-extension-gfm-autolink-literal@2.1.0': { scope: 'workspace-only', reason: 'The patched Markdown parser is embedded in the client bundle.' },
   'node-pty@1.2.0-beta.15': { scope: 'shared', reason: 'Runtime terminals need helper resolution, Windows worker cleanup and a rebuilt long-path ConPTY loader.' },
   'rea-agents@6.9.0': { scope: 'shared', reason: 'Initialize empty Windows spawn sessions before cleanup, then resume owned paused targets before detach.' },
+  'ws@8.21.3': { scope: 'shared', reason: 'Frames without a payload must not write a zero-length segment: writev() fails with EFAULT where the empty-buffer address is outside the user address space (39-bit arm64), which drops every Gateway WebSocket after one heartbeat.' },
 }
 
 /** Reviewed Desktop dependency constraints, independent of patch selection. */
