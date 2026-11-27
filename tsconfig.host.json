@@ -1004,6 +1004,27 @@
     },
     {
       "path": "./packages/experimental/personalized-recommendations/tsconfig.json"
+    },
+    {
+      "path": "./packages/experimental/cua/tsconfig.host.json"
+    },
+    {
+      "path": "./packages/experimental/cua-mcp/tsconfig.json"
+    },
+    {
+      "path": "./packages/experimental/cua-windows/tsconfig.json"
+    },
+    {
+      "path": "./packages/experimental/cua-macos/tsconfig.json"
+    },
+    {
+      "path": "./packages/experimental/cua-bundle/tsconfig.json"
+    },
+    {
+      "path": "./packages/experimental/computer-use-cua-driver-native/tsconfig.json"
+    },
+    {
+      "path": "./packages/experimental/computer-use-cua-driver-mcp/tsconfig.json"
     }
   ]
 }

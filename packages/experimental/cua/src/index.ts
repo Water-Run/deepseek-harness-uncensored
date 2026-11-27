@@ -14,7 +14,7 @@ import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import { z } from 'zod'
 import { NativeClient, NativeError, type NativeClientConfig, type NativeChannelFactory } from './native-client.ts'
 import { MouseControl } from './mouse-control.ts'
-import { withSystemPointerGuidance } from './guidance.ts'
+import { CUA_PROMPT_SECTION_NAME, withSystemPointerGuidance } from './guidance.ts'
 import { CuaPermissionStore } from './permission-store.ts'
 import { ApplicationAuthorizationResult, installCuaAccess } from './access.ts'
 import type { CuaApplicationGrant, CuaApplicationId, CuaSystemPermission } from './access-types.ts'
@@ -362,7 +362,7 @@ export function installCua(ctx: Context, config: CuaConfig, backend: CuaBackend)
       },
     }
     const prompt: PromptSection = {
-      name: 'computer-use:dsh-cua', order: ctx.systemPrompt.getSectionOrder('TOOL_COMPUTER_USE'),
+      name: CUA_PROMPT_SECTION_NAME, order: ctx.systemPrompt.getSectionOrder('TOOL_COMPUTER_USE'),
       text: () => {
         const runtime = ctx.get('ptcRuntime')
         return !runtime?.retainsState ? guidance : `${guidance}

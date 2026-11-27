@@ -1,3 +1,6 @@
+/** System-prompt section name carrying the cua API reference. */
+export const CUA_PROMPT_SECTION_NAME = 'computer-use:dsh-cua'
+
 /** Shared model instructions for native application and window operations. */
 const hoverSignature = 'mouseMove(target: string | [number, number], options?: { relative?: boolean })'
 

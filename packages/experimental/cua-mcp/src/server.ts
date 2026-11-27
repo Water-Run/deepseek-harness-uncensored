@@ -204,9 +204,9 @@ export async function createCuaMcpServer(ctx: Context, options: CuaMcpServerOpti
     // The program runtime rejects a run while the Agent's previous process is still exiting.
     while (resetting !== undefined) await resetting
     const programs = ctx.get('cuaPrograms')
-    let cleanup: Promise<void> | undefined
+    let cleanup: Promise<void> = Promise.resolve()
     const cancel = (): void => {
-      cleanup ??= programs?.releaseInputs(agent) ?? Promise.resolve()
+      cleanup = programs?.releaseInputs(agent) ?? Promise.resolve()
       void cleanup.catch(() => undefined) // The native owner reports failure; finally joins this same cleanup.
     }
     signal.addEventListener('abort', cancel, { once: true })
