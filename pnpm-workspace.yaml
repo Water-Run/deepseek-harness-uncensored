@@ -133,3 +133,4 @@ patchedDependencies:
   micromark-extension-gfm-autolink-literal@2.1.0: patches/micromark-extension-gfm-autolink-literal@2.1.0.patch
   node-pty@1.2.0-beta.15: patches/node-pty@1.2.0-beta.15.patch
   rea-agents@6.9.0: patches/rea-agents@6.9.0.patch
+  ws@8.21.3: patches/ws@8.21.3.patch

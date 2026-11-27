@@ -1,0 +1,20 @@
+--- a/lib/sender.js
++++ b/lib/sender.js
+@@ -561,12 +561,16 @@
+    * @private
+    */
+   sendFrame(list, cb) {
+-    if (list.length === 2) {
++    if (list.length === 2 && list[1].length > 0) {
+       this._socket.cork();
+       this._socket.write(list[0]);
+       this._socket.write(list[1], cb);
+       this._socket.uncork();
+     } else {
++      // A frame with an empty payload is its header alone. Sending the
++      // zero-length payload as a second segment makes writev() fail with
++      // EFAULT where the empty-buffer address sits outside the user address
++      // space (39-bit arm64 kernels), which kills the socket.
+       this._socket.write(list[0], cb);
+     }
+   }
