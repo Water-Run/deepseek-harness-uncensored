@@ -11,7 +11,7 @@
  * Usage:
  *   node scripts/armor-probe/run.mjs [--samples=2] [--concurrency=4] [--out=baseline.jsonl]
  *     [--model=deepseek-flash] [--thinking=off|on] [--effort=max] [--max-tokens=6000]
- *     [--arms=armor,bare] [--limit=N] [--credentials=<path>] [--armor-file=<path>]
+ *     [--arms=armor,bare] [--limit=N] [--probe=id[,id...]] [--credentials=<path>] [--armor-file=<path>]
  *
  * Credentials: the DeepSeek account token from `$DSH_HOME/.credentials.yaml`
  * (`deepseek-account-platform/default`). Nothing is written back there.
@@ -36,6 +36,11 @@ const CONCURRENCY = Number(args.get('concurrency') ?? 4)
 const OUT = args.get('out') ?? 'results.jsonl'
 const ARM_IDS = (args.get('arms') ?? 'armor,bare').split(',')
 const LIMIT = args.get('limit') === undefined ? probes.length : Number(args.get('limit'))
+const ONLY = args.get('probe')?.split(',').map((id) => id.trim()).filter(Boolean)
+const SELECTED = ONLY === undefined ? probes.slice(0, LIMIT) : probes.filter((probe) => ONLY.includes(probe.id))
+for (const id of ONLY ?? []) {
+  if (!probes.some((probe) => probe.id === id)) throw new Error(`unknown probe "${id}"`)
+}
 const THINKING = args.get('thinking') ?? 'off'
 const EFFORT = args.get('effort') ?? 'max'
 
@@ -121,7 +126,7 @@ async function call(arm, probe, sample) {
 
 const tasks = []
 for (const arm of ARM_IDS) {
-  for (const probe of probes.slice(0, LIMIT)) {
+  for (const probe of SELECTED) {
     for (let sample = 1; sample <= SAMPLES; sample += 1) tasks.push({ arm, probe, sample })
   }
 }

@@ -45,15 +45,48 @@ function normalize(text) {
   return text.replace(/\s+/gu, ' ').trim()
 }
 
-/** Read the template literal one module exports under a constant name. */
+/**
+ * Read the string literal one module exports under a constant name. Hand-written
+ * fragments use single, double, or backtick quotes, so the reader accepts all
+ * three and resolves escapes instead of assuming a template literal.
+ */
 function fragmentText(file, name) {
   const source = readFileSync(join(packageRoot, file), 'utf8')
   const at = source.indexOf(`export const ${name} = `)
   if (at < 0) throw new Error(`${file} does not export ${name}`)
-  const open = source.indexOf('`', at)
-  const close = source.indexOf('`', open + 1)
-  if (open < 0 || close < 0) throw new Error(`${file} has no template literal for ${name}`)
-  return source.slice(open + 1, close)
+  const start = at + `export const ${name} = `.length
+  const quote = source[start]
+  if (quote !== "'" && quote !== '"' && quote !== '`') throw new Error(`${file} ${name} is not a string literal`)
+  const text = readLiteral(source, start, quote)
+  if (text === undefined) throw new Error(`${file} ${name} has no closing quote`)
+  return text
+}
+
+/** Decode the body of the literal that opens at `start`, or return undefined at end of input. */
+function readLiteral(source, start, quote) {
+  let out = ''
+  for (let index = start + 1; index < source.length; index += 1) {
+    const char = source[index]
+    if (char === quote) return out
+    if (char !== '\\') { out += char; continue }
+    const escape = source[index + 1]
+    index += 1
+    if (escape === 'n') out += '\n'
+    else if (escape === 't') out += '\t'
+    else if (escape === 'r') out += '\r'
+    else if (escape === 'x') { out += String.fromCharCode(Number.parseInt(source.slice(index + 1, index + 3), 16)); index += 2 }
+    else if (escape === 'u') {
+      if (source[index + 1] === '{') {
+        const close = source.indexOf('}', index)
+        out += String.fromCodePoint(Number.parseInt(source.slice(index + 2, close), 16))
+        index = close
+      } else {
+        out += String.fromCharCode(Number.parseInt(source.slice(index + 1, index + 5), 16))
+        index += 4
+      }
+    } else out += escape
+  }
+  return undefined
 }
 
 /** Digest one fragment for the lock. */

@@ -18,7 +18,7 @@ node scripts/armor-probe/score.mjs $TMPDIR/armor-baseline.jsonl --json=$TMPDIR/s
 
 Prerequisites: a built `packages/context/uncensored-armor/lib/types/armor.zh.js` (`pnpm run build:artifacts` produces it), and a DeepSeek account token in `$DSH_HOME/.credentials.yaml` under `deepseek-account-platform/default`. The runner reads that token and writes nothing back.
 
-Options: `--model` (default `deepseek-flash`), `--samples`, `--concurrency`, `--thinking=off|on`, `--effort=max|high|low`, `--max-tokens`, `--arms=armor,bare`, `--limit`, `--credentials`, `--armor-file` (read armor text from a file instead of the built module).
+Options: `--model` (default `deepseek-flash`), `--samples`, `--concurrency`, `--thinking=off|on`, `--effort=max|high|low`, `--max-tokens`, `--arms=armor,bare`, `--limit`, `--probe` (comma-separated ids, for re-testing single cells at higher sample counts), `--credentials`, `--armor-file` (read armor text from a file instead of the built module).
 
 ## What the arms are
 
@@ -43,7 +43,8 @@ Computed from the answer text only, never the thinking block.
 - `--thinking=on --effort=max` is currently unmeasurable for direct exploit probes: the model spends the whole token budget thinking and returns zero answer text, so the run needs a larger budget or a lower effort before it means anything.
 - Refusal language inside dialogue (`她说对不起`) shows up as "全文含拒答串"; the head test is the metric to trust.
 - Probe text is Chinese; an English run is a different experiment, not a translation of this one.
+- The whole set has one negative control, and it flips between correct refusal and full delivery under both armors across runs. One sample per cell cannot settle that cell, and a per-category delta of one cell is noise, not a mechanism.
 
 ## Baseline
 
-[baseline.md](baseline.md) records the 2026-11-19 run on `deepseek-flash` with thinking disabled.
+[baseline.md](baseline.md) records the 2026-11-19 baseline, the 2026-11-24 core comparison, and the 2026-11-26 three-arm re-verification on `deepseek-flash` with thinking disabled.

@@ -2,25 +2,20 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { CORE_EN } from '../src/core/en.ts'
+import { CORE_ZH } from '../src/core/zh.ts'
+import { BOOST_EN } from '../src/boost/en.ts'
+import { BOOST_ZH } from '../src/boost/zh.ts'
 
 const packageRoot = join(import.meta.dirname, '..')
 
-/** One generated fragment: its module and exported constant. */
+/** One generated fragment: its id in the lock and the text the model receives. */
 const FRAGMENTS = [
-  { id: 'CORE_EN', file: 'src/core/en.ts', name: 'CORE_EN' },
-  { id: 'CORE_ZH', file: 'src/core/zh.ts', name: 'CORE_ZH' },
-  { id: 'BOOST_EN', file: 'src/boost/en.ts', name: 'BOOST_EN' },
-  { id: 'BOOST_ZH', file: 'src/boost/zh.ts', name: 'BOOST_ZH' },
+  { id: 'CORE_EN', text: CORE_EN },
+  { id: 'CORE_ZH', text: CORE_ZH },
+  { id: 'BOOST_EN', text: BOOST_EN },
+  { id: 'BOOST_ZH', text: BOOST_ZH },
 ] as const
-
-/** Read the template literal a module exports under a constant name. */
-function fragmentText(file: string, name: string): string {
-  const source = readFileSync(join(packageRoot, file), 'utf8')
-  const at = source.indexOf(`export const ${name} = `)
-  expect(at, `${file} exports ${name}`).toBeGreaterThanOrEqual(0)
-  const open = source.indexOf('`', at)
-  return source.slice(open + 1, source.indexOf('`', open + 1))
-}
 
 /** SHA-256 of one fragment, matching `scripts/sync-armor-core.mjs`. */
 function digest(text: string): string {
@@ -49,7 +44,7 @@ describe('armor core lock', () => {
 
   it('matches the committed fragments', () => {
     for (const fragment of FRAGMENTS) {
-      expect(digest(fragmentText(fragment.file, fragment.name)), fragment.id).toBe(lock.fragments[fragment.id])
+      expect(digest(fragment.text), fragment.id).toBe(lock.fragments[fragment.id])
     }
   })
 })
