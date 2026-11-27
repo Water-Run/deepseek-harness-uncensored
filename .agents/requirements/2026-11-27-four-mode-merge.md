@@ -31,6 +31,18 @@
 - 目录生成：`verify-client-catalog`、`verify-config-catalog`、`verify-cordis-catalog`、`verify-tool-catalog`、`verify-persistence-catalog`、`verify-cordis-config` 全部通过。
 - 候选树可复现：`node scripts/prepare-kernel-candidate.mjs <新目录>` 由补丁还原得到同一树 `e6b3c3ab66e1`。
 
+## 品牌回归（2026-11-27 复核发现）
+
+第一次交付的 `2026.11.27.0` 安装包在视觉上退回上游品牌：安装器中部显示 `deepseek HARNESS` 字样与原版图标，`UNCENSORED` 标记消失。
+
+**原因。** 候选树的品牌文件从未与主线同步。D-SHU 的黑色鲸鱼图标、安装器品牌图、欢迎页 `uncensored-pill`、网页 favicon/PWA 清单与产品命中文案，都只存在于主线；`dshu.patch` 一直由候选树自身生成，这些主线改动因此从未进入候选。本轮并档只移植了功能包与关于页文案，没有核对可见品牌，打包冒烟也只检查运行时功能。
+
+**修复。** 从主线同步并重新验证：`apps/desktop/resources/*`（图标与托盘）、`apps/desktop/installer/assets/*`（`brand*` 与卸载侧栏）、`packages/client/ui-primitives/src/BrandWordmark.tsx` 及其模块样式、`apps/desktop/renderer/{assets/welcome-brand.svg,welcome.css,update-dialog.*,mandatory-update.*}`、`apps/desktop/scripts/{render-app-icon.ts,render-installer-brand.ts,render-uncensored-artwork.ts}`、`apps/web/index.html` 与 `apps/web/public/*`，并把安装器 8 种语言与桌面菜单中的 `DeepSeek Harness` 统一为 `DeepSeek Harness Uncensored`。品牌图与图标以主线版本覆盖，安装器素材由 `prepare-windows-installer.ps1` 重新转成 BMP。
+
+**防复发。** 新增 `apps/desktop/tests/brand-identity.spec.ts`（8 项）：钉住图标、安装器品牌图、欢迎页与网页图形的 SHA-256 与安装器品牌图尺寸；要求 `welcome-brand.svg` 带 `uncensored-pill`、`BrandWordmark.tsx` 使用 `UNCENSORED_PATH`；扫描安装器全部语言、桌面菜单/欢迎/更新文案、网页标题与 PWA 清单必须命名为 DSHU；并要求品牌图生成脚本存在。主线与候选树各有一份，`pnpm run test` 与候选构建的聚合检查都会执行。
+
+**同类排查。** 同时核对了安装器窗口标题、卸载登记名、Linux 桌面项、托盘提示、CLI 入口与网页 manifest，均取自 `productName` 或上述已修文件；未再发现退上游命名的位置。原生“关于”面板仍只显示产品名与版本，未包含主线 `aboutDetails` 的 dsh-purge/REA 明细，列入后续。
+
 ## 仍未移植（与上一正式版相比的缺口）
 
 | 缺口 | 现状 | 影响 |

@@ -6,7 +6,7 @@
 
 **更自由的探索未至之境**
 
-[![正式版](https://img.shields.io/badge/%E6%AD%A3%E5%BC%8F%E7%89%88-2026.11.24.3-2563EB?style=flat-square)](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.24.3) [![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Windows%20%C2%B7%20Linux%20%C2%B7%20macOS-0F172A?style=flat-square)](#安装与数据) [![架构](https://img.shields.io/badge/%E6%9E%B6%E6%9E%84-x64%20%C2%B7%20arm64-334155?style=flat-square)](#安装与数据) [![基于](https://img.shields.io/badge/%E5%9F%BA%E4%BA%8E-DeepSeek%20Harness%200.2.2--rc.5-15803D?style=flat-square)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5) [![许可](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-GPL--3.0--or--later-A16207?style=flat-square)](LICENSE)
+[![正式版](https://img.shields.io/badge/%E6%AD%A3%E5%BC%8F%E7%89%88-2026.11.24.3-2563EB?style=flat-square)](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.24.3) ![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Windows%20%C2%B7%20Linux%20%C2%B7%20macOS-0F172A?style=flat-square) ![架构](https://img.shields.io/badge/%E6%9E%B6%E6%9E%84-x64%20%C2%B7%20arm64-334155?style=flat-square) [![基于](https://img.shields.io/badge/%E5%9F%BA%E4%BA%8E-DeepSeek%20Harness%200.2.3--alpha.2-15803D?style=flat-square)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.3-alpha.2) [![许可](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-GPL--3.0--or--later-A16207?style=flat-square)](LICENSE)
 
 [四种模式](#四种模式) · [旁问与随问](#旁问与随问) · [余额与限额](#余额与额度限制) · [跨对话记忆](#跨对话记忆) · [输入预测](#输入预测) · [使用手册](docs/user/guide/dshu.md) · [下载](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.24.3)
 
@@ -30,13 +30,7 @@ https://github.com/user-attachments/assets/69f74147-3377-461c-8ec2-17169bd3ba71
 
 另外还有几项日常用得上的增强：任务运行中也能提问的**旁问**和**随问**、余额曲线、可选的额度限制、跨对话记忆，以及帮你补全后半句的输入预测。
 
-标有 ![实验性](https://img.shields.io/badge/%E5%AE%9E%E9%AA%8C%E6%80%A7-D97706?style=flat-square) 的功能还在评估阶段，界面、行为和设置项都可能调整。
-
-> [!NOTE]
->
-> 本文的界面与默认值对应当前源码。下载链接指向正式版 2026.11.24.3。DSH 0.2.3-alpha.2 候选的用户可见变化、功能对照与安装验收分别见[下一版 Release 说明草稿](发布稿/Release-下一版.md)、[内核升级记录](.agents/requirements/2026-11-24-dsh-kernel-upgrade.md)和[接手文档](.agents/HANDOFF.md#下一正式版)。
->
-> DSHU 有独立的程序目录、配置、会话和更新渠道，可以和官方 DeepSeek Harness 装在同一台机器上，互不影响。
+标有 ![实验性](https://img.shields.io/badge/%E5%AE%9E%E9%AA%8C%E6%80%A7-D97706?style=flat-square) 的功能还在评估阶段。
 
 ## 四种模式
 
@@ -287,33 +281,6 @@ https://github.com/user-attachments/assets/69f74147-3377-461c-8ec2-17169bd3ba71
 
 </details>
 
-## 安装与数据
-
-| 项目 | 说明 |
-| --- | --- |
-| 下载 | [正式版 2026.11.24.3](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.24.3)：Windows x64（exe）、Linux x64（deb / rpm）、Linux arm64（deb）、[macOS arm64（DMG 安装包）](https://github.com/Water-Run/deepseek-harness-uncensored/releases/download/v2026.11.24.3/deepseek-harness-uncensored-2026.11.24.3-mac-arm64-unsigned.dmg) |
-| 首次配置 | 设置 → 模型中填写提供方与凭据，详见[模型配置](docs/user/guide/providers.zh.md) |
-| 版本号 | `YYYY.MM.DD.N`，末位是当天的构建序号，每天第一个构建为 `0`，可在关于页核对 |
-| 数据目录 | 默认 `~/.dsh-uncensored`，可用环境变量 `DSH_UNCENSORED_HOME` 修改 |
-| 终端命令 | Windows 与 macOS 的桌面应用菜单中可注册 `dsh-uncensored`。安装后打开新终端，用 `dsh-uncensored --version` 查看 DSHU 版本 |
-| 与官方版并存 | 程序、配置、会话和更新渠道各自独立 |
-
-> [!IMPORTANT]
->
-> Windows x64 用户从 `2026.11.23.0` 静默升级到已发布的 `2026.11.24.3` 会遇到退出码 `2`，旧文件和安装登记保留。新版候选已从两个正式版通过离线升级。下一次正式发布采用五个安装包。手动下载后，可展开该版发布页的「校验下载（SHA-256）」，按文件名核对摘要。首发版用户需下载对应安装包，手动覆盖安装一次。`2026.11.24.3` 可在应用菜单中检查更新。[Issue #24](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24)
-
-Windows x64 正式版 `2026.11.24.3` 有启动后静置卡死的用户报告。新版已修复并发打开同一旁问、界面重新绑定同一份输入草稿时的重复请求。Windows 沙盒和 Windows Server 已登录桌面均已用保留旧会话复测。报告所用的 Windows 11 家庭版 Build 26300 上，资源持续增长的根因仍待确认，已列入正式版验收。[Issue #26](https://github.com/Water-Run/deepseek-harness-uncensored/issues/26) · [沙盒安装包对照](.agents/requirements/2026-11-25-release-handoff.md#保留旧写作会话的-windows-安装包对照) · [已登录桌面采样](.agents/requirements/2026-11-25-release-handoff.md#windows-server-已登录桌面对照)
->
-> 更新前请先关闭 DSHU，备份数据目录和重要的工作区文件。正式签名、在线升级和自动回退还在验收中，进度见[开发清单](.agents/TODO.md)。
-
-缺省与写作的 Windows 候选已从两个正式版实装升级，可继续打开含输入建议的旧会话。草稿和未采纳的建议留在历史记录中，后续对话只使用实际提交的消息。[安装器摘要与旧会话升级验收](.agents/requirements/2026-11-25-release-handoff.md#含输入建议的旧会话)
-
-开启过保护审计的用户也可以在新内核中续写旧对话。普通和压缩会话都会保留原有的判定与指纹，旧记录中省略的名称保持原样。五种候选安装文件都已读回两个旧正式版写入的这类对话。[保护审计兼容性复验](.agents/requirements/2026-11-25-release-handoff.md#含保护审计的旧会话)
-
-> 在正式版 `2026.11.24.3`，供应商拒绝一个工具的声明后，原对话可能连续返回 400。新版源码会在点名 MCP 工具的错误下显示“如何恢复此对话”。若出错前最近一份已加载的请求头列有同名工具，可按提示停用相应服务，再回到原对话发送消息。服务开关会影响使用它的其他对话。如果名称对不上或记录尚未加载，先在请求详情里核对工具来源。恢复请求保留原消息，以及与这次拒绝无关的历史工具声明。服务维护者可在发送前用离线检查器定位嵌套字段里的已知正则问题。缺省与写作候选已验证停用后的原会话恢复，报告中的桌面账号登录场景仍待复验。[Issue #25](https://github.com/Water-Run/deepseek-harness-uncensored/issues/25) · [复验结果与安装包范围](.agents/requirements/2026-11-25-release-handoff.md#issue-25-的工具声明与会话恢复) · [离线检查器](kernel/0.2.3-alpha.2/verification/check-mcp-schema.mjs)
-
-支持在消息历史中记录工具启停的 API 可以沿用原有的工具声明。新版修复了工具重连时仅因 JSON 字段换序就重建声明的问题。第三方服务的实际缓存命中量以其返回的用量为准。[Issue #23](https://github.com/Water-Run/deepseek-harness-uncensored/issues/23)
-
 ## 文档导航
 
 | 文档 | 内容 |
@@ -326,17 +293,12 @@ Windows x64 正式版 `2026.11.24.3` 有启动后静置卡死的用户报告。�
 
 ## 版本基线
 
-| 组成 | 基线 |
+| 组成 | 版本 |
 | --- | --- |
-| DSHU | 最新正式版 `2026.11.24.3` |
-| DeepSeek Harness | 源码基于 [0.2.2-rc.5](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5) |
-| 新内核候选 | DSHU `2026.11.25.0` 使用 DSH `0.2.3-alpha.2`，目前只含缺省与写作。跨对话记忆、余额历史和模式设置已接入。在“设置 → 插件管理 → 插件列表”可搜索全局及各模式的插件实例，检查启用状态与加载错误。关于页左侧显示 DSHU 日期版本，右侧列出内核、源码与组件信息。[桌面](docs/assets/dshu/about-candidate-updates.webp) · [窄屏](docs/assets/dshu/about-candidate-updates-mobile.webp) |
-| 与正式版的差异 | 新内核源码已恢复日出日落、城市选择和关于页内的检查更新，工作区标题与侧栏也已恢复 DSHU 标识。通用设置底部与侧栏均显示 DSHU 产品版本。打开关于页会按这个日期版本查询正式发行。Windows 候选已实装显示 DSHU 工作区标识。Debian 13 实机已用当前 Linux x64 候选核对默认日出日落、工作区标识和关于页的检查更新入口。候选 Web 版可生成、忽略、采纳及关闭主输入框预测，可从三个入口打开旁问，也可在主输入框发起随问。旁问支持手动清理、关闭后自动清理及由主会话主动读取。顶部入口和页签显示运行、中断、未读或已读；折叠侧栏时收到的回答重新打开后才会标为已读。最终安装包仍待验收。[逐项对照与现有证据](.agents/requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表) |
-| Windows x64 候选 | `c048b2e78877` 的未签名包已从两个正式版静默升级。两种格式的旧会话均通过续写与同版重装后重开，降级和无效登记也已验证。[当前包实装回执](.agents/requirements/2026-11-25-release-handoff.md#回放修正后的-windows-x64-重建)。余额自动清理默认保留 30 天，升级后沿用显式关闭的旧设置。[余额历史升级实测](.agents/requirements/2026-11-25-release-handoff.md#windows-安装版的余额历史与清理偏好)。跨对话记忆默认关闭，开启后已在安装版验证提炼、跨会话读取、修订、冷启动和模式隔离。[插件清单与关于页实测](.agents/requirements/2026-11-25-release-handoff.md#插件列表与插件管理) · [跨对话记忆实测](.agents/requirements/2026-11-25-release-handoff.md#windows-安装版的跨对话写作记忆) · [首发升级问题](.agents/requirements/2026-11-25-release-handoff.md#issue-24-的首发版静默升级) |
-| Linux 候选 | x64 的 DEB 和 RPM 已验证从两个正式版覆盖升级、同版重装及旧会话续写。两个包均已在 Debian 实机的 KDE Wayland 桌面打开工作区与关于页，并已从 GitHub 确认线上版本较旧时保持当前版本。Linux ARM64 已在 DGX Spark 原生构建，并从两个正式版完成 Debian ARM64 容器内升级。ARM64 登录桌面待验。[已登录桌面实测](.agents/requirements/2026-11-25-release-handoff.md#已登录桌面的实机验收) · [x64 安装验收](.agents/requirements/2026-11-25-release-handoff.md#回放修正后的-linux-x64-重建) · [正式更新源验收](.agents/requirements/2026-11-25-release-handoff.md#linux-桌面检查正式更新源) · [ARM64 实测](.agents/requirements/2026-11-25-release-handoff.md#原生-arm64-候选) |
-| macOS 候选 | Apple 芯片的 Mac Studio 已验证 DMG 内的 CLI 和旧会话续写。在已登录桌面上，首发版及上一正式版的旧工作区均能打开，并能逐条读到原消息。新版更新器已在同一台 Mac 实测损坏 DMG 的重新下载和完整缓存复用。正式签名、公证和应用内升级仍待验收。[更新重试实测](.agents/requirements/2026-11-25-release-handoff.md#macos-更新下载重试) · [桌面实测](.agents/requirements/2026-11-25-release-handoff.md#已登录桌面的实机验收) · [macOS 安装验收](.agents/requirements/2026-11-25-release-handoff.md#原生-arm64-候选) |
-| 破甲提示词 | dsh-purge Community [v1.7.20](https://github.com/kingcharleslzy-ai/dsh-purge/releases/tag/v1.7.20) |
-| REA | [6.9.0 · d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0) |
+| DSHU | `2026.11.27.0` |
+| DeepSeek Harness | `0.2.3-alpha.2` |
+| 破甲提示词 | dsh-purge Community `v1.7.20` |
+| REA | `6.9.0` |
 
 ## Credit
 
