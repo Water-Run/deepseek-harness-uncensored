@@ -192,5 +192,5 @@
   "engines": {
     "node": "^24.22.3 || >=26.13.1"
   },
-  "dshProductVersion": "2026.1127.0"
+  "dshProductVersion": "2026.11.28.0"
 }
