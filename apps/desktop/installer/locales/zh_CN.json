@@ -37,7 +37,7 @@
     "INSTALLER_VERSION_UNKNOWN": "无法确认已安装的 {productName} 版本。请先卸载当前版本，再重新安装。",
     "INSTALLER_PRODUCT_TITLE": "DSHU — {productName}",
     "INSTALLER_UNINSTALL_TITLE": "卸载 DSHU — {productName}",
-    "INSTALLER_IDENTITY": "独立安装，可与官方版 DeepSeek Harness 并存",
+    "INSTALLER_IDENTITY": "独立安装，可与官方版 DeepSeek Harness Uncensored 并存",
     "INSTALLER_COMPLETE": "DSHU 已安装完成"
   },
   "uninstaller": {

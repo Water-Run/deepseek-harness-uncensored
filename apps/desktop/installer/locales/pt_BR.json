@@ -37,7 +37,7 @@
     "INSTALLER_VERSION_UNKNOWN": "Não foi possível verificar a versão instalada de {productName}. Desinstale a versão atual antes de instalar novamente.",
     "INSTALLER_PRODUCT_TITLE": "DSHU — {productName}",
     "INSTALLER_UNINSTALL_TITLE": "Desinstalar DSHU — {productName}",
-    "INSTALLER_IDENTITY": "Instalação independente ao lado do DeepSeek Harness oficial",
+    "INSTALLER_IDENTITY": "Instalação independente ao lado do DeepSeek Harness Uncensored oficial",
     "INSTALLER_COMPLETE": "DSHU foi instalado"
   },
   "uninstaller": {
