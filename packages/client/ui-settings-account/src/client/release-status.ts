@@ -1,5 +1,5 @@
 /** GitHub Releases status for this fork. Official DeepSeek and COS hosts are not update sources. */
-import { displayProductVersion, runtimeProductVersion, parseCalendarVersion } from '@deepseek-ai/dsh-product-version'
+import { runtimeProductVersion, parseCalendarVersion } from '@deepseek-ai/dsh-product-version'
 import { compare, parse, type SemVer } from 'semver'
 
 /** Observable update state. A failed or offline check is never reported as current. */
@@ -18,6 +18,7 @@ export interface ReleaseRecord {
 /** What the About page and startup reminder may show. */
 export interface ReleaseNotice {
   readonly phase: ReleasePhase
+  /** Update size for a comparison between semantic versions. */
   readonly severity?: ReleaseSeverity
   readonly version?: string
   readonly url?: string
@@ -72,7 +73,6 @@ function versionParts(value: string): SemVer | undefined {
 function compareRelease(left: SemVer, right: SemVer): number { return compare(left, right) }
 
 function severity(current: SemVer, next: SemVer): ReleaseSeverity {
-  if (parseCalendarVersion(next.version) !== undefined) return 'patch'
   if (next.major !== current.major) return 'major'
   if (next.minor !== current.minor) return 'minor'
   return 'patch'
@@ -98,10 +98,13 @@ export function classifyReleases(current: string, releases: readonly ReleaseReco
   }
   if (best === undefined) return { phase: 'unpublished', message: 'no-release' }
   if (compareRelease(best.parts, currentParts) <= 0) return { phase: 'latest', version: current }
+  const calendar = parseCalendarVersion(best.parts.version)
+  const size = calendar === undefined && parseCalendarVersion(currentParts.version) === undefined
+    ? severity(currentParts, best.parts) : undefined
   return {
     phase: 'available',
-    severity: severity(currentParts, best.parts),
-    version: parseCalendarVersion(best.parts.version) === undefined ? best.release.version : displayProductVersion(best.parts.version),
+    ...(size === undefined ? {} : { severity: size }),
+    version: calendar?.display ?? best.release.version,
     url: best.release.url,
   }
 }

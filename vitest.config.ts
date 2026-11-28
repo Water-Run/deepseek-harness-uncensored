@@ -213,7 +213,12 @@ const generatedRemoteAliases = {
     '@deepseek-ai/dsh-deepseek-chat-import/remote': fileURLToPath(new URL('./packages/experimental/deepseek-chat-import/tests/generated-remote-stub.ts', import.meta.url)),
   },
 }
-const testingAliases = { ...claudeCodeTestingAliases, ...generatedRemoteAliases }
+const testingAliases = {
+  ...claudeCodeTestingAliases,
+  ...generatedRemoteAliases,
+  // Profile mounting and reload share the same Include entry registry.
+  '@deepseek-ai/dsh-app-boot': fileURLToPath(new URL('./packages/boot/app-boot/src/index.ts', import.meta.url)),
+}
 const testPlugins = () => [
   pathsPlugin(),
   standardDecoratorPlugin(),

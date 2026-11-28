@@ -33,6 +33,7 @@ import { DeepSeekFileStore } from '../src/file-store.ts'
 import { resolveAdapterOptions } from '../src/config.ts'
 import * as Messages from '@deepseek-ai/dsh-llm-deepseek-api-key'
 import * as AccountProvider from '@deepseek-ai/dsh-llm-deepseek-account'
+import type { DeepSeekAccount } from '@deepseek-ai/dsh-deepseek-account'
 import DeepSeekAuth from '@deepseek-ai/dsh-deepseek-auth'
 import { adapter, assemble, chunks, MODEL, options, prepareExtensions, server, sse, textEvents, user, sourceModuleLoader } from './helpers.ts'
 
@@ -435,7 +436,7 @@ describe('Cordis provider composition', () => {
     ctx.tools.register(fixture('clock'))
     const inactive = 'mcp__notes__list'
     const removeList = ctx.tools.register(fixture(inactive))
-    const agent = await ctx.agentLoop.create(SessionId('schema-recovery'), { provider, model })
+    const agent = await ctx.agentLoop.create(brandString<SessionId>('schema-recovery'), { provider, model })
     await send(agent, 'Remember the date.')
     removeList()
     const disable = ctx.tools.register({

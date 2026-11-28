@@ -3,13 +3,14 @@ import { useEffect, useRef, useState } from 'react'
 import { Button, FishLogo, IconCloseOutlineRegular, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { AccountMenuProps } from './AccountMenu.tsx'
 import { GitHubIcon } from './GitHubIcon.tsx'
-import { loadForkRelease, type ReleaseNotice } from './release-status.ts'
+import { loadForkRelease, type ReleaseNotice, type ReleaseSeverity } from './release-status.ts'
 import { publicContactConfig } from './public-config.ts'
 import css from './AboutDialog.module.css'
 
 const REPOSITORY = 'https://github.com/Water-Run/deepseek-harness-uncensored'
 const UPSTREAM_REPOSITORY = 'https://github.com/deepseek-ai/deepseek-harness'
 const PURGE_REPOSITORY = process.env.DSH_CLIENT_PURGE_REPO ?? 'https://github.com/kingcharleslzy-ai/dsh-purge'
+const releaseLabels = { major: 'aboutMajor', minor: 'aboutMinor', patch: 'aboutPatch' } as const satisfies Record<ReleaseSeverity, string>
 
 function recorded(value: string | undefined, unknown: string): string {
   return value === undefined || value === '' ? unknown : value
@@ -28,7 +29,7 @@ function statusText(notice: ReleaseNotice, t: AccountMenuProps['t']): string {
   switch (notice.phase) {
     case 'checking': return t('aboutChecking')
     case 'latest': return t('aboutLatest')
-    case 'available': return t(notice.severity === 'major' ? 'aboutMajor' : notice.severity === 'minor' ? 'aboutMinor' : 'aboutPatch')
+    case 'available': return t(notice.severity === undefined ? 'aboutNewVersion' : releaseLabels[notice.severity])
     case 'unpublished': return t('aboutNoRelease')
     case 'offline': return t('aboutOffline')
     case 'failed': return notice.message === 'rate-limited'

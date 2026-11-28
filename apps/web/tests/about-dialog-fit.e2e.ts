@@ -18,9 +18,11 @@ async function scrollableDescendants(dialog: Locator): Promise<string[]> {
     .map(element => `${element.className || element.tagName}:${element.scrollHeight}/${element.clientHeight}`))
 }
 
+const nextVersion = '2099.01.01.0'
+
 it.each([
-  { locale: 'zh-CN', account: '账号菜单', about: '关于' },
-  { locale: 'en-US', account: 'Account menu', about: 'About' },
+  { locale: 'zh-CN', account: '账号菜单', about: '关于', status: '有新版本' },
+  { locale: 'en-US', account: 'Account menu', about: 'About', status: 'A new version is available' },
 ])('keeps the About dialog scroll-free at full-screen heights ($locale)', async (labels) => {
   const scaffold = await launchWebScaffold({ extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
   const browser = await chromium.launch()
@@ -28,7 +30,10 @@ it.each([
     const page = await browser.newPage({ locale: labels.locale, viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' })
     await configureConversationReplay(page)
     await page.route('https://api.github.com/repos/Water-Run/deepseek-harness-uncensored/releases**', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+      await route.fulfill({ json: [{
+        tag_name: `v${nextVersion}`, prerelease: false,
+        html_url: `https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v${nextVersion}`,
+      }] })
     })
     const consoleWatch = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
@@ -36,6 +41,7 @@ it.each([
     await page.getByRole('menuitem', { name: labels.about, exact: true }).click()
     const dialog = page.getByRole('dialog', { name: labels.about, exact: true })
     await dialog.waitFor()
+    await dialog.getByText(`${labels.status} · ${nextVersion}`, { exact: true }).waitFor()
     expect(await dialog.getByText(labels.about, { exact: true }).count()).toBe(0)
 
     const shots = fileURLToPath(new URL('../../../.artifacts/screenshots/about', import.meta.url))

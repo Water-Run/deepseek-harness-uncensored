@@ -1,4 +1,4 @@
-/** Startup reminder for a newer GitHub release. Patch notes stay on the About page. */
+/** Startup reminder for minor and major semantic versions. */
 import { useEffect, useState } from 'react'
 import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { AccountMenuProps } from './AccountMenu.tsx'
@@ -22,7 +22,7 @@ export function ReleaseReminder({ t }: { t: AccountMenuProps['t'] }) {
     void loadForkRelease(fetch, process.env.DSH_CLIENT_FORK_VERSION ?? '', { signal: controller.signal, timeoutMs: publicContactConfig().releaseCheckTimeoutMs }).then((next) => {
       if (controller.signal.aborted) return
       setNotice(next)
-      if (next.phase !== 'available' || next.version === undefined || next.severity === 'patch') return
+      if (next.phase !== 'available' || next.version === undefined || (next.severity !== 'minor' && next.severity !== 'major')) return
       try {
         if (sessionStorage.getItem(DISMISSED) === next.version) return
       } catch (error) {
