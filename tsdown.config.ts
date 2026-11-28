@@ -1,4 +1,4 @@
-import { existsSync, globSync } from 'node:fs'
+import { existsSync, globSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { defineConfig } from 'tsdown'
 import { decoratorPlugin } from './packages/typert/generator/lib/types/tsdown-plugin.js'
@@ -23,12 +23,21 @@ export default defineConfig(({ env }) => {
   const client = isBuildFaceClient(env?.DSH_BUILD_FACE)
   // A package whose TypeScript face emitted no entry has nothing to bundle; skipping it keeps the
   // workspace build aligned with the compiler output instead of failing on an unresolved entry.
+  // In the Client pass only packages with a client entry are bundled, plus the statically linked
+  // libraries whose shell manifest is built from their host entry.
+  const staticLinkedLibrary = (dir: string): boolean => {
+    const configPath = join(dir, 'tsdown.config.ts')
+    if (!existsSync(configPath)) return false
+    const text = readFileSync(configPath, 'utf8')
+    return text.includes('staticLinked(') || text.includes('clientShell(')
+  }
   const emitted = (workspace: string): boolean => {
     const dir = resolve(workspace)
-    const candidates = client
-      ? ['lib/types/client/index.js', 'lib/types/index.js']
-      : ['lib/types/index.js', 'lib/types/startup.js']
-    return candidates.some(candidate => existsSync(join(dir, candidate)))
+    if (client) {
+      return existsSync(join(dir, 'lib/types/client/index.js'))
+        || (existsSync(join(dir, 'lib/types/index.js')) && staticLinkedLibrary(dir))
+    }
+    return ['lib/types/index.js', 'lib/types/startup.js'].some(candidate => existsSync(join(dir, candidate)))
   }
   const packages = workspacePackageGlobs(globSync(['vendor/*/package.json', 'packages/*/*/package.json'], { cwd: import.meta.dirname }))
     .filter(emitted)
