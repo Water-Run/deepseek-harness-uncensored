@@ -1,8 +1,9 @@
 import { spawnSync } from 'node:child_process'
-import { globSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { globSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import ts from 'typescript'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, onTestFinished } from 'vitest'
 import { buildGates, parseBuildArguments } from './build.ts'
 
 const root = resolve(import.meta.dirname, '..')
@@ -77,6 +78,25 @@ describe('repository build CLI', () => {
 })
 
 describe('repository build steps', () => {
+  it.each([
+    { stdout: '2026.11.28.0', exitCode: 0, diagnostic: 'Built CLI product version matched 2026.11.28.0' },
+    { stdout: '', exitCode: 1, diagnostic: 'printed "", expected "2026.11.28.0"' },
+    { stdout: '0.2.3-alpha.2', exitCode: 1, diagnostic: 'printed "0.2.3-alpha.2", expected "2026.11.28.0"' },
+  ])('checks the built CLI product version when it prints "$stdout"', ({ stdout, exitCode, diagnostic }) => {
+    const fixture = mkdtempSync(join(tmpdir(), 'dshu-cli-version-'))
+    onTestFinished(() => rmSync(fixture, { recursive: true, force: true }))
+    const lib = join(fixture, 'apps', 'cli', 'lib')
+    mkdirSync(lib, { recursive: true })
+    writeFileSync(join(fixture, 'product.json'), JSON.stringify({ version: '2026.1128.0' }))
+    writeFileSync(join(lib, 'bin.js'), `console.log(${JSON.stringify(stdout)})\n`)
+    const gate = buildGates(root, 'artifacts').find(entry => entry.id === 'cli-version')!
+    const result = spawnSync(gate.command, [gate.args[0]!, fixture], { encoding: 'utf8', timeout: 30_000 })
+    if (result.error !== undefined) throw result.error
+    expect(result.signal).toBeNull()
+    expect(result.status, result.stderr).toBe(exitCode)
+    expect(exitCode === 0 ? result.stdout : result.stderr).toContain(diagnostic)
+  }, 40_000)
+
   it('parses the explicit serial build option', () => {
     expect(parseBuildArguments(['--profile', 'official', '--serial'])).toEqual({ scope: 'complete', profile: 'official', serial: true })
   })

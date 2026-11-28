@@ -63,11 +63,11 @@ Press F12 (Fn+F12 on media-key keyboards), Command+Option+I on macOS, or Ctrl+Sh
 
 ## Terminal command
 
-The application menu's **Manage dsh Command…** entry, immediately below **Check for Updates…**, shows the current command and offers Install, Repair, and Remove. The command uses Desktop's installed runtime and the ordinary [dsh CLI](../cli/README.md), including when the Desktop application is closed. Open a new terminal after installation and run `dsh --version`.
+The application menu's **Manage dsh-uncensored Command…** entry, immediately below **Check for Updates…**, shows the current command and offers Install, Repair, and Remove. The command uses Desktop's installed runtime and the ordinary [DSHU CLI](../cli/README.md), including when the Desktop application is closed. Open a new terminal after installation and run `dsh-uncensored --version`.
 
-On macOS, installation creates `/usr/local/bin/dsh` and requests administrator authentication when the directory requires it. Shell startup files are unchanged. On Windows, the management dialog registers the command in the current user's PATH. A pre-existing command requires confirmation before switching; repairing Desktop's own selected command does not repeat that confirmation. The macOS link preserves and restores the displaced launcher; Windows preserves other PATH entries, including entries that predate registration. A command with higher PATH precedence is reported with its location. After moving the application, use Repair on macOS or Install from the new location on Windows. Remove leaves unrelated installations intact.
+On macOS, installation creates `/usr/local/bin/dsh-uncensored` and requests administrator authentication when the directory requires it. Shell startup files are unchanged. On Windows, the management dialog registers the command in the current user's PATH. A pre-existing command requires confirmation before switching; repairing Desktop's own selected command does not repeat that confirmation. The macOS link preserves and restores the displaced launcher; Windows preserves other PATH entries, including entries that predate registration. A command with higher PATH precedence is reported with its location. After moving the application, use Repair on macOS or Install from the new location on Windows. Remove leaves unrelated installations intact.
 
-Command registration is optional after installing Desktop. Windows manual uninstall removes CLI registration owned by that installation; on macOS, use **Manage dsh Command… → Remove** before uninstalling Desktop. Finish CLI commands before updating or uninstalling Desktop. The CLI runtime version follows the installed Desktop release. See [bundled command runtime](#bundled-command-runtime) for Desktop plugin commands and runtime limitations.
+Command registration is optional after installing Desktop. Windows manual uninstall removes CLI registration owned by that installation; on macOS, use **Manage dsh-uncensored Command… → Remove** before uninstalling Desktop. Finish CLI commands before updating or uninstalling Desktop. The CLI runtime version follows the installed Desktop release. See [bundled command runtime](#bundled-command-runtime) for Desktop plugin commands and runtime limitations.
 
 <a id="closing-the-window-and-quitting"></a>
 
@@ -137,9 +137,9 @@ Welcome loads the shared Toast palette and shadow tokens, with system typography
 
 ## Bundled command runtime
 
-The installed `resources/runtime/cli/bin/dsh` shell script (`dsh.cmd` on Windows) runs the ordinary CLI dispatcher using Desktop's Electron executable and bundled pnpm. It works while Desktop is closed and retains the Electron runtime limitations. Ordinary profile, configuration, and plugin commands use the same implementation as npm dsh; the command does not open Desktop.
+The installed `resources/runtime/cli/bin/dsh-uncensored` shell script (`dsh-uncensored.cmd` on Windows) runs the ordinary CLI dispatcher using Desktop's Electron executable and bundled pnpm. It works while Desktop is closed and retains the Electron runtime limitations. Ordinary profile, configuration, and plugin commands use the same implementation as the npm CLI; the command does not open Desktop.
 
-To manage Desktop's plugins, launch Desktop once to initialize its profile, fully quit the application, then run `dsh plugin --profile desktop add <package>`, `list`, or `remove <package>`. Reopen Desktop to use the changes. Package operations retain the shared profile write lock and compatibility checks. The installed command refuses an uninitialized Desktop profile instead of creating an ordinary CLI profile in its place.
+To manage Desktop's plugins, launch Desktop once to initialize its profile, fully quit the application, then run `dsh-uncensored plugin --profile desktop add <package>`, `list`, or `remove <package>`. Reopen Desktop to use the changes. Package operations retain the shared profile write lock and compatibility checks. The installed command refuses an uninitialized Desktop profile instead of creating an ordinary CLI profile in its place.
 
 Finish CLI commands before updating or uninstalling Desktop; the installer does not coordinate with running commands. The CLI does not supply Office authoring-skill resource paths. Desktop's existing Office setup and Web attachment conversion retain their own resource configuration. `prepare:runtime` copies the launch scripts without compiling a native CLI launcher.
 
@@ -165,7 +165,7 @@ Electron chooses typed shell copy in the eight [shipped Client languages](../../
 
 Windows and macOS relay native fullscreen transitions and the state after each page load to the renderer, so overlays can adapt their caption clearance.
 
-Windows uses a 40-DIP caption with native window controls and colors synchronized from the application palette. Localized Application and Edit entries beside the sidebar toggle open native popup menus. They mount only after the application frame publishes its shell overlay seat, and remain absent during startup loading. Application provides About, Settings, Check for Updates, Manage dsh Command, Developer tools, and Exit; Edit provides undo, redo, cut, copy, paste, delete, and select all by sending the corresponding keys to the focused editor, independently of custom shortcut bindings. Plugin management uses the main application's Plugins page. No separate native menu row appears on Alt. Other platforms retain their native menus. Editable fields retain keyboard commands and a context menu without shortcut labels; Chromium supplies command availability, and selected read-only text offers Copy.
+Windows uses a 40-DIP caption with native window controls and colors synchronized from the application palette. Localized Application and Edit entries beside the sidebar toggle open native popup menus. They mount only after the application frame publishes its shell overlay seat, and remain absent during startup loading. Application provides About, Settings, Check for Updates, Manage dsh-uncensored Command, Developer tools, and Exit; Edit provides undo, redo, cut, copy, paste, delete, and select all by sending the corresponding keys to the focused editor, independently of custom shortcut bindings. Plugin management uses the main application's Plugins page. No separate native menu row appears on Alt. Other platforms retain their native menus. Editable fields retain keyboard commands and a context menu without shortcut labels; Chromium supplies command availability, and selected read-only text offers Copy.
 
 On macOS the custom menu retains Electron's standard Window menu and application hide commands, including Minimize (⌘M) and Hide (⌘H). Its Edit menu copies Electron's, binds Paste and Match Style to ⇧⌘V, and keeps Electron's ⌥⇧⌘V as a hidden alias; the Substitutions and Speech titles come from the desktop locale, while the other items keep Electron's English labels. Linux keeps the application and Edit menus.
 
@@ -248,8 +248,7 @@ Use the dedicated guides for build and release operations. Shared Windows runner
 
 - [Desktop packaging](packaging/README.md): local and Actions builds, versions, deployment settings, artifacts, logs and verification.
 - [Windows signing and runner operations](windows-signing/README.md): machine setup, accepted isolation risks, signing credentials, token failures and cache maintenance.
-- [Desktop publication](publishing/README.md): upload credentials, release identity, fixed downloads, update feeds and upload recovery.
-- [Publisher workspace](../desktop-publisher/README.md): dependency ownership and isolated rollout installation.
+- GitHub release staging, installer downloads and update metadata are covered in [Desktop publication](publishing/README.md).
 
 <a id="windows-uninstall-rules"></a>
 

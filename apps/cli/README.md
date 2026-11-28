@@ -2,39 +2,39 @@
 
 English | [中文](README.zh.md)
 
-The `dsh` command is the sole supported Node application launcher: profiles are ordered stacks of plugin-bundle patch layers under the user's own overrides. SDK and ACP are profiles, not separate public bins. The Python runtime wheel packages this same command; the SDK defaults to `sdk`, and the minimal example selects `sdk-minimal`. [`src/args.ts`](src/args.ts) owns the command grammar, and [`src/bin.ts`](src/bin.ts) loads only the selected runner. Invalid commands, options from another mode, and fatal configuration or boot failures exit nonzero.
+The `dsh-uncensored` command launches Node applications through profiles, which layer plugin-bundle patches and user overrides. SDK and ACP run as profiles. The Python runtime wheel exposes its launcher as `dsh`. The SDK defaults to `sdk`, and the minimal example selects `sdk-minimal`. [`src/args.ts`](src/args.ts) owns the command grammar, and [`src/bin.ts`](src/bin.ts) loads only the selected runner. Invalid commands, options from another mode, and fatal configuration or boot failures exit nonzero.
 
 ## Entry modes
 
 | Command | Purpose |
 |---|---|
-| `dsh <name>` / `dsh --profile <name>` | Boot the named profile under `$DSH_HOME/profiles/<name>`. |
-| `dsh --profile <name> --from-default-profile <template>` | Replace a custom profile with a fresh copy of a shipped template, then boot it. |
-| `dsh --profile acp` | Serve automation clients over ACP stdio until disconnect. |
-| `dsh --profile headless "job"` | Run one fresh persisted session, print the final answer, and exit. |
-| `dsh --profile sdk` | Serve SDK clients over JSON-RPC stdio until shutdown or disconnect. |
-| `dsh --profile sdk-minimal` | Serve SDK clients with the standalone minimal agent tree. |
-| `dsh web` | Boot the Web profile. |
-| `dsh plugin --profile <name> <pnpm args>` | Manage a profile's plugins by forwarding to pnpm in the profile directory. |
+| `dsh-uncensored <name>` / `dsh-uncensored --profile <name>` | Boot the named profile under `$DSH_HOME/profiles/<name>`. |
+| `dsh-uncensored --profile <name> --from-default-profile <template>` | Replace a custom profile with a fresh copy of a shipped template, then boot it. |
+| `dsh-uncensored --profile acp` | Serve automation clients over ACP stdio until disconnect. |
+| `dsh-uncensored --profile headless "job"` | Run one fresh persisted session, print the final answer, and exit. |
+| `dsh-uncensored --profile sdk` | Serve SDK clients over JSON-RPC stdio until shutdown or disconnect. |
+| `dsh-uncensored --profile sdk-minimal` | Serve SDK clients with the standalone minimal agent tree. |
+| `dsh-uncensored web` | Boot the Web profile. |
+| `dsh-uncensored plugin --profile <name> <pnpm args>` | Manage a profile's plugins by forwarding to pnpm in the profile directory. |
 
-The invoking directory is the default workspace root. The `web`, `headless`, `sdk`, `sdk-minimal`, and `acp` profiles auto-initialize on first use from shipped templates. Create or reset another profile at a non-shipped name with `--from-default-profile`, or initialize a base-backed profile through `dsh plugin`. The `desktop` name is reserved for the Electron-owned profile, so the CLI rejects boot and config-dump requests for it. The npm CLI also rejects its plugin-management requests; the [Desktop-installed command](../desktop/README.md#bundled-command-runtime) can manage the initialized Desktop profile using that installation’s runtime.
+The invoking directory is the default workspace root. The `web`, `headless`, `sdk`, `sdk-minimal`, and `acp` profiles auto-initialize on first use from shipped templates. Create or reset another profile at a non-shipped name with `--from-default-profile`, or initialize a base-backed profile through `dsh-uncensored plugin`. The `desktop` name is reserved for the Electron-owned profile, so the CLI rejects boot and config-dump requests for it. The npm CLI also rejects its plugin-management requests; the [Desktop-installed command](../desktop/README.md#bundled-command-runtime) can manage the initialized Desktop profile using that installation’s runtime.
 
 ## App arguments
 
 The launcher parses only its own flags and hands everything after them to the booted profile, where any injected app plugin may parse the shared immutable snapshot ([`dsh-cmdline`](../../packages/boot/cmdline/README.md)). The first token the launcher does not recognize starts the app's arguments:
 
 ```sh
-dsh --profile web --port 8080       # --port belongs to the web app
-dsh --profile tui --resume <id>     # example, assuming the tui profile is installed; --resume belongs to the terminal app
-dsh --profile headless "run the tests"
-dsh --profile web --help            # the web app's flags, not the launcher's
-dsh --help                          # the launcher's own help
+dsh-uncensored --profile web --port 8080       # --port belongs to the web app
+dsh-uncensored --profile tui --resume <id>     # example, assuming the tui profile is installed; --resume belongs to the terminal app
+dsh-uncensored --profile headless "run the tests"
+dsh-uncensored --profile web --help            # the web app's flags, not the launcher's
+dsh-uncensored --help                          # the launcher's own help
 ```
 
 <a id="profiles"></a>
 ## Profiles
 
-A profile directory holds a `package.json` (out-of-tree plugin dependencies plus the profile manifest `dsh.profile` with its ordered `bundles` list) and a `cordis.patch.yml` (the user's own patch layer). `dsh-hmr`, when enabled in YAML, watches the profile manifest, the profile and home patch files, and every `--patch` overlay file, then recomposes all layers through one serialized reload. Without HMR, changes apply on restart, except that a Config Editor save applies the current contents of every patch and overlay file. Edits arriving during watcher registration use the same nonfatal reload reporting as later edits. [Plugin Manager](../../packages/boot/plugin-manager/README.md) shares package operations and the profile write lock with `dsh plugin`; package updates retain disabled bundle selections. CLI package commands inherit authentication variables and terminal descriptors, including interactive build approval; service calls retain their scrubbed environment and captured diagnostics.
+A profile directory holds a `package.json` (out-of-tree plugin dependencies plus the profile manifest `dsh.profile` with its ordered `bundles` list) and a `cordis.patch.yml` (the user's own patch layer). `dsh-hmr`, when enabled in YAML, watches the profile manifest, the profile and home patch files, and every `--patch` overlay file, then recomposes all layers through one serialized reload. Without HMR, changes apply on restart, except that a Config Editor save applies the current contents of every patch and overlay file. Edits arriving during watcher registration use the same nonfatal reload reporting as later edits. [Plugin Manager](../../packages/boot/plugin-manager/README.md) shares package operations and the profile write lock with `dsh-uncensored plugin`; package updates retain disabled bundle selections. CLI package commands inherit authentication variables and terminal descriptors, including interactive build approval; service calls retain their scrubbed environment and captured diagnostics.
 
 `dsh-uncensored --version` prints the DSHU product version. Both calendar formats in the CLI manifest (`YYYY.MM.DD.N` and `YYYY.MMDD.N`) display as `YYYY.MM.DD.N`. Installation and profile startup check plugin compatibility against the embedded DSH engine version using `engines.dsh`, or DSH peer ranges when it is absent. Incompatible plugins require an explicitly acknowledged exact-version exemption. The [plugin manager's compatibility reference](../../packages/boot/plugin-manager/README.md#version-compatibility-and-exemptions) documents these exemptions.
 
