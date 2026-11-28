@@ -1025,6 +1025,12 @@
     },
     {
       "path": "./packages/experimental/computer-use-cua-driver-mcp/tsconfig.json"
+    },
+    {
+      "path": "./packages/experimental/client-ui-cot-translation/tsconfig.host.json"
+    },
+    {
+      "path": "./packages/experimental/liveshare/tsconfig.host.json"
     }
   ]
 }
