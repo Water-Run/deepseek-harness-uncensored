@@ -4,6 +4,22 @@
 
 [正式版接手清单](#正式版接手清单) · [合并后的关于页](#合并后的关于页) · [版本身份](#版本身份) · [七项需求](#七项需求如何验收) · [复现](#从干净目录复现) · [保留资料](#旧资料与问题-20) · [平台验收](#桌面与平台验收) · [交付顺序](#交付顺序与接手责任)
 
+## 全平台发布门槛
+
+一次发布必须同时满足以下条件，缺一项都不能把 Release 标为正式版或 Latest：
+
+| 平台 | 附件 | 打包命令 |
+| --- | --- | --- |
+| Windows x64 | EXE | `pnpm --dir apps/desktop run package:win:x64:unsigned -- --build-version <版本>` |
+| macOS arm64 | DMG | `pnpm --dir apps/desktop run package:mac:arm64:unsigned -- --build-version <版本>` |
+| Linux x64 | DEB、RPM | `pnpm --dir apps/desktop run package:linux:x64:unsigned -- --build-version <版本>` |
+| Linux arm64 | DEB | `pnpm --dir apps/desktop run package:linux:arm64:unsigned -- --build-version <版本>` |
+
+- 所有包必须来自同一提交；打包记录中的 `commit` 与 `dirty=false` 要和 tag 一致。
+- 每个平台至少完成一次安装/挂载与启动冒烟，并记录回执；未做签名的包要在正文注明 unsigned。
+- 上传全部安装包、`.blockmap`、`latest*.yml`；正文中的 SHA-256 与 GitHub 附件 digest 一致。
+- 只在 Windows 上打包并上传过安装包时，必须视为发布未完成。
+
 ## 正式版接手清单
 
 **发行状态为待完成。** 下一正式版的最低范围是上一正式版 `v2026.11.24.3` 的完整用户功能，加上[本次七项变更](#七项需求如何验收)。GitHub Latest 仍指向 `v2026.11.24.3`，首发版到它的 Windows 静默升级存在[已复现的问题](#issue-24-的首发版静默升级)。本次 `2026.11.25.0` 的 Windows、macOS 和 Linux 验收包仅含缺省和写作。关于页列出的 dsh-purge Community 和 REA 是上一正式版的组件参考，两者均未随此候选交付。

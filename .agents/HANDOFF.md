@@ -1,5 +1,20 @@
 # DSHU 开发交接
 
+## 发布定义（强制）
+
+**发布 = 同一源码提交上的全平台打包、全平台测试与全附件上传。** 只上传 Windows 视为未发布。
+
+每次正式版必须交付并逐个冒烟：
+
+- Windows x64：EXE
+- macOS arm64：DMG
+- Linux x64：DEB、RPM
+- Linux arm64：DEB
+
+还要同步上传各平台更新索引（`latest.yml`、`latest-mac.yml`、`latest-linux.yml`、`latest-linux-arm64.yml`），Release 正文列出全部附件的名称、大小与 SHA-256。任一平台附件或测试回执缺失时，Release 不得标为正式版或 Latest。
+
+打包/测试主机：本机 Windows、Mac Studio（arm64 macOS，经 waterrun 跳板）、DGX Spark（arm64 Linux，`ssh dgxspark`）、yynicepc（x86_64 Debian，`ssh -p 26022 yynicepc@evader84.picp.io`）。验收命令与平台矩阵见[发布交接文档](requirements/2026-11-25-release-handoff.md#全平台发布门槛)。
+
 ## 下一正式版
 
 线上基准为 `v2026.11.24.3`。当前候选为 DSHU `2026.11.27.0`、DSH `0.2.3-alpha.2`，候选树 `e6b3c3ab66e1`，已把破甲核心、REA、拒答重试与网安/逆向预设并回缺省与写作两种模式，四种模式同包交付。网安代理面板与真实目标保护仍未移植，逐项缺口与复验命令见[四模式并档记录](requirements/2026-11-27-four-mode-merge.md)。接手者从[固定候选清单](../kernel/0.2.3-alpha.2/source.json)取得源码身份，按以下顺序交付。
