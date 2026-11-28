@@ -6,4 +6,4 @@ DSHU 2026.11.28.0
 
 升级前请备份数据。`2026.11.24.3` 可在应用菜单检查更新，首发版 `2026.11.23.0` 需下载对应安装包覆盖安装。
 
-本版仅提供 Windows x64 未签名安装包；应用内更新使用同一 Release 的 `latest.yml`。
+本版提供 Windows x64、macOS arm64、Linux x64（DEB/RPM）与 Linux arm64（DEB）安装包，全部未签名；应用内更新使用同一 Release 的 `latest*.yml`。
