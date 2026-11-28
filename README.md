@@ -6,9 +6,9 @@
 
 **更自由的探索未至之境**
 
-[![正式版](https://img.shields.io/badge/%E6%AD%A3%E5%BC%8F%E7%89%88-2026.11.24.3-2563EB?style=flat-square)](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.24.3) ![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Windows%20%C2%B7%20Linux%20%C2%B7%20macOS-0F172A?style=flat-square) ![架构](https://img.shields.io/badge/%E6%9E%B6%E6%9E%84-x64%20%C2%B7%20arm64-334155?style=flat-square) [![基于](https://img.shields.io/badge/%E5%9F%BA%E4%BA%8E-DeepSeek%20Harness%200.2.3--alpha.2-15803D?style=flat-square)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.3-alpha.2) [![许可](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-GPL--3.0--or--later-A16207?style=flat-square)](LICENSE)
+[![正式版](https://img.shields.io/badge/%E6%AD%A3%E5%BC%8F%E7%89%88-2026.11.28.0-2563EB?style=flat-square)](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.28.0) ![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Windows%20%C2%B7%20Linux%20%C2%B7%20macOS-0F172A?style=flat-square) ![架构](https://img.shields.io/badge/%E6%9E%B6%E6%9E%84-x64%20%C2%B7%20arm64-334155?style=flat-square) [![基于](https://img.shields.io/badge/%E5%9F%BA%E4%BA%8E-DeepSeek%20Harness%200.2.3--alpha.2-15803D?style=flat-square)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.3-alpha.2) [![许可](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-GPL--3.0--or--later-A16207?style=flat-square)](LICENSE)
 
-[四种模式](#四种模式) · [旁问与随问](#旁问与随问) · [余额与限额](#余额与额度限制) · [跨对话记忆](#跨对话记忆) · [输入预测](#输入预测) · [使用手册](docs/user/guide/dshu.md) · [下载](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.24.3)
+[四种模式](#四种模式) · [旁问与随问](#旁问与随问) · [余额与限额](#余额与额度限制) · [跨对话记忆](#跨对话记忆) · [输入预测](#输入预测) · [使用手册](docs/user/guide/dshu.md) · [下载](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.28.0)
 
 </div>
 
