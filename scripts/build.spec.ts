@@ -15,6 +15,7 @@ const artifactGraph = {
   'desktop-bundle': ['host-bundle'],
   'client-src': ['desktop-bundle'],
   'client-bundle': ['client-src'],
+  'cli-version': ['host-bundle'],
   'web': ['client-bundle'],
 }
 

@@ -36,7 +36,7 @@ dsh --help                          # the launcher's own help
 
 profile 目录包含一个 `package.json`，其中记录树外插件依赖，以及 profile manifest（元数据清单）`dsh.profile`、其中按顺序排列的 `bundles` 列表；还包含一个 `cordis.patch.yml`，其中保存用户自己的 patch 层。在 YAML 中启用的 `dsh-hmr` 监视 profile manifest、profile 与 home 级 patch 文件以及每个 `--patch` overlay 文件，再通过统一串行重载重新组合所有层。未启用 HMR 时，更改在重启后生效；例外是 Config Editor 保存时会应用所有 patch 与 overlay 文件的当前内容。监听器注册期间发生的编辑与后续编辑使用相同的非致命重载错误报告。[插件管理器](../../packages/boot/plugin-manager/README.zh.md) 与 `dsh plugin` 共享包操作和 profile 写锁；更新依赖会保留已停用的组合包选择。CLI 包操作继承认证环境和终端描述符，支持交互式构建批准；service 调用保留清理后的环境并捕获诊断。
 
-安装和 profile 启动会按声明的 `engines.dsh` 范围（未声明时按 DSH peer 范围），检查与 `dsh --version` 显示值相同的运行时版本。不兼容插件需要用户明确确认精确版本豁免。[插件管理器的兼容性参考](../../packages/boot/plugin-manager/README.zh.md#version-compatibility-and-exemptions)说明 `version-exemptions`、`allow-version`、`revoke-version`、持久化规则与风险。
+`dsh-uncensored --version` 输出 DSHU 产品版本。CLI 清单中的两种日期格式（`YYYY.MM.DD.N` 和 `YYYY.MMDD.N`）都显示为 `YYYY.MM.DD.N`。安装和 profile 启动时，插件兼容性按内置 DSH 内核版本检查，优先采用 `engines.dsh`，未声明时采用 DSH peer 范围。不兼容插件需要用户明确确认精确版本豁免。详见[插件管理器的兼容性参考](../../packages/boot/plugin-manager/README.zh.md#version-compatibility-and-exemptions)。
 
 配置树以空根为起点，依次叠加以下配置层：
 - `dsh.profile.bundles` 中各组合包的 patch

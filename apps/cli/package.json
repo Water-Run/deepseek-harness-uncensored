@@ -121,6 +121,7 @@
     "commander": "^15.0.0",
     "js-yaml": "^4.3.2",
     "node-addon-require-builtin": "^0.1.10",
+    "semver": "^7.8.5",
     "@deepseek-ai/dsh-cua-mcp": "workspace:*",
     "@deepseek-ai/dsh-timeline": "workspace:*"
   },
@@ -175,6 +176,7 @@
     "@deepseek-ai/dsh-tools": "workspace:*",
     "@deepseek-ai/dsh-user-approval": "workspace:*",
     "@types/js-yaml": "^4.0.9",
+    "@types/semver": "^7.8.0",
     "@types/ws": "8.18.1",
     "ajv": "^8.20.0",
     "execa": "^10.0.1",

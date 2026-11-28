@@ -586,6 +586,9 @@ importers:
       node-addon-require-builtin:
         specifier: ^0.1.10
         version: 0.1.10
+      semver:
+        specifier: ^7.8.5
+        version: 7.8.5
     devDependencies:
       '@agentclientprotocol/sdk':
         specifier: 1.4.0
@@ -740,6 +743,9 @@ importers:
       '@types/js-yaml':
         specifier: ^4.0.9
         version: 4.0.9
+      '@types/semver':
+        specifier: ^7.8.0
+        version: 7.8.0
       '@types/ws':
         specifier: 8.18.1
         version: 8.18.1

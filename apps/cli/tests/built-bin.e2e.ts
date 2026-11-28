@@ -12,6 +12,7 @@ import {
   type SessionNotification,
 } from '@agentclientprotocol/sdk'
 import { withFileLock, writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
+import { displayProductVersion } from '@deepseek-ai/dsh-product-version'
 import { startMockLlmServer } from '@deepseek-ai/dsh-llm-mock-server'
 import { parseEntryYaml } from '@deepseek-ai/cordis-plugin-include'
 import { execa } from 'execa'
@@ -24,9 +25,8 @@ const repoRoot = fileURLToPath(new URL('../../../', import.meta.url))
 // execa deadline, its error text, the outer vitest case budget, and waitForFile all
 // share this value so a widening cannot leave a stale 25s diagnostic behind.
 const SPAWN_TIMEOUT_MS = 60_000
-// The release version, including a prerelease such as 0.0.1-rc.1: `--version`
-// prints what this manifest carries, so no test may pin it to a literal.
-const cliVersion = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version
+const product = JSON.parse(readFileSync(new URL('../../../product.json', import.meta.url), 'utf8')) as { version: string }
+const cliVersion = displayProductVersion(product.version)
 const dshBin = join(repoRoot, 'apps/cli/lib/bin.js')
 const invalidProvider = fileURLToPath(new URL('./fixtures/invalid-provider.cordis.yml', import.meta.url))
 const webReadyExitHook = new URL('./fixtures/web-browser-open/register.mjs', import.meta.url).href

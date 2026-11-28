@@ -99,6 +99,10 @@ export function buildGates(
     for (const step of libraryBuildSteps(root, 'all')) {
       gates.push(libraryGate(step, step.id === 'host-src' ? ['native', ...step.needs] : step.needs, env))
     }
+    gates.push({
+      id: 'cli-version', label: 'CLI version', displayCommand: 'node apps/cli/lib/bin.js --version',
+      command: process.execPath, args: [resolve(root, 'apps/cli/lib/bin.js'), '--version'], needs: ['host-bundle'], env,
+    })
     gates.push(pnpmGate('web', 'Web build', ['run', 'build:web'], ['client-bundle'], env))
   }
   if (scope === 'typecheck') {
